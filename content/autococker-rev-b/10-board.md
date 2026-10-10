@@ -17,7 +17,7 @@ The {{value product}} Autococker {{value board.name}} board controls the firing 
 | `COCKING` | A 2-pin connector | The cocking solenoid output |
 | `EYES` | A 4-pin connector | The ball eye, which is off the board |
 | `TRIG` | A 4-pin header | The trigger board, which is an optical board or a switch board |
-| USB-C | The USB-C receptacle | Data and programming. USB-C does not give power to the board. |
+| `J4` | The USB-C receptacle | Data and programming. USB-C does not give power to the board. |
 
 {{image pcb:docs/images/quick-start/buttons-back.svg | The three buttons at the back of the grip frame}}
 

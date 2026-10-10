@@ -81,7 +81,7 @@ figure { margin: 1.5em 0; padding: 16px; background: var(--md-surface); border: 
 figure svg, figure img { max-height: 70vh; width: auto; }
 /* A drawing keeps its white paper. A label that a name made longer may run past the drawing,
    so the paper has a margin at each side and the drawing does not clip. */
-figure svg { background: #fff; border-radius: 6px; overflow: visible; padding: 0 32px; box-sizing: content-box; max-width: calc(100% - 64px); }
+figure svg { background: #fff; border-radius: 6px; overflow: visible; padding: 0 48px; box-sizing: content-box; max-width: calc(100% - 96px); }
 figcaption { margin-top: 10px; font-size: 0.9rem; color: var(--md-on-surface-variant); }
 .crumbs { margin: -0.3em 0 0.8em; font-size: 0.85rem; color: var(--md-on-surface-variant); }
 

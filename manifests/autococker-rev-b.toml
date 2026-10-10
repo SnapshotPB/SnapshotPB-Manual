@@ -48,4 +48,7 @@ document = "../app/snapshotpb/26.40.1.json"
 [names]
 "TRIG" = "Trigger"
 "TRIG1" = "Trigger"
-"J11" = "Trigger board"
+"J4" = "USB Header"
+"J8" = "OLED Display Board"
+"J11" = "Optical Trigger Board"
+"J13" = "Microswitch Trigger Board"

@@ -6,6 +6,7 @@ use base64::Engine;
 use crate::gen::Ctx;
 use crate::markdown::{toc_html, Body};
 use crate::media::inline_svg;
+use crate::names::Names;
 use crate::theme::Theme;
 use crate::util::{esc, read_bytes};
 
@@ -56,7 +57,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let toc = toc_html(&body.toc);
     let theme_css = theme.css();
     let tabs_css = tabs_css(&ctx.targets());
-    let content = &body.html;
+    let content = Names::new(&m.names)?.apply(&body.html);
     let board = esc(&m.board.name);
     let md5 = esc(ctx.board.md5_short());
     let generator = env!("CARGO_PKG_NAME");

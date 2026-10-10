@@ -32,6 +32,9 @@ pub struct Manifest {
     /// Literal values for `{{value name}}` in the content.
     #[serde(default)]
     pub values: BTreeMap<String, String>,
+    /// The readable name of each designator that the page shows by name, such as `J11`.
+    #[serde(default)]
+    pub names: BTreeMap<String, String>,
 }
 
 #[derive(Deserialize)]
@@ -123,6 +126,7 @@ impl Loaded {
                 },
                 app: None,
                 values: BTreeMap::new(),
+                names: BTreeMap::new(),
             },
             dir: path.parent().map(Path::to_path_buf).unwrap_or_default(),
             path: path.to_path_buf(),

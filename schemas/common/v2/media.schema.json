@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snapshotpb.com/schemas/common/v2/media.schema.json",
+  "$comment": "SPDX-License-Identifier: MPL-2.0. Copyright 2026 Snapshot PB. This file is licensed under the Mozilla Public License, version 2.0. See the LICENSE file beside the schema set.",
+  "title": "Snapshot PB media",
+  "description": "The definitions that the firmware schema and the application schema share: the localized text, a media item that a document shows in the manual, and the key patterns.",
+  "$defs": {
+    "local_key": {
+      "description": "A key that is local to one document: lower case, digits, and underscores.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "shared_key": {
+      "description": "A key that the firmware and the application documentation share: <scope>.<name>. For a setting, it is the field path in the protocol model, for example autococker.eye_mode. For a topic, the scope is the word topic.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+    },
+    "version": {
+      "description": "A version: MAJOR.MINOR.PATCH, with an optional suffix such as -dev.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.]+)?$"
+    },
+    "lang": {
+      "description": "A language tag: a two-letter or three-letter language code, with an optional region, for example en, de, or es-MX.",
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+    },
+    "localized": {
+      "description": "A text in one or more languages. The item with the language en is required: the manual falls back to English for a language that the text does not have. Each language appears once.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "lang",
+          "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "lang": {
+            "$ref": "#/$defs/lang"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "contains": {
+        "properties": {
+          "lang": {
+            "const": "en"
+          }
+        },
+        "required": [
+          "lang"
+        ]
+      }
+    },
+    "text": {
+      "description": "Prose for the manual, in each language, in ASD-STE100 Simplified Technical English. Markdown inline formatting is permitted.",
+      "$ref": "#/$defs/localized"
+    },
+    "label": {
+      "description": "A short text that the manual prints as it is: a name, a title, a row, an option, or a path, in each language. It holds the words that the board or the app shows.",
+      "$ref": "#/$defs/localized"
+    },
+    "media_ref": {
+      "description": "The keys of media items in the media map of the document, in the order the manual shows them.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/local_key"
+      }
+    },
+    "media_map": {
+      "description": "The media items of the document, keyed by local key. A setting, a topic, a screen, a control, or the document itself names an item by its key.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/local_key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/media"
+      }
+    },
+    "media": {
+      "description": "One thing the manual shows beside the text: a picture, a 3D model, a video, or a kind that a later schema version defines. The generator renders the kinds it knows and embeds the file for the kinds it does not.",
+      "type": "object",
+      "required": [
+        "kind",
+        "src",
+        "caption"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "What the file is. The known kinds are image, model, video, and document. A kind that the generator does not know is still valid: the generator embeds the file with a link and the caption, so a document can carry a kind before the manual can show it.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "src": {
+          "description": "Where the file is. A plain path is relative to the document file. A path with a <source>: prefix, for example pcb:snapshot_v2/renders/board.glb, is relative to that source root of the manual. The source roots are named in the manifest of the manual, so a document can show a file that another repository owns, such as a 3D model that the board repository provides.",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^([a-z][a-z0-9_]*:)?[^\\s]+$"
+        },
+        "caption": {
+          "description": "The caption under the item, and the accessible name of the item.",
+          "$ref": "#/$defs/text"
+        },
+        "media_type": {
+          "description": "The IANA media type of the file, for example model/gltf-binary. The generator infers it from the file extension when it is absent.",
+          "type": "string",
+          "pattern": "^[a-z]+/[A-Za-z0-9.+_-]+$"
+        },
+        "alt": {
+          "description": "A text alternative for a reader who cannot see the item, when the caption is not enough.",
+          "$ref": "#/$defs/label"
+        },
+        "params": {
+          "description": "Parameters for the kind, which the kind defines. For a model: a camera position, or the part to highlight. The schema does not constrain them, so a kind can grow without a schema change.",
+          "type": "object"
+        }
+      }
+    }
+  }
+}

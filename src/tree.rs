@@ -217,10 +217,7 @@ mod tests {
 
     #[test]
     fn every_screen_is_a_box_with_a_link() {
-        let doc: Document = serde_json::from_str(include_str!(
-            "../schemas/firmware/v1/examples/autococker-26.29.0.json"
-        ))
-        .unwrap();
+        let doc = Document::example();
         let placed = doc.walk().unwrap();
         let s = svg(&doc, &placed);
         for key in doc.screens.keys() {
@@ -236,10 +233,7 @@ mod tests {
 
     #[test]
     fn children_do_not_overlap() {
-        let doc: Document = serde_json::from_str(include_str!(
-            "../schemas/firmware/v1/examples/autococker-26.29.0.json"
-        ))
-        .unwrap();
+        let doc = Document::example();
         let placed = doc.walk().unwrap();
         let s = svg(&doc, &placed);
         let re = regex::Regex::new(r#"<rect x="(-?[0-9.]+)" y="(-?[0-9.]+)" width="(-?[0-9.]+)""#)

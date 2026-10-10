@@ -29,6 +29,8 @@ pub const APP_TAB: &str = "Configuration App";
 
 pub struct Ctx<'a> {
     pub loaded: &'a Loaded,
+    /// The language of the manual. Each document was read in this language.
+    pub lang: String,
     pub fw: &'a firmware::Document,
     pub fw_dir: &'a Path,
     pub app: Option<&'a app::Document>,

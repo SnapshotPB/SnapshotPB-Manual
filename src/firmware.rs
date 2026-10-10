@@ -8,6 +8,7 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::localize::localize;
 use crate::media::Media;
 use crate::schema;
 use crate::util::read_text;
@@ -185,6 +186,19 @@ pub struct Topic {
     pub media: Vec<String>,
 }
 
+#[cfg(test)]
+impl Document {
+    /// The example document of the schema set, read in English, for a test.
+    pub(crate) fn example() -> Document {
+        let value: Value = serde_json::from_str(include_str!(
+            "../schemas/firmware/v2/examples/autococker-26.29.0.json"
+        ))
+        .expect("the example is JSON");
+        serde_json::from_value(localize(value, "en").expect("the example is localized"))
+            .expect("the example fits the model")
+    }
+}
+
 /// One screen in the walk from the root, with the path of titles above it.
 pub struct Placed<'a> {
     pub key: &'a str,
@@ -195,12 +209,19 @@ pub struct Placed<'a> {
 }
 
 impl Document {
-    /// Reads a document, validates it against the schema, and checks the tree rules.
-    pub fn load(path: &Path) -> Result<Document> {
+    /// Reads a document, validates it against the schema, selects the text of `lang`, and
+    /// checks the tree rules.
+    pub fn load(path: &Path, lang: &str) -> Result<Document> {
         let text = read_text(path)?;
         let value: Value = serde_json::from_str(&text)
             .with_context(|| format!("{} is not JSON", path.display()))?;
         schema::validate(schema::Kind::Firmware, &value, &path.display().to_string())?;
+        let value = localize(value, lang).with_context(|| {
+            format!(
+                "{} holds a localized text that is not complete",
+                path.display()
+            )
+        })?;
         let doc: Document = serde_json::from_value(value)
             .with_context(|| format!("{} does not fit the firmware model", path.display()))?;
         doc.check()
@@ -383,10 +404,7 @@ mod tests {
     use super::*;
 
     fn example() -> Document {
-        serde_json::from_str(include_str!(
-            "../schemas/firmware/v1/examples/autococker-26.29.0.json"
-        ))
-        .unwrap()
+        Document::example()
     }
 
     #[test]

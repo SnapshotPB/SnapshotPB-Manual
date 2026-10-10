@@ -1,0 +1,903 @@
+{
+  "schema_version": "2.0.0",
+  "firmware": {
+    "name": [
+      {
+        "lang": "en",
+        "text": "Snapshot PB autococker firmware"
+      }
+    ],
+    "version": "26.29.0",
+    "protocol_version": "1.0.0",
+    "board_models": [
+      "BOARD_MODEL_AUTOCOCKER"
+    ],
+    "summary": [
+      {
+        "lang": "en",
+        "text": "The firmware of the Snapshot PB autococker board. This example covers the root screen, the Fire screen, the Ramping screen, and the Eye screen."
+      }
+    ]
+  },
+  "controls": {
+    "enter": {
+      "name": [
+        {
+          "lang": "en",
+          "text": "ENTER"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The centre button. It selects a row, commits a value, and opens the menu."
+        }
+      ],
+      "events": {
+        "short": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A press and a release in less than the hold time."
+            }
+          ]
+        },
+        "long": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A press that lasts the hold time or longer."
+            }
+          ],
+          "hold_ms": 1500
+        }
+      }
+    },
+    "up": {
+      "name": [
+        {
+          "lang": "en",
+          "text": "UP"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The top button. It moves the cursor up and increases a value."
+        }
+      ],
+      "events": {
+        "short": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A press and a release in less than the hold time."
+            }
+          ]
+        },
+        "long": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A press that lasts the hold time or longer."
+            }
+          ],
+          "hold_ms": 1500
+        }
+      }
+    },
+    "down": {
+      "name": [
+        {
+          "lang": "en",
+          "text": "DOWN"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The bottom button. It moves the cursor down and decreases a value."
+        }
+      ],
+      "events": {
+        "short": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A press."
+            }
+          ]
+        }
+      }
+    },
+    "lockout": {
+      "name": [
+        {
+          "lang": "en",
+          "text": "LOCKOUT"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The lockout button. It locks and unlocks the settings."
+        }
+      ],
+      "events": {
+        "short": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A press."
+            }
+          ]
+        }
+      }
+    }
+  },
+  "interactions": {
+    "open_menu": {
+      "control": "enter",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Opens the root menu from the home screen."
+        }
+      ],
+      "applies_to": [
+        "home"
+      ]
+    },
+    "cursor_up": {
+      "control": "up",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Moves the cursor one row up. On the first row, it stays."
+        }
+      ],
+      "applies_to": [
+        "screen"
+      ]
+    },
+    "cursor_down": {
+      "control": "down",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Moves the cursor one row down. On the last row, it stays."
+        }
+      ],
+      "applies_to": [
+        "screen"
+      ]
+    },
+    "select": {
+      "control": "enter",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Opens the row under the cursor. A submenu row opens its screen. A setting row opens its editor. A toggle row changes its value at once."
+        }
+      ],
+      "applies_to": [
+        "screen"
+      ]
+    },
+    "back": {
+      "control": "enter",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "On the Back row, returns to the parent screen. On the root screen, returns to the home screen."
+        }
+      ],
+      "applies_to": [
+        "screen"
+      ]
+    },
+    "value_up": {
+      "control": "up",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "In an editor, increases the value by one step, or moves to the next option. The value stops at the maximum."
+        }
+      ],
+      "applies_to": [
+        "edit_int",
+        "edit_enum"
+      ]
+    },
+    "value_down": {
+      "control": "down",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "In an editor, decreases the value by one step, or moves to the previous option. The value stops at the minimum."
+        }
+      ],
+      "applies_to": [
+        "edit_int",
+        "edit_enum"
+      ]
+    },
+    "commit": {
+      "control": "enter",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "In an editor, stores the value and returns to the screen. An editor has no cancel."
+        }
+      ],
+      "applies_to": [
+        "edit_int",
+        "edit_enum"
+      ]
+    },
+    "power_off": {
+      "control": "enter",
+      "event": "long",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Turns the board off from each screen that takes input."
+        }
+      ]
+    },
+    "eye_override": {
+      "control": "up",
+      "event": "long",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Turns the eyes off or on for this session. The stored eye mode does not change."
+        }
+      ],
+      "applies_to": [
+        "home"
+      ]
+    },
+    "lockout_toggle": {
+      "control": "lockout",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Locks or unlocks the settings. While locked, the board shows the shot counter only."
+        }
+      ]
+    }
+  },
+  "home": {
+    "title": [
+      {
+        "lang": "en",
+        "text": "Shot counter"
+      }
+    ],
+    "description": [
+      {
+        "lang": "en",
+        "text": "The screen that the board shows after the boot caption. It shows the shot count and the state marks. The menu opens from this screen."
+      }
+    ],
+    "indicators": {
+      "bluetooth": [
+        {
+          "lang": "en",
+          "text": "The Bluetooth mark shows while the Bluetooth radio is on."
+        }
+      ],
+      "eyes": [
+        {
+          "lang": "en",
+          "text": "The eye mark shows the eye state: on, off, or overridden for this session."
+        }
+      ]
+    }
+  },
+  "root": "root",
+  "screens": {
+    "root": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Menu"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The first screen of the menu. The two rows at the top select how the whole board looks. The submenu rows below them hold the settings of one subject each."
+        }
+      ],
+      "items": [
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Profile"
+            }
+          ],
+          "key": "device_config.active_profile"
+        },
+        {
+          "type": "submenu",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Fire"
+            }
+          ],
+          "ref": "fire_menu"
+        },
+        {
+          "type": "submenu",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Eye"
+            }
+          ],
+          "ref": "eye_menu"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Bluetooth"
+            }
+          ],
+          "key": "runtime.bluetooth_active"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
+      ]
+    },
+    "fire_menu": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Fire"
+        }
+      ],
+      "items": [
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Mode"
+            }
+          ],
+          "key": "autococker.fire_mode"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "BPS cap"
+            }
+          ],
+          "key": "profile.fire_rate_cap"
+        },
+        {
+          "type": "submenu",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Ramping"
+            }
+          ],
+          "ref": "ramp_menu",
+          "hidden_when": "ramping_off"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
+      ]
+    },
+    "ramp_menu": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Ramping"
+        }
+      ],
+      "items": [
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Multiplier"
+            }
+          ],
+          "key": "autococker.ramping_custom_multiplier",
+          "disabled_when": "ramping_off"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
+      ]
+    },
+    "eye_menu": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Eye"
+        }
+      ],
+      "items": [
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Eye mode"
+            }
+          ],
+          "key": "autococker.eye_mode",
+          "disabled_when": "no_eye_phase"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Threshold"
+            }
+          ],
+          "key": "autococker.eye_threshold",
+          "disabled_when": "eye_inactive"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "settings": {
+    "device_config.active_profile": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Profile"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The profile that the board uses. The board holds four profiles. Each profile holds its own fire, timing, trigger, and eye settings."
+        }
+      ],
+      "scope": "device",
+      "type": "enum",
+      "options": [
+        {
+          "value": 1,
+          "text": [
+            {
+              "lang": "en",
+              "text": "1"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Profile 1."
+            }
+          ]
+        },
+        {
+          "value": 2,
+          "text": [
+            {
+              "lang": "en",
+              "text": "2"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Profile 2."
+            }
+          ]
+        },
+        {
+          "value": 3,
+          "text": [
+            {
+              "lang": "en",
+              "text": "3"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Profile 3."
+            }
+          ]
+        },
+        {
+          "value": 4,
+          "text": [
+            {
+              "lang": "en",
+              "text": "4"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Profile 4."
+            }
+          ]
+        }
+      ],
+      "default": 1
+    },
+    "runtime.bluetooth_active": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Bluetooth"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "Turns the Bluetooth radio on or off. The board starts with the radio off at each boot. The application connects only while the radio is on."
+        }
+      ],
+      "scope": "runtime",
+      "type": "toggle",
+      "default": false,
+      "on_text": [
+        {
+          "lang": "en",
+          "text": "On"
+        }
+      ],
+      "off_text": [
+        {
+          "lang": "en",
+          "text": "Off"
+        }
+      ]
+    },
+    "autococker.fire_mode": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Fire mode"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "How the board answers a trigger pull."
+        }
+      ],
+      "scope": "profile",
+      "type": "enum",
+      "options": [
+        {
+          "value": "AUTOCOCKER_FIRE_MODE_MECHANICAL",
+          "text": [
+            {
+              "lang": "en",
+              "text": "MECHANICAL"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "The board does not fire the solenoids. The marker fires by its mechanical linkage only."
+            }
+          ]
+        },
+        {
+          "value": "AUTOCOCKER_FIRE_MODE_SEMI",
+          "text": [
+            {
+              "lang": "en",
+              "text": "SEMI"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "One shot for each trigger pull."
+            }
+          ]
+        },
+        {
+          "value": "AUTOCOCKER_FIRE_MODE_RAMPING_NXL_2026",
+          "text": [
+            {
+              "lang": "en",
+              "text": "NXL 2026"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Ramping under the NXL 2026 rules. The Ramping screen holds its settings."
+            }
+          ]
+        }
+      ],
+      "default": "AUTOCOCKER_FIRE_MODE_SEMI",
+      "related": [
+        "profile.fire_rate_cap",
+        "autococker.ramping_custom_multiplier"
+      ]
+    },
+    "profile.fire_rate_cap": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "BPS cap"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The maximum rate of fire, in balls per second. The board does not fire faster than this value in any fire mode."
+        }
+      ],
+      "scope": "profile",
+      "type": "int",
+      "min": 10,
+      "max": 1000,
+      "step": 1,
+      "default": 105,
+      "unit": "bps",
+      "decimals": 1
+    },
+    "autococker.ramping_custom_multiplier": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Ramping multiplier"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The number of shots that the board adds for each trigger pull while ramping is active."
+        }
+      ],
+      "scope": "profile",
+      "type": "int",
+      "min": 0,
+      "max": 99999,
+      "step": 5,
+      "decimals": 1,
+      "related": [
+        "autococker.fire_mode"
+      ]
+    },
+    "autococker.eye_mode": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Eye mode"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The type of eye sensor in the breech. The board uses the eye to wait for a ball before it fires."
+        }
+      ],
+      "scope": "profile",
+      "type": "enum",
+      "options": [
+        {
+          "value": "EYE_MODE_OFF",
+          "text": [
+            {
+              "lang": "en",
+              "text": "OFF"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "The board does not read the eye."
+            }
+          ]
+        },
+        {
+          "value": "EYE_MODE_REFLECTIVE",
+          "text": [
+            {
+              "lang": "en",
+              "text": "REFLECTIVE"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "One sensor reads the light that a ball reflects."
+            }
+          ]
+        },
+        {
+          "value": "EYE_MODE_BREAK_BEAM",
+          "text": [
+            {
+              "lang": "en",
+              "text": "BREAK BEAM"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "A ball breaks a beam between an emitter and a detector."
+            }
+          ]
+        }
+      ],
+      "default": "EYE_MODE_OFF",
+      "related": [
+        "autococker.eye_threshold",
+        "topic.eye_override"
+      ]
+    },
+    "autococker.eye_threshold": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Eye threshold"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The level, in percent, above which the eye reports a ball."
+        }
+      ],
+      "scope": "profile",
+      "type": "int",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "related": [
+        "autococker.eye_mode"
+      ]
+    }
+  },
+  "predicates": {
+    "ramping_off": {
+      "description": [
+        {
+          "lang": "en",
+          "text": "The fire mode is not a ramping mode."
+        }
+      ],
+      "depends_on": [
+        "autococker.fire_mode"
+      ]
+    },
+    "no_eye_phase": {
+      "description": [
+        {
+          "lang": "en",
+          "text": "The fire mode has no phase that waits for the eye."
+        }
+      ],
+      "depends_on": [
+        "autococker.fire_mode"
+      ]
+    },
+    "eye_inactive": {
+      "description": [
+        {
+          "lang": "en",
+          "text": "The fire mode has no eye phase, or the eye mode is OFF."
+        }
+      ],
+      "depends_on": [
+        "autococker.fire_mode",
+        "autococker.eye_mode"
+      ]
+    }
+  },
+  "topics": {
+    "topic.power_off": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Turn the board off"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "Hold ENTER for the hold time. The board turns off. Press a button to turn the board on."
+        }
+      ],
+      "interactions": [
+        "power_off"
+      ]
+    },
+    "topic.lockout": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Lockout"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "Press LOCKOUT to lock the settings. The board shows the shot counter and ignores UP, DOWN, and ENTER. Press LOCKOUT again to unlock."
+        }
+      ],
+      "interactions": [
+        "lockout_toggle"
+      ]
+    },
+    "topic.eye_override": {
+      "title": [
+        {
+          "lang": "en",
+          "text": "Eye override"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "Hold UP on the home screen to turn the eyes off for this session, for example after an eye fails in a game. Hold UP again to turn them on. The stored eye mode does not change, and the next boot uses the stored eye mode."
+        }
+      ],
+      "interactions": [
+        "eye_override"
+      ],
+      "related": [
+        "autococker.eye_mode"
+      ]
+    }
+  }
+}

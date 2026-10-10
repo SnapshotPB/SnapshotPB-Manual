@@ -19,12 +19,13 @@ and the dark colour scheme of the SnapshotPB app, and a button on the page chang
 The documents follow [JSON Schema](https://json-schema.org/), draft 2020-12. The schema set
 has three parts under `schemas/`:
 
-- **`common/v1`** holds the definitions that the other two share: the key patterns, and the
-  media item that lets a document show a picture, a 3D model, a video, or a later kind.
-- **`firmware/v1`** describes a firmware revision: its controls, how its menu works, its
+- **`common/v2`** holds the definitions that the other two share: the localized text, the
+  key patterns, and the media item that lets a document show a picture, a 3D model, a
+  video, or a later kind.
+- **`firmware/v2`** describes a firmware revision: its controls, how its menu works, its
   screens, its settings, and its topics. The screens form an explicit tree, and the
   generator draws the tree as a graphic that links to each section.
-- **`app/v1`** describes an application revision: the platforms it runs on, and what it
+- **`app/v2`** describes an application revision: the platforms it runs on, and what it
   shows for each setting and topic of the firmware, by the same key.
 
 A setting has one shared key in both documents, which is its field path in the protocol,
@@ -32,6 +33,16 @@ for example `autococker.eye_mode`. The manual shows the firmware words and the a
 for one key side by side, with one tab for the board and one tab for the configuration app.
 The app tab shows the words once when each platform gets the same words. It shows one tab
 for each platform when the words differ.
+
+Each text that the manual prints is localized. A document holds it as an array with one
+item for each language, for example `[{"lang": "en", "text": "Fire mode"}, {"lang": "de",
+"text": "Feuermodus"}]`. The English item is required. The manifest names the language of
+the manual, and `--lang` replaces it. A text that has no item in that language falls back
+to the same language with another region, and then to English. The chapters and the words
+of the page itself are in English.
+
+Version 1 of the schema set, under the `v1` folders, held each text as one English string.
+The generator reads version 2 alone.
 
 ## Versioning
 
@@ -98,7 +109,7 @@ python3 -m unittest discover -s scripts/tests      # test the compute core
 
 | Path | What it holds |
 |---|---|
-| `schemas/` | The schema set, with an example firmware document under `firmware/v1/examples/` |
+| `schemas/` | The schema set, with an example firmware document under `firmware/v2/examples/` |
 | `firmware/<model>/<version>.json` | One firmware document for each firmware release, under the board model it runs on |
 | `app/<name>/<version>.json` | One application document for each app release |
 | `manifests/<id>.toml` | One manifest for each manual: the documents, the sources, and the brand |
@@ -131,7 +142,7 @@ block. A line that holds one directive puts a generated block there:
 | `{{image <path> \| <caption>}}` | A picture from a source root. An SVG goes inline, and a PNG or a JPEG goes in as data. |
 
 `{{value <name>}}` in a line prints a value: `firmware.version`, `firmware.summary`,
-`app.version`, `app.summary`, `board.md5`, `board.name`, `manual.date`,
+`app.version`, `app.summary`, `board.md5`, `board.name`, `manual.date`, `manual.language`,
 `control.<key>.name`, `control.<key>.hold_ms`, or a key of the `[values]` table of the
 manifest.
 

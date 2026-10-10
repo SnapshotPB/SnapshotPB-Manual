@@ -1,7 +1,7 @@
 # Application documentation schema
 
 This document describes the JSON Schema that an application release uses to describe
-itself. The schema is in [`schemas/app/v1/app.schema.json`](../schemas/app/v1/app.schema.json).
+itself. The schema is in [`schemas/app/v2/app.schema.json`](../schemas/app/v2/app.schema.json).
 The document for the current app is in [`app/snapshotpb/`](../app/snapshotpb/).
 
 ## Goal
@@ -32,6 +32,14 @@ A document is stored as `app/<name>/<app.version>.json`.
 | `settings` | One entry for each setting the app shows, keyed by the shared key of the firmware document. |
 | `topics` | One entry for each topic, keyed by the shared key. A topic that only the app has is permitted. |
 | `media` | The media items of the document. See [`docs/firmware-schema.md`](firmware-schema.md). |
+
+### Localized text
+
+Each text that the manual prints is a `localized` array of the common schema, with one item
+for each language and the English item required. See the section Localized text in
+[`docs/firmware-schema.md`](firmware-schema.md). The title, the description, the path in the
+app, the name of a target, and the description of a target are localized. The path is in
+the language of the app, because the reader follows it in the app.
 
 ### Entries
 

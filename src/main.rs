@@ -5,6 +5,7 @@ mod app;
 mod board;
 mod firmware;
 mod gen;
+mod localize;
 mod manifest;
 mod markdown;
 mod media;
@@ -28,13 +29,15 @@ use crate::theme::Theme;
 use crate::util::{git_describe, read_bytes, read_text, sha256_short, today_utc};
 
 const USAGE: &str = "usage:
-  snapshotpb-manual build <manifest.toml> [--out <file.html>] [--source <name>=<path>]...
-  snapshotpb-manual check <manifest.toml> [--source <name>=<path>]...
+  snapshotpb-manual build <manifest.toml> [--out <file.html>] [--lang <code>] [--source <name>=<path>]...
+  snapshotpb-manual check <manifest.toml> [--lang <code>] [--source <name>=<path>]...
   snapshotpb-manual validate <firmware|app> <document.json>...
 
   build     reads every document and source that the manifest names and writes the manual.
   check     reads every document and source and renders the manual, and writes nothing.
   validate  checks each document against its schema and its rules, and writes nothing.
+  --lang    the language of the manual, for example de. It replaces the language of the manifest.
+            A text that a document does not have in that language falls back to English.
   --source  replaces a source root of the manifest, for example --source firmware=~/fw";
 
 fn main() {
@@ -55,6 +58,7 @@ fn run() -> Result<()> {
     }
     let manifest_path = PathBuf::from(&args[1]);
     let mut out: Option<PathBuf> = None;
+    let mut lang: Option<String> = None;
     let mut overrides: Vec<(String, String)> = Vec::new();
     let mut i = 2;
     while i < args.len() {
@@ -62,6 +66,10 @@ fn run() -> Result<()> {
             "--out" => {
                 i += 1;
                 out = Some(PathBuf::from(args.get(i).context("--out needs a path")?));
+            }
+            "--lang" => {
+                i += 1;
+                lang = Some(args.get(i).context("--lang needs a language code")?.clone());
             }
             "--source" => {
                 i += 1;
@@ -74,8 +82,14 @@ fn run() -> Result<()> {
         i += 1;
     }
     match command {
-        "build" => build(&manifest_path, out.as_deref(), &overrides, true),
-        "check" => build(&manifest_path, None, &overrides, false),
+        "build" => build(
+            &manifest_path,
+            out.as_deref(),
+            lang.as_deref(),
+            &overrides,
+            true,
+        ),
+        "check" => build(&manifest_path, None, lang.as_deref(), &overrides, false),
         other => bail!("unknown command `{other}`\n{USAGE}"),
     }
 }
@@ -93,7 +107,7 @@ fn validate(args: &[String]) -> Result<()> {
         let p = Path::new(path);
         match kind {
             schema::Kind::Firmware => {
-                let doc = firmware::Document::load(p)?;
+                let doc = firmware::Document::load(p, localize::FALLBACK)?;
                 println!(
                     "ok: {} (schema {}, {} {}, {} screens, {} settings, {} topics)",
                     p.display(),
@@ -106,7 +120,7 @@ fn validate(args: &[String]) -> Result<()> {
                 );
             }
             schema::Kind::App => {
-                let doc = app::Document::load(p)?;
+                let doc = app::Document::load(p, localize::FALLBACK)?;
                 println!(
                     "ok: {} (schema {}, {} {}, {} targets, {} settings, {} topics)",
                     p.display(),
@@ -126,16 +140,21 @@ fn validate(args: &[String]) -> Result<()> {
 fn build(
     manifest_path: &Path,
     out: Option<&Path>,
+    lang: Option<&str>,
     overrides: &[(String, String)],
     write: bool,
 ) -> Result<()> {
     let loaded = Loaded::load(manifest_path, overrides)?;
     let m = &loaded.manifest;
+    let lang = lang.unwrap_or(&m.language).to_string();
+    if !localize::is_language_tag(&lang) {
+        bail!("the language `{lang}` is not a language tag such as en, de, or es-MX");
+    }
 
     let theme =
         Theme::parse(&loaded.resolve(&m.brand.theme)?).context("the colour scheme of the app")?;
     let fw_path = loaded.resolve(&m.firmware.document)?;
-    let fw = firmware::Document::load(&fw_path).context("the firmware document")?;
+    let fw = firmware::Document::load(&fw_path, &lang).context("the firmware document")?;
     let fw_dir = fw_path
         .parent()
         .map(Path::to_path_buf)
@@ -144,7 +163,7 @@ fn build(
         Some(a) => {
             let p = loaded.resolve(&a.document)?;
             (
-                Some(app::Document::load(&p).context("the application document")?),
+                Some(app::Document::load(&p, &lang).context("the application document")?),
                 Some(p),
             )
         }
@@ -196,6 +215,7 @@ fn build(
         }
     }
     values.insert("manual.date".into(), today_utc());
+    values.insert("manual.language".into(), lang.clone());
     for (k, v) in &m.values {
         values.insert(k.clone(), v.clone());
     }
@@ -270,6 +290,7 @@ fn build(
     ));
 
     let ctx = Ctx {
+        lang,
         loaded: &loaded,
         fw: &fw,
         fw_dir: &fw_dir,

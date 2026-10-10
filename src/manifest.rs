@@ -29,12 +29,20 @@ pub struct Manifest {
     pub firmware: Firmware,
     #[serde(default)]
     pub app: Option<App>,
+    /// The language of the manual, as a language tag such as `en` or `de`. A text that a
+    /// document does not have in this language falls back to English.
+    #[serde(default = "default_language")]
+    pub language: String,
     /// Literal values for `{{value name}}` in the content.
     #[serde(default)]
     pub values: BTreeMap<String, String>,
     /// The readable name of each designator that the page shows by name, such as `J11`.
     #[serde(default)]
     pub names: BTreeMap<String, String>,
+}
+
+fn default_language() -> String {
+    crate::localize::FALLBACK.to_string()
 }
 
 #[derive(Deserialize)]
@@ -57,14 +65,14 @@ pub struct Board {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Firmware {
-    /// The firmware document, which follows `schemas/firmware/v1`.
+    /// The firmware document, which follows `schemas/firmware/v2`.
     pub document: String,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct App {
-    /// The application document, which follows `schemas/app/v1`.
+    /// The application document, which follows `schemas/app/v2`.
     pub document: String,
 }
 
@@ -127,6 +135,7 @@ impl Loaded {
                 app: None,
                 values: BTreeMap::new(),
                 names: BTreeMap::new(),
+                language: default_language(),
             },
             dir: path.parent().map(Path::to_path_buf).unwrap_or_default(),
             path: path.to_path_buf(),

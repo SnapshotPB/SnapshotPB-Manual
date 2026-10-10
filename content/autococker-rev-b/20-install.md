@@ -25,7 +25,7 @@ The trigger board is an optical board or a switch board. Only one trigger board 
 
 NOTE: Pin 2 of each connector is the coil supply, and pin 1 is the switched side.
 
-## Connect the ball eye
+## Connect the eye sensor
 
 Connect the eye to `EYES`. The eye is optional. A board with no eye fires on the timing alone.
 

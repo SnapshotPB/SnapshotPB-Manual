@@ -1,6 +1,6 @@
 # Fire modes and timing
 
-The [Fire mode](#setting-autococker-fire-mode) setting on the Fire screen selects how the board answers a trigger pull. The topics below explain the firing cycle, the ramping, and the ball eye.
+The [Fire mode](#setting-autococker-fire-mode) setting on the Fire screen selects how the board answers a trigger pull. The topics below explain the firing cycle, the ramping, and the eye sensor.
 
 {{topic topic.firing_cycle}}
 

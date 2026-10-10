@@ -26,7 +26,7 @@
 "autococker.trigger_debounce_off" = "The time that the trigger must stay released before the board accepts the next pull."
 
 # Eye
-"autococker.eye_mode" = "The type of eye. See [The ball eye](#the-ball-eye)."
+"autococker.eye_mode" = "The type of eye sensor. See [Eye](#screen-eye-menu)."
 "autococker.eye_threshold" = "The level at which a reflective eye sees a ball, in percent of the full scale. The value 0 selects the default of the firmware."
 "autococker.eye_debounce" = "The time that the eye must see a ball before the board accepts the ball. The value 0 selects the default of the firmware."
 

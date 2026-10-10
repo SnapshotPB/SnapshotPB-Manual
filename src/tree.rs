@@ -1,24 +1,28 @@
 //! The navigation graphic: the menu tree as an SVG that the reader can click. Each box is a
-//! screen and links to its section. Each edge is the row that opens the child screen.
+//! screen and links to its section. Each edge joins a screen to its parent. The graphic
+//! renders at one pixel for each unit, so the text keeps a size that a reader can read.
 
 use crate::firmware::{Document, ItemType, Placed};
 use crate::util::{esc, slug};
 
-const BOX_W: f64 = 168.0;
-const GAP_X: f64 = 18.0;
-const GAP_Y: f64 = 44.0;
-const TITLE_H: f64 = 24.0;
-const ROW_H: f64 = 15.0;
+/// The least width of a box. A longer title or row makes each box wider.
+const BOX_W: f64 = 152.0;
+/// The estimated width of one character of a title, in pixels, at 16 px bold.
+const TITLE_CHAR_W: f64 = 9.5;
+/// The estimated width of one character of a row, in pixels, at 14 px.
+const ROW_CHAR_W: f64 = 7.5;
+const GAP_X: f64 = 12.0;
+const GAP_Y: f64 = 40.0;
+const TITLE_H: f64 = 28.0;
+const ROW_H: f64 = 20.0;
 const PAD: f64 = 8.0;
-const HOME_H: f64 = 34.0;
+const HOME_H: f64 = 38.0;
 
 struct Node<'a> {
     key: &'a str,
     title: &'a str,
     rows: Vec<&'a str>,
     children: Vec<usize>,
-    /// The row text that opens this node from its parent.
-    via: &'a str,
     x: f64,
     y: f64,
     w: f64,
@@ -39,7 +43,6 @@ pub fn svg(doc: &Document, placed: &[Placed]) -> String {
         title: &doc.home.title,
         rows: Vec::new(),
         children: Vec::new(),
-        via: "",
         x: 0.0,
         y: 0.0,
         w: BOX_W,
@@ -59,7 +62,6 @@ pub fn svg(doc: &Document, placed: &[Placed]) -> String {
             title: &p.screen.title,
             rows,
             children: Vec::new(),
-            via: "",
             x: 0.0,
             y: 0.0,
             w: BOX_W,
@@ -67,29 +69,26 @@ pub fn svg(doc: &Document, placed: &[Placed]) -> String {
         });
     }
     let index_of = |key: &str| nodes.iter().position(|n| n.key == key && !n.key.is_empty());
-    let mut links: Vec<(usize, usize, &str)> = Vec::new();
+    let mut links: Vec<(usize, usize)> = Vec::new();
     for p in placed {
         let parent = index_of(p.key).unwrap_or(0);
         for i in &p.screen.items {
             if i.kind == ItemType::Submenu {
                 if let Some(child) = i.target.as_deref().and_then(index_of) {
-                    links.push((parent, child, i.render.as_str()));
+                    links.push((parent, child));
                 }
             }
         }
     }
     if let Some(root) = index_of(&doc.root) {
-        links.push((
-            0,
-            root,
-            doc.interactions.get("open_menu").map_or("", |i| {
-                doc.controls.get(&i.control).map_or("", |c| c.name.as_str())
-            }),
-        ));
+        links.push((0, root));
     }
-    for (parent, child, via) in &links {
+    for (parent, child) in &links {
         nodes[*parent].children.push(*child);
-        nodes[*child].via = via;
+    }
+    let w = box_width(&nodes);
+    for n in &mut nodes {
+        n.w = w;
     }
 
     // Layout: the width of a subtree is the sum of its children; a parent sits over the
@@ -109,10 +108,10 @@ pub fn svg(doc: &Document, placed: &[Placed]) -> String {
 
     let mut out = String::new();
     out.push_str(&format!(
-        "<svg class=\"menu-tree\" viewBox=\"0 0 {total_w:.0} {total_h:.0}\" role=\"img\" aria-label=\"The menu tree. Each box is a screen, and a click on a box opens its section.\">\n"
+        "<svg class=\"menu-tree\" width=\"{total_w:.0}\" height=\"{total_h:.0}\" viewBox=\"0 0 {total_w:.0} {total_h:.0}\" role=\"img\" aria-label=\"The menu tree. Each box is a screen, and a click on a box opens its section.\">\n"
     ));
     out.push_str("<defs><marker id=\"tree-arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0 0L10 5L0 10z\" fill=\"currentColor\"/></marker></defs>\n");
-    for (parent, child, via) in &links {
+    for (parent, child) in &links {
         let p = &nodes[*parent];
         let c = &nodes[*child];
         let x1 = p.x + p.w / 2.0;
@@ -122,12 +121,6 @@ pub fn svg(doc: &Document, placed: &[Placed]) -> String {
         let ym = (y1 + y2) / 2.0;
         out.push_str(&format!(
             "<path class=\"edge\" d=\"M{x1:.1} {y1:.1} V{ym:.1} H{x2:.1} V{y2:.1}\" marker-end=\"url(#tree-arrow)\"/>\n"
-        ));
-        out.push_str(&format!(
-            "<text class=\"edge-label\" x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"start\">{}</text>\n",
-            x2 + 7.0,
-            y2 - 7.0,
-            esc(via)
         ));
     }
     for n in &nodes {
@@ -148,7 +141,7 @@ pub fn svg(doc: &Document, placed: &[Placed]) -> String {
         out.push_str(&format!(
             "<text class=\"node-title\" x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"middle\">{}</text>\n",
             n.x + n.w / 2.0,
-            n.y + 17.0,
+            n.y + TITLE_H - PAD,
             esc(n.title)
         ));
         for (i, row) in n.rows.iter().enumerate() {
@@ -163,6 +156,20 @@ pub fn svg(doc: &Document, placed: &[Placed]) -> String {
     }
     out.push_str("</svg>\n");
     out
+}
+
+/// The width of each box: the least width, or the width of the longest text plus its padding.
+fn box_width(nodes: &[Node]) -> f64 {
+    let title = nodes
+        .iter()
+        .map(|n| n.title.chars().count() as f64 * TITLE_CHAR_W + 2.0 * PAD)
+        .fold(0.0, f64::max);
+    let row = nodes
+        .iter()
+        .flat_map(|n| n.rows.iter())
+        .map(|r| r.chars().count() as f64 * ROW_CHAR_W + 2.0 * PAD + 4.0)
+        .fold(0.0, f64::max);
+    BOX_W.max(title).max(row).ceil()
 }
 
 fn subtree_widths(nodes: &[Node], i: usize) -> Vec<f64> {
@@ -227,8 +234,22 @@ mod tests {
             );
         }
         assert_eq!(s.matches("<rect").count(), doc.screens.len() + 1);
-        // The edge from the home screen carries the name of the control that opens the menu.
-        assert!(s.contains(">ENTER</text>"));
+        // The edges carry no label. One edge joins each screen to its parent, and one text
+        // holds each title and each setting row.
+        let submenus = doc
+            .screens
+            .values()
+            .flat_map(|s| s.items.iter())
+            .filter(|i| i.kind == ItemType::Submenu)
+            .count();
+        let settings = doc
+            .screens
+            .values()
+            .flat_map(|s| s.items.iter())
+            .filter(|i| i.kind == ItemType::Setting)
+            .count();
+        assert_eq!(s.matches("<path class=\"edge\"").count(), submenus + 1);
+        assert_eq!(s.matches("<text").count(), doc.screens.len() + 1 + settings);
     }
 
     #[test]

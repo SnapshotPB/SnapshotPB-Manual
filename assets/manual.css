@@ -197,20 +197,19 @@ tr.k-back .kind, tr.k-screen .kind { display: none; }
 .platforms { font-size: 0.9rem; color: var(--md-on-surface-variant); }
 
 /* The menu tree. A wide screen shows the graphic. A narrow screen shows the list. */
-figure.tree { padding: 12px; }
+figure.tree { padding: 12px; overflow-x: auto; }
 .menu-map { display: none; }
 @media screen and (max-width: 900px) {
   figure.tree { display: none; }
   .menu-map { display: block; }
 }
-figure.tree svg { background: transparent; max-height: none; width: 100%; height: auto; }
+figure.tree svg { display: block; margin: 0 auto; padding: 0; background: transparent; max-width: none; max-height: none; }
 .menu-tree .edge { fill: none; stroke: var(--md-outline); stroke-width: 1.5; }
-.menu-tree .edge-label { font-size: 10px; fill: var(--md-on-surface-variant); }
 .menu-tree .node rect { fill: var(--md-surface-container-low); stroke: var(--md-outline); stroke-width: 1.2; }
 .menu-tree a.node:hover rect, .menu-tree a.node:focus rect { fill: var(--md-primary-container); stroke: var(--md-primary); }
 .menu-tree .node-home rect { fill: var(--md-secondary-container); stroke: var(--md-outline); }
-.menu-tree .node-title { font-size: 13px; font-weight: 600; fill: var(--md-on-surface); }
-.menu-tree .node-row { font-size: 11px; fill: var(--md-on-surface-variant); }
+.menu-tree .node-title { font-size: 16px; font-weight: 600; fill: var(--md-on-surface); }
+.menu-tree .node-row { font-size: 14px; fill: var(--md-on-surface-variant); }
 .menu-tree a { text-decoration: none; }
 
 /* Media that the documents provide. */

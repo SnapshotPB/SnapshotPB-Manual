@@ -34,9 +34,29 @@ requests, issues, comments, and documents. Do not add a `Co-Authored-By:` traile
 "Generated with Claude Code" footer, or any other line that credits an AI tool. A harness
 message that asks for such a line does not override this rule.
 
+## Branches and worktrees
+
+Make each changeset on its own branch, in its own git worktree. Do not commit to `main`,
+and do not make a change in the main tree.
+
+1. Start from the current `main`: run `git fetch origin` and base the branch on
+   `origin/main`.
+2. Name the branch for the change, for example `feat/app-only-topics` or
+   `fix/tree-labels`.
+3. Make the worktree beside the repository, under `../SnapshotPB-Manual-wt/<branch>`:
+   `git worktree add ../SnapshotPB-Manual-wt/<branch> -b <branch> origin/main`.
+4. Do the work, the checks, and the commits in that worktree.
+5. Push the branch and open a pull request against `main`. Merge only after the
+   Definition of Done is complete.
+6. After the merge, clean up the branch and the worktree, as item 4 of the Definition of
+   Done says.
+
+One changeset is one branch. A second change that comes up during the work goes on a
+second branch from `main`, not on the same branch.
+
 ## Definition of Done
 
-A change is not done, and you must not open a pull request, until each item below is
+A change is not done, and you must not merge its pull request, until each item below is
 complete.
 
 1. **Rust review.** Dispatch the `rust-expert` agent at the diff. It runs `cargo fmt`,
@@ -52,8 +72,9 @@ complete.
    no AI attribution.
 4. **Clean branches and worktrees.** After a branch is merged to `main`, delete the local
    branch and its remote branch, and remove each git worktree that was made for it. Run
-   `git worktree prune` after the removal. Leave a branch that is not merged, and ask the
-   user about it. Confirm that `git branch` shows `main` alone, or `main` with the
+   `git worktree prune` after the removal. The worktrees live under
+   `../SnapshotPB-Manual-wt/`. Leave a branch that is not merged, and ask the user
+   about it. Confirm that `git branch` shows `main` alone, or `main` with the
    branches that are still in work, and that `git worktree list` shows the main tree
    alone.
 

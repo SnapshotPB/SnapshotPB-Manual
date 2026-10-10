@@ -6,8 +6,7 @@
 # another repository owns.
 
 id = "autococker-rev-b"
-title = "SnapshotPB Autococker"
-subtitle = "Manual"
+title = "SnapshotPB Autococker Manual"
 # The language of the manual. Each document holds its text in one or more languages, and a
 # text that has no item in this language falls back to English. `--lang` replaces this value.
 language = "en"

@@ -52,6 +52,9 @@ fn default_language() -> String {
 #[serde(deny_unknown_fields)]
 pub struct Brand {
     pub logo: String,
+    /// The emblem of the board family. It sits beside the logo at the head of the manual.
+    #[serde(default)]
+    pub emblem: Option<String>,
     pub icon: String,
     /// The Kotlin file that holds the colour scheme of the app.
     pub theme: String,
@@ -167,6 +170,7 @@ impl Loaded {
                 sources: BTreeMap::new(),
                 brand: Brand {
                     logo: String::new(),
+                    emblem: None,
                     icon: String::new(),
                     theme: String::new(),
                 },

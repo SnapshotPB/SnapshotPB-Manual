@@ -70,7 +70,9 @@ article { max-width: 860px; }
 
 /* The header of the manual: the full logo, the title and the subtitle. */
 .hero { text-align: center; padding: 8px 0 24px; margin-bottom: 8px; border-bottom: 1px solid var(--md-outline-variant); }
-.hero-logo { width: min(100%, 360px); height: auto; }
+/* The logos sit side by side at one height. The height follows the width of the screen. */
+.hero-logos { display: flex; justify-content: center; align-items: center; gap: 24px; --hero-h: 280px; }
+.hero-logo { height: var(--hero-h); width: auto; max-width: 100%; }
 .hero-title { margin: 12px 0 0; font-size: 2rem; line-height: 1.2; color: var(--md-on-background); }
 .hero-sub { margin: 4px 0 0; font-size: 1.05rem; color: var(--md-on-surface-variant); }
 
@@ -142,7 +144,7 @@ tr.k-back .kind, tr.k-screen .kind { display: none; }
   .scrim[hidden] { display: none; }
   main { padding: 16px 16px 48px; }
   h2 { font-size: 1.45rem; }
-  .hero-logo { width: min(100%, 260px); }
+  .hero-logos { gap: 16px; --hero-h: min(200px, 36vw); }
   .hero-title { font-size: 1.6rem; }
   .brand-sub { display: none; }
   table { display: block; overflow-x: auto; }

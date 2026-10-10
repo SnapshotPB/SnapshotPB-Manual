@@ -9,10 +9,13 @@
 #
 # The manifest names two source repositories: the app repository, for the theme colours,
 # and the PCB repository, for the board metrics and the pictures. Both repositories are
-# private, so the build job clones them with the SOURCES_TOKEN secret.
+# private, so the build job clones them with the SOURCES_TOKEN secret. The manifest also
+# names a firmware release and an app release, and the build downloads the two documents
+# from those releases through gh, with the same secret as GH_TOKEN.
 # MAINTAINER ACTION: make a fine-grained personal access token with read access to the
-# contents of SnapshotPB/SnapshotPB and SnapshotPB/PCB-Autococker, and store it as the
-# repository secret SOURCES_TOKEN (Settings > Secrets and variables > Actions).
+# contents of SnapshotPB/Configuration-App, SnapshotPB/PCB-Autococker, and SnapshotPB/Firmware,
+# and store it as the repository secret SOURCES_TOKEN (Settings > Secrets and variables >
+# Actions).
 name: Build Release
 
 on:
@@ -142,6 +145,9 @@ jobs:
         run: cargo build --release --locked
 
       - name: Build the manual
+        env:
+          # gh reads the two documents from the private firmware and app releases.
+          GH_TOKEN: ${{ secrets.SOURCES_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p release-assets

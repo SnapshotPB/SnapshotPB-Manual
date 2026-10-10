@@ -10,6 +10,7 @@ mod manifest;
 mod markdown;
 mod media;
 mod names;
+mod release;
 mod render;
 mod schema;
 mod theme;
@@ -38,6 +39,10 @@ const USAGE: &str = "usage:
   validate  checks each document against its schema and its rules, and writes nothing.
   --lang    the language of the manual, for example de. It replaces the language of the manifest.
             A text that a document does not have in that language falls back to English.
+
+  The documents come from the releases that the manifest names, through the gh command.
+  gh must be signed in, or GH_TOKEN must hold a token with read access to the releases.
+  The downloaded assets live under $SNAPSHOTPB_MANUAL_CACHE, or ~/.cache/snapshotpb-manual.
   --source  replaces a source root of the manifest, for example --source firmware=~/fw";
 
 fn main() {
@@ -153,22 +158,24 @@ fn build(
 
     let theme =
         Theme::parse(&loaded.resolve(&m.brand.theme)?).context("the colour scheme of the app")?;
-    let fw_path = loaded.resolve(&m.firmware.document)?;
+    let fw_source = release::locate(&loaded, &m.firmware).context("the firmware document")?;
+    let fw_path = fw_source.path.clone();
     let fw = firmware::Document::load(&fw_path, &lang).context("the firmware document")?;
     let fw_dir = fw_path
         .parent()
         .map(Path::to_path_buf)
         .unwrap_or_else(|| PathBuf::from("."));
-    let (app_doc, app_path) = match &m.app {
+    let (app_doc, app_source) = match &m.app {
         Some(a) => {
-            let p = loaded.resolve(&a.document)?;
+            let source = release::locate(&loaded, a).context("the application document")?;
             (
-                Some(app::Document::load(&p, &lang).context("the application document")?),
-                Some(p),
+                Some(app::Document::load(&source.path, &lang).context("the application document")?),
+                Some(source),
             )
         }
         None => (None, None),
     };
+    let app_path = app_source.as_ref().map(|s| s.path.clone());
     let app_dir = app_path
         .as_ref()
         .and_then(|p| p.parent())
@@ -223,7 +230,7 @@ fn build(
     let mut provenance: Vec<(String, String, String)> = Vec::new();
     provenance.push((
         "Firmware document".into(),
-        m.firmware.document.clone(),
+        fw_source.place.clone(),
         format!(
             "{} {}, sha256 {}",
             fw.firmware.name,
@@ -231,10 +238,11 @@ fn build(
             sha256_short(&read_bytes(&fw_path)?)
         ),
     ));
-    if let (Some(a), Some(p), Some(spec)) = (&app_doc, &app_path, &m.app) {
+    if let (Some(a), Some(s)) = (&app_doc, &app_source) {
+        let p = &s.path;
         provenance.push((
             "Application document".into(),
-            spec.document.clone(),
+            s.place.clone(),
             format!(
                 "{} {}, sha256 {}",
                 a.app.name,

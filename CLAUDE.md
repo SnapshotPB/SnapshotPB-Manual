@@ -9,8 +9,9 @@ that the GPL grant does not cover.
 The generator reads a firmware document and an application document, validates them
 against the schema set in `schemas/`, and writes one HTML manual. The design of the schema
 set is in `docs/firmware-schema.md` and `docs/app-schema.md`. A change to a schema needs a
-change to the typed model in `src/firmware.rs` or `src/app.rs`, to the documents under
-`firmware/` and `app/`, and to the design document.
+change to the typed model in `src/firmware.rs` or `src/app.rs`, to the example under
+`schemas/firmware/v2/examples/`, to the design document, and to the generator in the
+firmware repository or in the app repository, which writes the document at each release.
 
 ## Writing language: ASD-STE100
 

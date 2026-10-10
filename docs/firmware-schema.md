@@ -20,18 +20,20 @@ The firmware document has three jobs.
 
 ## Where the document lives
 
-The document for a firmware release is stored as `firmware/<model>/<firmware.version>.json`,
-under the board model that the firmware runs on, for example `firmware/autococker/`.
-The manifest of a manual names it, and the generator validates it before it renders anything.
-Run `snapshotpb-manual validate firmware <file>` to check a document alone.
+The firmware repository writes the document at each release and attaches it to that
+release as the asset `<board>-<version>-manual-document.json`. The manifest of a manual
+names the release and the asset, and the generator downloads the document, verifies it
+against the digest of the release, and validates it before it renders anything. Run
+`snapshotpb-manual validate firmware <file>` to check a document alone.
 
 ## Where the data comes from
 
-The firmware already holds its menu tree in `app/menu/menu_tree.yaml`, and a generator
-script compiles that file into the firmware tables. The same script can write the firmware
-document, so the document stays true to the firmware that ships. The document carries more
-than the menu tree does today. The table at the end of this file lists what the firmware must
-add.
+The firmware holds its menu tree in `app/menu/menu_tree.yaml`, and `scripts/menu_gen.py`
+compiles that file into the firmware tables. The script `scripts/manual_firmware_document.py`
+of the firmware repository reads the same sources and writes the firmware document, so the
+document stays true to the firmware that ships. The prose that the sources do not hold
+comes from `docs/manual/firmware-words.toml` of that repository, which a person keeps. The
+table at the end of this file lists what that words file holds.
 
 ## Versioning
 
@@ -188,10 +190,11 @@ work with no script. With the script, a choice on one section selects the same t
 section, and the page remembers it. The application schema is in
 [`docs/app-schema.md`](app-schema.md).
 
-## What the firmware must add
+## What the words file holds
 
-The firmware menu tree holds the structure of the menu but not the prose. The firmware must add
-these fields before its generator can write a complete document.
+The firmware menu tree holds the structure of the menu but not the prose. These fields come
+from `docs/manual/firmware-words.toml` of the firmware repository. The column Today says
+where the firmware holds the information, when it holds it at all.
 
 | Field | Where | Today |
 |---|---|---|

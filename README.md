@@ -139,6 +139,13 @@ A path in a manifest, in a directive, or in the `src` of a media item is `name:r
 file under the source root `name`, `~/…` for a file under the home directory, or a path
 relative to the manifest or to the document.
 
+The `[names]` table of the manifest gives a readable name to a designator that the board
+labels in short form, for example `"TRIG" = "Trigger"`. A chapter or a document writes the
+designator in backticks, and the page shows the name with the designator after it:
+Trigger (`TRIG`). A label in an SVG drawing shows the name alone. A code block and a code
+span with a class stay as they are. A designator starts and ends with a letter, a digit or
+an underscore, and it can hold a dash or a dot between them.
+
 ## Add a firmware release or an app release
 
 1. Write the firmware document as `firmware/<board>/<version>.json`. The firmware repository

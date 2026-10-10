@@ -11,7 +11,7 @@ The trigger board is an optical board or a switch board. Only one trigger board 
 {{image pcb:docs/images/quick-start/trigger-board-install.svg | The trigger board above the main board, before the installation}}
 
 1. Put the spacer on hole `H3` of the main board.
-2. Hold the trigger board above the main board, with socket `J11` above header `TRIG1`.
+2. Hold the trigger board above the main board, with the `J11` socket above the `TRIG1` header.
 3. Push the trigger board down, until the socket is fully on the header.
 4. Put the M2.5 x 16 screw through hole `H4` of the trigger board and through the spacer.
 5. Tighten the screw.

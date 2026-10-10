@@ -40,3 +40,12 @@ document = "../app/snapshotpb/26.40.1.json"
 # Literal values for `{{value name}}` in the chapters.
 [values]
 "product" = "SnapshotPB"
+
+# The readable name of each designator that the board labels in short form. A chapter writes
+# the designator in backticks, and the page shows the name with the designator after it, for
+# example Trigger (TRIG). A label in a drawing shows the name alone. A board revision that
+# prints the full name on the silk needs no entry.
+[names]
+"TRIG" = "Trigger"
+"TRIG1" = "Trigger"
+"J11" = "Trigger board"

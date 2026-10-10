@@ -14,6 +14,7 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospac
 code { background: var(--md-surface-container-high); color: var(--md-on-surface); padding: 0.1em 0.35em; border-radius: 4px; }
 pre { background: var(--md-surface-container-high); padding: 12px 14px; border-radius: 8px; overflow: auto; }
 pre code { background: none; padding: 0; }
+.named .ref { font-size: 0.82em; padding: 0.05em 0.2em; }
 img, svg { max-width: 100%; height: auto; }
 .skip { position: absolute; left: -999px; top: 8px; background: var(--md-primary); color: var(--md-on-primary); padding: 8px 12px; border-radius: 6px; z-index: 20; }
 .skip:focus { left: 8px; }
@@ -78,7 +79,9 @@ hr { border: 0; border-top: 1px solid var(--md-outline-variant); margin: 2em 0; 
 blockquote { margin: 1em 0; padding: 4px 16px; border-left: 4px solid var(--md-outline); color: var(--md-on-surface-variant); }
 figure { margin: 1.5em 0; padding: 16px; background: var(--md-surface); border: 1px solid var(--md-outline-variant); border-radius: 12px; text-align: center; }
 figure svg, figure img { max-height: 70vh; width: auto; }
-figure svg { background: #fff; border-radius: 6px; }
+/* A drawing keeps its white paper. A label that a name made longer may run past the drawing,
+   so the paper has a margin at each side and the drawing does not clip. */
+figure svg { background: #fff; border-radius: 6px; overflow: visible; padding: 0 32px; box-sizing: content-box; max-width: calc(100% - 64px); }
 figcaption { margin-top: 10px; font-size: 0.9rem; color: var(--md-on-surface-variant); }
 .crumbs { margin: -0.3em 0 0.8em; font-size: 0.85rem; color: var(--md-on-surface-variant); }
 

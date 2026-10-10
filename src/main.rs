@@ -8,6 +8,7 @@ mod gen;
 mod manifest;
 mod markdown;
 mod media;
+mod names;
 mod render;
 mod schema;
 mod theme;

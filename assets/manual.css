@@ -161,6 +161,12 @@ tr.k-back .kind, tr.k-screen .kind { display: none; }
 .step-n { position: absolute; left: 0; top: 0; display: inline-block; min-width: 1.6em; text-align: center; border-radius: 1em; background: var(--md-primary-container); color: var(--md-on-primary-container); font-weight: 600; font-size: 0.85em; line-height: 1.6em; }
 .app-title .where { margin-left: 8px; font-size: 0.88rem; color: var(--md-on-surface-variant); }
 .app-title .where::before { content: "in "; }
+.where-list { list-style: none; margin: -0.4em 0 0.8em; padding: 0; font-size: 0.9rem; }
+.where-list li { margin: 2px 0; }
+.where-list .where { color: var(--md-on-surface-variant); }
+.where-list .where::before { content: "in "; }
+.where-list .platforms { display: inline; font-size: 0.82rem; color: var(--md-on-surface-variant); }
+.where-list .platforms::before { content: "on "; }
 
 /* The tab groups: the board and the configuration app, and inside the app tab one tab for
    each platform where the platforms differ. They work with no script. */

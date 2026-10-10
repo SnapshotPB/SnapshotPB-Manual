@@ -6,6 +6,12 @@ This repository holds the SnapshotPB Manual Generator. It is a Rust project. The
 README.md is the project overview. `TRADEMARKS.md` lists the Snapshot PB brand assets
 that the GPL grant does not cover.
 
+The generator reads a firmware document and an application document, validates them
+against the schema set in `schemas/`, and writes one HTML manual. The design of the schema
+set is in `docs/firmware-schema.md` and `docs/app-schema.md`. A change to a schema needs a
+change to the typed model in `src/firmware.rs` or `src/app.rs`, to the documents under
+`firmware/` and `app/`, and to the design document.
+
 ## Writing language: ASD-STE100
 
 Write every piece of text in ASD-STE100 Simplified Technical English. This applies to

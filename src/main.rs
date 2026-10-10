@@ -1,39 +1,39 @@
-//! `snapshotpb-manual`: builds the stand-alone HTML manual of a board and its firmware from
-//! the sources that a manifest names.
+//! `snapshotpb-manual`: builds the stand-alone HTML manual of a board from the firmware
+//! document, the application document, and the sources that a manifest names.
 
+mod app;
 mod board;
-mod defaults;
-mod fsm;
+mod firmware;
 mod gen;
 mod manifest;
 mod markdown;
-mod menu;
-mod proto;
+mod media;
 mod render;
+mod schema;
 mod theme;
+mod tree;
 mod util;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
+use serde_json::Value;
 
 use crate::board::BoardInfo;
-use crate::defaults::Defaults;
-use crate::fsm::Fsm;
-use crate::gen::{Ctx, Descriptions};
+use crate::gen::Ctx;
 use crate::manifest::Loaded;
-use crate::menu::{Lang, MenuModel};
-use crate::proto::ProtoModel;
 use crate::theme::Theme;
 use crate::util::{git_describe, read_bytes, read_text, sha256_short, today_utc};
 
 const USAGE: &str = "usage:
   snapshotpb-manual build <manifest.toml> [--out <file.html>] [--source <name>=<path>]...
   snapshotpb-manual check <manifest.toml> [--source <name>=<path>]...
+  snapshotpb-manual validate <firmware|app> <document.json>...
 
-  build  reads every source that the manifest names and writes the manual.
-  check  reads every source and renders the manual, and writes nothing.
+  build     reads every document and source that the manifest names and writes the manual.
+  check     reads every document and source and renders the manual, and writes nothing.
+  validate  checks each document against its schema and its rules, and writes nothing.
   --source  replaces a source root of the manifest, for example --source firmware=~/fw";
 
 fn main() {
@@ -49,6 +49,9 @@ fn run() -> Result<()> {
         bail!("{USAGE}");
     }
     let command = args[0].as_str();
+    if command == "validate" {
+        return validate(&args[1..]);
+    }
     let manifest_path = PathBuf::from(&args[1]);
     let mut out: Option<PathBuf> = None;
     let mut overrides: Vec<(String, String)> = Vec::new();
@@ -76,6 +79,49 @@ fn run() -> Result<()> {
     }
 }
 
+fn validate(args: &[String]) -> Result<()> {
+    if args.len() < 2 {
+        bail!("validate needs a kind and a document\n{USAGE}");
+    }
+    let kind = match args[0].as_str() {
+        "firmware" => schema::Kind::Firmware,
+        "app" => schema::Kind::App,
+        other => bail!("unknown document kind `{other}`: use firmware or app"),
+    };
+    for path in &args[1..] {
+        let p = Path::new(path);
+        match kind {
+            schema::Kind::Firmware => {
+                let doc = firmware::Document::load(p)?;
+                println!(
+                    "ok: {} (schema {}, {} {}, {} screens, {} settings, {} topics)",
+                    p.display(),
+                    doc.schema_version,
+                    doc.firmware.name,
+                    doc.firmware.version,
+                    doc.screens.len(),
+                    doc.settings.len(),
+                    doc.topics.len()
+                );
+            }
+            schema::Kind::App => {
+                let doc = app::Document::load(p)?;
+                println!(
+                    "ok: {} (schema {}, {} {}, {} targets, {} settings, {} topics)",
+                    p.display(),
+                    doc.schema_version,
+                    doc.app.name,
+                    doc.app.version,
+                    doc.targets.len(),
+                    doc.settings.len(),
+                    doc.topics.len()
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
 fn build(
     manifest_path: &Path,
     out: Option<&Path>,
@@ -87,57 +133,42 @@ fn build(
 
     let theme =
         Theme::parse(&loaded.resolve(&m.brand.theme)?).context("the colour scheme of the app")?;
-    let menu =
-        MenuModel::load(&loaded.firmware_path(&m.firmware.menu_tree)?).context("the menu tree")?;
-    let lang =
-        Lang::load(&loaded.firmware_path(&m.firmware.menu_lang)?).context("the menu words")?;
-    let fsm = Fsm::load(&loaded.firmware_path(&m.firmware.interaction_fsm)?)
-        .context("the interaction FSM")?;
-    let proto_root = loaded.firmware_path(&m.firmware.proto_root)?;
-    let proto = ProtoModel::load(&proto_root).context("the protocol")?;
-    let mut defaults = Defaults::default();
-    for k in &m.firmware.kconfig {
-        defaults.add_kconfig(&loaded.firmware_path(k)?)?;
-    }
-    for d in &m.firmware.defines {
-        defaults.add_defines(&loaded.firmware_path(d)?)?;
-    }
-    let board = BoardInfo::load(&loaded.resolve(&m.board.metrics)?).context("the board metrics")?;
-
-    // Every bind must resolve: a row that binds a field that the protocol lost is an error.
-    for s in &menu.screens {
-        for it in &s.items {
-            if let Some(b) = &it.bind {
-                let (scope, field) = b
-                    .split_once('.')
-                    .with_context(|| format!("bind `{b}` has no scope"))?;
-                if scope == "runtime" {
-                    continue;
-                }
-                let msg = match m.firmware.scopes.get(scope) {
-                    Some(msg) => msg,
-                    None => bail!("the row `{}` binds the scope `{scope}`, and the manifest maps no message to it (firmware.scopes)", it.render),
-                };
-                if proto.field(msg, field).is_none() {
-                    bail!(
-                        "the row `{}` binds `{b}`, and the message `{msg}` has no field `{field}`",
-                        it.render
-                    );
-                }
+    let fw_path = loaded.resolve(&m.firmware.document)?;
+    let fw = firmware::Document::load(&fw_path).context("the firmware document")?;
+    let fw_dir = fw_path
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."));
+    let (app_doc, app_path) = match &m.app {
+        Some(a) => {
+            let p = loaded.resolve(&a.document)?;
+            (
+                Some(app::Document::load(&p).context("the application document")?),
+                Some(p),
+            )
+        }
+        None => (None, None),
+    };
+    let app_dir = app_path
+        .as_ref()
+        .and_then(|p| p.parent())
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."));
+    if let Some(a) = &app_doc {
+        a.check_against(|k| fw.settings.contains_key(k))
+            .context("the application document")?;
+        if let (Some(fp), Some(ap)) = (&fw.firmware.protocol_version, &a.app.protocol_version) {
+            if fp != ap {
+                bail!(
+                    "the firmware document speaks protocol {fp}, and the application document speaks protocol {ap}"
+                );
             }
         }
     }
-
-    let content_dir = loaded.resolve(&m.content)?;
-    let descriptions: Descriptions =
-        match std::fs::read_to_string(content_dir.join("settings.toml")) {
-            Ok(t) => toml::from_str(&t).context("content/settings.toml")?,
-            Err(_) => Descriptions::default(),
-        };
+    let board = BoardInfo::load(&loaded.resolve(&m.board.metrics)?).context("the board metrics")?;
+    let placed = fw.walk()?;
 
     // The values that the content can print.
-    let firmware_root = loaded.source("firmware")?.to_path_buf();
-    let fw_version = git_describe(&firmware_root);
     let mut values: BTreeMap<String, String> = BTreeMap::new();
     values.insert("id".into(), m.id.clone());
     values.insert("title".into(), m.title.clone());
@@ -148,14 +179,64 @@ fn build(
     values.insert("board.measured_on".into(), board.measured_on.clone());
     values.insert("board.width_mm".into(), format!("{:.2}", board.width_mm));
     values.insert("board.height_mm".into(), format!("{:.2}", board.height_mm));
-    values.insert("firmware.version".into(), fw_version.clone());
+    values.insert("firmware.name".into(), fw.firmware.name.clone());
+    values.insert("firmware.version".into(), fw.firmware.version.clone());
     values.insert("firmware.board".into(), m.firmware.board.clone());
+    if let Some(s) = &fw.firmware.summary {
+        values.insert("firmware.summary".into(), s.clone());
+    }
+    if let Some(p) = &fw.firmware.protocol_version {
+        values.insert("firmware.protocol_version".into(), p.clone());
+    }
+    if let Some(a) = &app_doc {
+        values.insert("app.name".into(), a.app.name.clone());
+        values.insert("app.version".into(), a.app.version.clone());
+        if let Some(s) = &a.app.summary {
+            values.insert("app.summary".into(), s.clone());
+        }
+    }
     values.insert("manual.date".into(), today_utc());
     for (k, v) in &m.values {
         values.insert(k.clone(), v.clone());
     }
 
     let mut provenance: Vec<(String, String, String)> = Vec::new();
+    provenance.push((
+        "Firmware document".into(),
+        m.firmware.document.clone(),
+        format!(
+            "{} {}, sha256 {}",
+            fw.firmware.name,
+            fw.firmware.version,
+            sha256_short(&read_bytes(&fw_path)?)
+        ),
+    ));
+    if let (Some(a), Some(p), Some(spec)) = (&app_doc, &app_path, &m.app) {
+        provenance.push((
+            "Application document".into(),
+            spec.document.clone(),
+            format!(
+                "{} {}, sha256 {}",
+                a.app.name,
+                a.app.version,
+                sha256_short(&read_bytes(p)?)
+            ),
+        ));
+    }
+    provenance.push((
+        "Schema set".into(),
+        "schemas/".into(),
+        format!(
+            "firmware {} (document {}), app {}{}",
+            schema_version(schema::FIRMWARE),
+            fw.schema_version,
+            schema_version(schema::APP),
+            app_doc
+                .as_ref()
+                .map(|a| format!(" (document {})", a.schema_version))
+                .unwrap_or_default()
+        ),
+    ));
     for (name, root) in loaded.sources() {
         provenance.push((
             format!("{name} checkout"),
@@ -175,23 +256,6 @@ fn build(
         ),
     ));
     provenance.push((
-        "Protocol".into(),
-        proto_root.display().to_string(),
-        git_describe(&proto_root),
-    ));
-    for (what, spec) in [
-        ("Menu tree", &m.firmware.menu_tree),
-        ("Menu words", &m.firmware.menu_lang),
-        ("Interaction FSM", &m.firmware.interaction_fsm),
-    ] {
-        let p = loaded.firmware_path(spec)?;
-        provenance.push((
-            what.into(),
-            spec.clone(),
-            format!("sha256 {}", sha256_short(&read_bytes(&p)?)),
-        ));
-    }
-    provenance.push((
         "Colour scheme".into(),
         m.brand.theme.clone(),
         format!(
@@ -207,16 +271,16 @@ fn build(
 
     let ctx = Ctx {
         loaded: &loaded,
-        menu: &menu,
-        lang: &lang,
-        proto: &proto,
-        fsm: &fsm,
-        defaults: &defaults,
+        fw: &fw,
+        fw_dir: &fw_dir,
+        app: app_doc.as_ref(),
+        app_dir: &app_dir,
         board: &board,
-        descriptions: &descriptions,
+        placed,
         values,
         provenance,
     };
+    let content_dir = loaded.resolve(&m.content)?;
     let body = markdown::render_dir(&content_dir, &ctx).context("the chapters")?;
     let html = render::page(&ctx, &theme, &body)?;
 
@@ -224,6 +288,18 @@ fn build(
         Some(p) => p.to_path_buf(),
         None => loaded.resolve(&m.output)?,
     };
+    let summary = format!(
+        "{} bytes, {} screens, {} settings, {} contents entries, firmware {}{}",
+        html.len(),
+        fw.screens.len(),
+        fw.settings.len(),
+        body.toc.len(),
+        fw.firmware.version,
+        app_doc
+            .as_ref()
+            .map(|a| format!(", app {}", a.app.version))
+            .unwrap_or_default()
+    );
     if write {
         if let Some(parent) = out_path.parent() {
             std::fs::create_dir_all(parent)
@@ -231,22 +307,21 @@ fn build(
         }
         std::fs::write(&out_path, &html)
             .with_context(|| format!("cannot write {}", out_path.display()))?;
-        println!(
-            "{} ({} bytes, {} screens, {} contents entries, firmware {})",
-            out_path.display(),
-            html.len(),
-            menu.screens.len(),
-            body.toc.len(),
-            fw_version
-        );
+        println!("{} ({summary})", out_path.display());
     } else {
-        println!(
-            "ok: {} bytes, {} screens, {} contents entries, firmware {}",
-            html.len(),
-            menu.screens.len(),
-            body.toc.len(),
-            fw_version
-        );
+        println!("ok: {summary}");
     }
     Ok(())
+}
+
+/// The `const` of `schema_version` in a schema of the set.
+fn schema_version(schema_text: &str) -> String {
+    serde_json::from_str::<Value>(schema_text)
+        .ok()
+        .and_then(|v| {
+            v["properties"]["schema_version"]["const"]
+                .as_str()
+                .map(str::to_string)
+        })
+        .unwrap_or_else(|| "unknown".to_string())
 }

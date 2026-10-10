@@ -77,3 +77,25 @@
   window.addEventListener('resize', update);
   update();
 })();
+
+// The tab groups: a choice of one target on one group selects that target on every group,
+// and the page remembers it, as a reference that shows one platform at a time does.
+(function () {
+  'use strict';
+  var KEY = 'snapshotpb-manual-target';
+  function select(target) {
+    var inputs = document.querySelectorAll('.tabs > input.t-' + target);
+    for (var i = 0; i < inputs.length; i++) { inputs[i].checked = true; }
+  }
+  var stored = null;
+  try { stored = localStorage.getItem(KEY); } catch (e) { stored = null; }
+  if (stored && document.querySelector('.tabs > input.t-' + stored)) { select(stored); }
+  document.addEventListener('change', function (ev) {
+    var el = ev.target;
+    if (!el || !el.classList || !el.classList.contains('tab-input')) { return; }
+    var target = (el.className.match(/\bt-([a-z0-9_]+)/) || [])[1];
+    if (!target) { return; }
+    select(target);
+    try { localStorage.setItem(KEY, target); } catch (e) { /* no storage: the choice lasts for this page only */ }
+  });
+})();

@@ -11,18 +11,14 @@ Press MENU on the home screen to open the menu. The menu is a list of rows. A ro
 
 NOTE: The board does not keep a change while it is locked. See [Lockout](#lockout).
 
-## The screens
+## The menu tree
+
+The graphic shows each screen of the menu and the row that opens it. Select a screen to go to its section. The Back row of a screen returns along the edge to the parent screen.
 
 {{menu-map}}
 
-## The settings
+## The screens and the settings
 
-A number row shows its value with the unit of the row. A time is in milliseconds, with one decimal place. The default is the value of a new board.
+Each screen below lists its rows in the order of the panel. Each setting follows with its values, its default, and what it does. A number row shows its value with the unit of the row. A time is in milliseconds, with one decimal place. The default is the value of a new board.
 
 {{menu}}
-
-## The words in each language
-
-The Language row selects the language of the menu. The table shows each word of the panel in each language.
-
-{{languages}}

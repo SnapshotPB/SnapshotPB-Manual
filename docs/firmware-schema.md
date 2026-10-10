@@ -18,6 +18,12 @@ The firmware document has three jobs.
    side by side, with one tab for each target, like the platform tabs in the Kotlin reference
    documentation.
 
+## Where the document lives
+
+The document for a firmware release is stored as `firmware/<board>/<firmware.version>.json`.
+The manifest of a manual names it, and the generator validates it before it renders anything.
+Run `snapshotpb-manual validate firmware <file>` to check a document alone.
+
 ## Where the data comes from
 
 The firmware already holds its menu tree in `app/menu/menu_tree.yaml`, and a generator
@@ -71,6 +77,7 @@ The top level of the document has these members.
 | `settings` | The settings, keyed by shared key. Each setting has a title, a description, a scope, a type, and the constraints of that type. |
 | `predicates` | The conditions that hide or disable a row, with what each one means and which settings decide it. |
 | `topics` | Documentation that is not a setting: the power-off gesture, the lockout, the eye override. |
+| `media` | The media items that the document shows: pictures, 3D models, videos, and kinds that a later version defines. See the section on media. |
 
 ### Rows
 
@@ -98,6 +105,31 @@ Each setting has a `scope`: `device` for one value on the board, `profile` for o
 profile, and `runtime` for a value that the board resets at each boot. A setting can list
 `related` shared keys. The manual links them.
 
+## Media
+
+A document can show a file beside its text: a picture of the buttons, a 3D model of the board,
+or a video of a procedure. The `media` map of the document holds each item under a local key.
+A setting, a topic, a screen, a control, the home screen, or the firmware itself names the items
+it shows in its `media` list, in the order the manual shows them.
+
+| Field | Meaning |
+|---|---|
+| `kind` | What the file is. The known kinds are `image`, `model`, `video`, and `document`. The field is open: a kind that the generator does not know is still valid, and the generator embeds the file with a link and the caption. |
+| `src` | Where the file is. A plain path is relative to the document file. A path with a `<source>:` prefix, for example `pcb:snapshot_v2/renders/board.glb`, is relative to that source root of the manual. The manifest of the manual names the source roots, so the board repository can provide a model that the firmware document shows. |
+| `caption` | The caption under the item, and its accessible name. |
+| `media_type` | The IANA media type. The generator infers it from the file extension when it is absent. |
+| `alt` | A text alternative, when the caption is not enough. |
+| `params` | Parameters for the kind, such as a camera position for a model. The schema does not constrain them. The generator writes them into the figure as a data attribute, so a viewer for the kind can read them from the page. |
+
+The generator shows an `image` inline, a `video` with the controls of the browser, and each
+other kind as an embedded file with a link. An interactive viewer for a `model` is a later step.
+The manual is one file with no link to the internet, so a viewer must be small enough to travel
+with the page.
+
+The common definitions, the media item and the key patterns, are in
+[`schemas/common/v1/media.schema.json`](../schemas/common/v1/media.schema.json). The firmware
+schema and the application schema both refer to it.
+
 ## The menu tree
 
 The tree is explicit. The generator starts at `root` and follows each submenu row. The schema
@@ -121,11 +153,13 @@ draws the same shape from the document.
 
 ## Tabs between firmware and application
 
-The application document, when it exists, uses the same shared keys. For each key the generator
-collects the firmware entry and each application entry. It renders one section for the key with
-one tab for each target: the board, Android, iOS, Wear OS, Desktop, and Browser. A target that
-has no entry for the key has no tab. A target can state that it shows the setting but does not
-let the user edit it. The application schema is the next document to write.
+The application document uses the same shared keys. For each key the generator collects the
+firmware entry and each application entry. It renders one section for the key with one tab for
+each target: the board, then each platform of the app in the order of the application document.
+A target that has no entry for the key has no tab. A target can state that it shows the setting
+but does not let the user edit it. The tabs work with no script. With the script, a choice of
+one target on one section selects that target on every section, and the page remembers it.
+The application schema is in [`docs/app-schema.md`](app-schema.md).
 
 ## What the firmware must add
 

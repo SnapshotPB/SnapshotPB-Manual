@@ -3,13 +3,26 @@
 use anyhow::Result;
 use base64::Engine;
 
-use crate::gen::{inline_svg, Ctx};
+use crate::gen::Ctx;
 use crate::markdown::{toc_html, Body};
+use crate::media::inline_svg;
 use crate::theme::Theme;
 use crate::util::{esc, read_bytes};
 
 const CSS: &str = include_str!("../assets/manual.css");
 const JS: &str = include_str!("../assets/manual.js");
+
+/// The style rules of the tab groups. A page holds one rule for each target, so a group
+/// shows the panel of the target whose radio button is checked, with no script.
+pub fn tabs_css(targets: &[(String, String)]) -> String {
+    let mut css = String::new();
+    for (key, _) in targets {
+        css.push_str(&format!(
+            ".tabs > input.t-{key}:checked ~ .panel.t-{key} {{ display: block; }}\n"
+        ));
+    }
+    css
+}
 
 pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let m = &ctx.loaded.manifest;
@@ -25,11 +38,17 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
         .get("firmware.version")
         .cloned()
         .unwrap_or_default();
+    let app_version = ctx
+        .values
+        .get("app.version")
+        .map(|v| format!(", app <code>{}</code>", esc(v)))
+        .unwrap_or_default();
     let date = ctx.values.get("manual.date").cloned().unwrap_or_default();
     let title = esc(&m.title);
     let subtitle = esc(&m.subtitle);
     let toc = toc_html(&body.toc);
     let theme_css = theme.css();
+    let tabs_css = tabs_css(&ctx.targets());
     let content = &body.html;
     let board = esc(&m.board.name);
     let md5 = esc(ctx.board.md5_short());
@@ -48,6 +67,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
 <style>
 {theme_css}
 {CSS}
+{tabs_css}
 </style>
 </head>
 <body>
@@ -72,7 +92,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
 {content}
     </article>
     <footer class="foot">
-      <p>{title} &middot; {subtitle}. Board <code>{board}</code> at <code>{md5}</code>, firmware <code>{version}</code>. Generated on {date} by <code>{generator} {gen_version}</code>.</p>
+      <p>{title} &middot; {subtitle}. Board <code>{board}</code> at <code>{md5}</code>, firmware <code>{version}</code>{app_version}. Generated on {date} by <code>{generator} {gen_version}</code>.</p>
     </footer>
   </main>
 </div>
@@ -86,4 +106,20 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
         version = esc(&version),
         date = esc(&date),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_rule_per_target() {
+        let css = tabs_css(&[
+            ("board".into(), "Board".into()),
+            ("android".into(), "Android".into()),
+        ]);
+        assert!(css.contains(".tabs > input.t-board:checked ~ .panel.t-board"));
+        assert!(css.contains(".tabs > input.t-android:checked ~ .panel.t-android"));
+        assert_eq!(css.lines().count(), 2);
+    }
 }

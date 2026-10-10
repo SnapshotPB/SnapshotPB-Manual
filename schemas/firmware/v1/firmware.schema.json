@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://snapshotpb.com/schemas/firmware/v1/firmware.schema.json",
   "title": "Snapshot PB firmware documentation",
-  "description": "One document that a firmware release writes to describe itself: its controls, its screens, its settings, and the menu tree that connects them. The generator validates the document against this schema and renders it into the manual.",
+  "description": "One document that a firmware release writes to describe itself: its controls, its screens, its settings, and the menu tree that connects them. The generator validates the document against this schema and renders it into the manual. The key patterns and the media item come from the common schema.",
   "type": "object",
   "required": [
     "schema_version",
@@ -99,28 +99,23 @@
       "additionalProperties": {
         "$ref": "#/$defs/topic"
       }
+    },
+    "media": {
+      "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_map"
     }
   },
   "$defs": {
     "local_key": {
-      "description": "A key that is local to this document: lower case, digits, and underscores.",
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9_]*$"
+      "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/local_key"
     },
     "shared_key": {
-      "description": "A key that the firmware and the application documentation share. For a setting, it is the field path in the protocol model: <scope>.<field>, for example autococker.eye_mode. For a topic, the scope is the word topic.",
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+      "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/shared_key"
     },
     "version": {
-      "description": "A version: MAJOR.MINOR.PATCH, with an optional suffix such as -dev.",
-      "type": "string",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.]+)?$"
+      "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/version"
     },
     "text": {
-      "description": "Prose for the manual, in English, in ASD-STE100 Simplified Technical English. Markdown inline formatting is permitted.",
-      "type": "string",
-      "minLength": 1
+      "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text"
     },
     "firmware": {
       "type": "object",
@@ -155,6 +150,9 @@
         },
         "summary": {
           "$ref": "#/$defs/text"
+        },
+        "media": {
+          "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref"
         }
       }
     },
@@ -199,6 +197,9 @@
               }
             }
           }
+        },
+        "media": {
+          "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref"
         }
       }
     },
@@ -264,6 +265,9 @@
           "additionalProperties": {
             "$ref": "#/$defs/text"
           }
+        },
+        "media": {
+          "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref"
         }
       }
     },
@@ -290,6 +294,9 @@
           "items": {
             "$ref": "#/$defs/item"
           }
+        },
+        "media": {
+          "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref"
         }
       }
     },
@@ -418,6 +425,9 @@
           "items": {
             "$ref": "#/$defs/shared_key"
           }
+        },
+        "media": {
+          "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref"
         }
       },
       "oneOf": [
@@ -447,7 +457,8 @@
               "description": "The number of decimal places that the panel draws. The stored value is the drawn value times ten to this power.",
               "type": "integer",
               "minimum": 0,
-              "default": 0
+              "default": 0,
+              "maximum": 9
             },
             "zero_text": {
               "description": "The word that the panel draws for the value 0, in the place of the number.",
@@ -456,7 +467,8 @@
             "title": true,
             "description": true,
             "scope": true,
-            "related": true
+            "related": true,
+            "media": true
           },
           "required": [
             "min",
@@ -509,7 +521,8 @@
             "title": true,
             "description": true,
             "scope": true,
-            "related": true
+            "related": true,
+            "media": true
           },
           "required": [
             "options"
@@ -533,7 +546,8 @@
             "title": true,
             "description": true,
             "scope": true,
-            "related": true
+            "related": true,
+            "media": true
           },
           "additionalProperties": false
         }
@@ -589,6 +603,9 @@
           "items": {
             "$ref": "#/$defs/shared_key"
           }
+        },
+        "media": {
+          "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref"
         }
       }
     }

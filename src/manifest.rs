@@ -1,4 +1,4 @@
-//! The manifest of one manual: where its sources are, and how to read them.
+//! The manifest of one manual: which documents it renders, and where its sources are.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -20,15 +20,15 @@ pub struct Manifest {
     pub output: String,
     /// The directory of the Markdown chapters.
     pub content: String,
-    /// Named source roots. A path `name:rest` in this file resolves against `sources.name`.
+    /// Named source roots. A path `name:rest` in this file, in a chapter, or in the `src` of
+    /// a media item resolves against `sources.name`.
     #[serde(default)]
     pub sources: BTreeMap<String, String>,
     pub brand: Brand,
     pub board: Board,
     pub firmware: Firmware,
-    /// Where the default of a setting comes from, by its `bind` key.
     #[serde(default)]
-    pub defaults: BTreeMap<String, String>,
+    pub app: Option<App>,
     /// Literal values for `{{value name}}` in the content.
     #[serde(default)]
     pub values: BTreeMap<String, String>,
@@ -56,35 +56,15 @@ pub struct Board {
 pub struct Firmware {
     /// The Zephyr board target.
     pub board: String,
-    pub menu_tree: String,
-    pub menu_lang: String,
-    pub interaction_fsm: String,
-    pub proto_root: String,
-    #[serde(default)]
-    pub kconfig: Vec<String>,
-    #[serde(default)]
-    pub defines: Vec<String>,
-    /// A `bind` scope and the protocol message that holds it.
-    #[serde(default)]
-    pub scopes: BTreeMap<String, String>,
-    /// An input event of the menu and the words for it.
-    #[serde(default)]
-    pub events: BTreeMap<String, String>,
-    /// A state of the menu and the words for it, in the order of the manual.
-    #[serde(default)]
-    pub states: Vec<StateWords>,
-    /// A guard or a predicate and the words for it.
-    #[serde(default)]
-    pub guards: BTreeMap<String, String>,
+    /// The firmware document, which follows `schemas/firmware/v1`.
+    pub document: String,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct StateWords {
-    pub state: String,
-    pub name: String,
-    #[serde(default)]
-    pub text: String,
+pub struct App {
+    /// The application document, which follows `schemas/app/v1`.
+    pub document: String,
 }
 
 /// A manifest with its directory and the source roots that the command line changed.
@@ -96,6 +76,7 @@ pub struct Loaded {
 }
 
 impl Loaded {
+    /// Reads a manifest, and applies the source roots that the command line replaced.
     pub fn load(path: &Path, overrides: &[(String, String)]) -> Result<Loaded> {
         let text = read_text(path)?;
         let manifest: Manifest =
@@ -119,6 +100,39 @@ impl Loaded {
         })
     }
 
+    /// A manifest with no source, for a test.
+    #[cfg(test)]
+    pub fn empty(path: &Path) -> Loaded {
+        Loaded {
+            manifest: Manifest {
+                id: String::new(),
+                title: String::new(),
+                subtitle: String::new(),
+                output: String::new(),
+                content: String::new(),
+                sources: BTreeMap::new(),
+                brand: Brand {
+                    logo: String::new(),
+                    icon: String::new(),
+                    theme: String::new(),
+                },
+                board: Board {
+                    name: String::new(),
+                    metrics: String::new(),
+                },
+                firmware: Firmware {
+                    board: String::new(),
+                    document: String::new(),
+                },
+                app: None,
+                values: BTreeMap::new(),
+            },
+            dir: path.parent().map(Path::to_path_buf).unwrap_or_default(),
+            path: path.to_path_buf(),
+            sources: BTreeMap::new(),
+        }
+    }
+
     fn plain(dir: &Path, spec: &str) -> PathBuf {
         let p = expand_tilde(spec);
         if p.is_absolute() {
@@ -128,16 +142,8 @@ impl Loaded {
         }
     }
 
-    /// The directory of a named source root.
-    pub fn source(&self, name: &str) -> Result<&Path> {
-        match self.sources.get(name) {
-            Some(p) => Ok(p),
-            None => bail!("the manifest names no source `{name}`"),
-        }
-    }
-
-    /// Resolves a path of the manifest or of the content: `name:rest`, `~/…`, absolute, or
-    /// relative to the manifest.
+    /// Resolves a path of the manifest, of the content, or of a media item: `name:rest`,
+    /// `~/…`, absolute, or relative to the manifest.
     pub fn resolve(&self, spec: &str) -> Result<PathBuf> {
         if let Some((name, rest)) = spec.split_once(':') {
             if !name.is_empty() && !name.contains('/') && !name.contains('\\') {
@@ -148,14 +154,6 @@ impl Loaded {
             }
         }
         Ok(Self::plain(&self.dir, spec))
-    }
-
-    /// Resolves a path that the firmware section gives relative to the firmware root.
-    pub fn firmware_path(&self, spec: &str) -> Result<PathBuf> {
-        if spec.contains(':') || spec.starts_with('~') || Path::new(spec).is_absolute() {
-            return self.resolve(spec);
-        }
-        Ok(self.source("firmware")?.join(spec))
     }
 
     pub fn sources(&self) -> &BTreeMap<String, PathBuf> {

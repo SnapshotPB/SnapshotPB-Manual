@@ -1,6 +1,6 @@
 # The board
 
-{{value product}} is a circuit board that controls the firing of a paintball marker. The board drives the two solenoids of the marker, reads the trigger, reads a ball eye, and shows a menu on a small screen. A mobile app configures the board through Bluetooth.
+The {{value product}} Autococker {{value board.name}} board controls the firing of a paintball marker. The board drives the two solenoids of the marker, reads the trigger, reads a ball eye, and shows a menu on a small screen. A mobile app configures the board through Bluetooth.
 
 {{image pcb:snapshot_v2/renders/03-iso-top.png | The main board, with the screen board and the trigger board in place}}
 

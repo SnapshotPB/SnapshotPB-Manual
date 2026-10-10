@@ -684,7 +684,6 @@ impl<'a> Ctx<'a> {
             "Outline",
             format!("{:.2} mm &times; {:.2} mm", b.width_mm, b.height_mm),
         );
-        row("Firmware target", esc(&self.loaded.manifest.firmware.board));
         row("Firmware", esc(&self.fw.firmware.version));
         row(
             "Board models",

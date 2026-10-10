@@ -20,7 +20,8 @@ The firmware document has three jobs.
 
 ## Where the document lives
 
-The document for a firmware release is stored as `firmware/<board>/<firmware.version>.json`.
+The document for a firmware release is stored as `firmware/<model>/<firmware.version>.json`,
+under the board model that the firmware runs on, for example `firmware/autococker/`.
 The manifest of a manual names it, and the generator validates it before it renders anything.
 Run `snapshotpb-manual validate firmware <file>` to check a document alone.
 
@@ -115,7 +116,7 @@ it shows in its `media` list, in the order the manual shows them.
 | Field | Meaning |
 |---|---|
 | `kind` | What the file is. The known kinds are `image`, `model`, `video`, and `document`. The field is open: a kind that the generator does not know is still valid, and the generator embeds the file with a link and the caption. |
-| `src` | Where the file is. A plain path is relative to the document file. A path with a `<source>:` prefix, for example `pcb:snapshot_v2/renders/board.glb`, is relative to that source root of the manual. The manifest of the manual names the source roots, so the board repository can provide a model that the firmware document shows. |
+| `src` | Where the file is. A plain path is relative to the document file. A path with a `<source>:` prefix, for example `pcb:renders/board.glb`, is relative to that source root of the manual. The manifest of the manual names the source roots, so the board repository can provide a model that the firmware document shows. |
 | `caption` | The caption under the item, and its accessible name. |
 | `media_type` | The IANA media type. The generator infers it from the file extension when it is absent. |
 | `alt` | A text alternative, when the caption is not enough. |

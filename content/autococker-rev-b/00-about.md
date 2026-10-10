@@ -1,6 +1,6 @@
 # About this manual
 
-This manual describes the {{value product}} board `{{value board.name}}`, the firmware that runs on it, and the app that configures it. It tells you how to install the board, how to use the buttons and the screen, and what each setting does.
+This manual describes the {{value product}} Autococker: the {{value board.name}} board, the firmware that runs on it, and the app that configures it. It tells you how to install the board, how to use the buttons and the screen, and what each setting does.
 
 The manual is one file. It has no link to the internet, and it works from any folder. You can save it and read it with no connection.
 

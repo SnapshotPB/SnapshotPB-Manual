@@ -54,8 +54,6 @@ pub struct Board {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Firmware {
-    /// The Zephyr board target.
-    pub board: String,
     /// The firmware document, which follows `schemas/firmware/v1`.
     pub document: String,
 }
@@ -121,7 +119,6 @@ impl Loaded {
                     metrics: String::new(),
                 },
                 firmware: Firmware {
-                    board: String::new(),
                     document: String::new(),
                 },
                 app: None,

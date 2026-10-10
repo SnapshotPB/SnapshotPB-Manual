@@ -181,7 +181,6 @@ fn build(
     values.insert("board.height_mm".into(), format!("{:.2}", board.height_mm));
     values.insert("firmware.name".into(), fw.firmware.name.clone());
     values.insert("firmware.version".into(), fw.firmware.version.clone());
-    values.insert("firmware.board".into(), m.firmware.board.clone());
     if let Some(s) = &fw.firmware.summary {
         values.insert("firmware.summary".into(), s.clone());
     }

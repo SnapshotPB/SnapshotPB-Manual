@@ -68,7 +68,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} — {subtitle}</title>
-<meta name="description" content="{subtitle} for {title}: the board {board} at {md5} and the firmware {version_attr}.">
+<meta name="description" content="{title} {subtitle}: the {board} board at {md5} and the firmware {version_attr}.">
 <meta name="generator" content="{generator} {gen_version}">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,{icon}">
 <style>
@@ -104,7 +104,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
 {content}
     </article>
     <footer class="foot">
-      <p>{title} &middot; {subtitle}. Board <code>{board}</code> at <code>{md5}</code>, firmware <code>{version}</code>{app_version}. Generated on {date} by <code>{generator} {gen_version}</code>.</p>
+      <p>{title} &middot; {subtitle}. The {board} board at <code>{md5}</code>, firmware <code>{version}</code>{app_version}. Generated on {date} by <code>{generator} {gen_version}</code>.</p>
     </footer>
   </main>
 </div>

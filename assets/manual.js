@@ -32,6 +32,7 @@
   function openNav(open) {
     if (!nav) { return; }
     nav.classList.toggle('open', open);
+    document.body.classList.toggle('nav-open', open);
     if (scrim) { scrim.hidden = !open; }
     if (navbtn) { navbtn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
   }

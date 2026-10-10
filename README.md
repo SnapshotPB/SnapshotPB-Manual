@@ -150,7 +150,7 @@ block. A line that holds one directive puts a generated block there:
 | Directive | Block |
 |---|---|
 | `{{menu}}` | The settings reference: each screen in the order of the tree, its rows, and one section for each setting with its tabs |
-| `{{menu-map}}` | The menu tree as a graphic with a link on each screen, and as a list |
+| `{{menu-map}}` | The menu tree, as a graphic on a wide screen and as a list on a narrow screen |
 | `{{controls}}` | The buttons of the board and what each press does |
 | `{{interactions}}` | What the user can do, where, and with which button |
 | `{{home}}` | The home screen and its marks |

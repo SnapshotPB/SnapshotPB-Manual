@@ -13,7 +13,7 @@ NOTE: The board does not keep a change while it is locked. See [Lockout](#lockou
 
 ## The menu tree
 
-The graphic shows each screen of the menu and the row that opens it. Select a screen to go to its section. The Back row of a screen returns along the edge to the parent screen.
+The map shows each screen of the menu and its settings. Select a screen or a setting to go to its section. A wide screen shows the map as a graphic, with the row that opens each screen on its edge. A narrow screen shows the map as a list.
 
 {{menu-map}}
 

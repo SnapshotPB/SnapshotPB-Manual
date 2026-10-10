@@ -26,13 +26,20 @@ pub fn tabs_css(targets: &[(String, String)]) -> String {
 
 pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let m = &ctx.loaded.manifest;
+    // The full logo heads the manual. The small icon marks the top bar, where the full logo
+    // would be too small to read, and it is the icon of the browser tab.
     let logo = inline_svg(
         &ctx.loaded.resolve(&m.brand.logo)?,
         &format!("{} logo", m.title),
     )?
-    .replacen("<svg", "<svg class=\"logo\"", 1);
-    let icon = base64::engine::general_purpose::STANDARD
-        .encode(read_bytes(&ctx.loaded.resolve(&m.brand.icon)?)?);
+    .replacen("<svg", "<svg class=\"hero-logo\"", 1);
+    let icon_path = ctx.loaded.resolve(&m.brand.icon)?;
+    let mark = inline_svg(&icon_path, &format!("{} mark", m.title))?.replacen(
+        "<svg",
+        "<svg class=\"logo\"",
+        1,
+    );
+    let icon = base64::engine::general_purpose::STANDARD.encode(read_bytes(&icon_path)?);
     let version = ctx
         .values
         .get("firmware.version")
@@ -76,7 +83,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
   <button class="iconbtn" id="navbtn" type="button" aria-label="Open the contents" aria-expanded="false" aria-controls="nav">
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
   </button>
-  <a class="brand" href="#top">{logo}<span class="brand-text"><span class="brand-title">{title}</span><span class="brand-sub">{subtitle}</span></span></a>
+  <a class="brand" href="#top">{mark}<span class="brand-text"><span class="brand-title">{title}</span><span class="brand-sub">{subtitle}</span></span></a>
   <button class="iconbtn" id="themebtn" type="button" aria-label="Change the colour theme" title="Theme: follows the system">
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18V4a8 8 0 0 1 0 16z"/></svg>
   </button>
@@ -89,6 +96,11 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
   <div class="scrim" id="scrim" hidden></div>
   <main id="content">
     <article>
+<header class="hero">
+  {logo}
+  <h1 class="hero-title">{title}</h1>
+  <p class="hero-sub">{subtitle}</p>
+</header>
 {content}
     </article>
     <footer class="foot">

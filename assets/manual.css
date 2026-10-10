@@ -27,7 +27,7 @@ img, svg { max-width: 100%; height: auto; }
   border-bottom: 1px solid var(--md-outline-variant);
 }
 .brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; min-width: 0; flex: 1; }
-.brand .logo { height: 44px; width: auto; flex: none; }
+.brand .logo { height: 36px; width: auto; flex: none; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
 .brand-title { font-weight: 700; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-sub { font-size: 0.8rem; color: var(--md-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -60,10 +60,16 @@ img, svg { max-width: 100%; height: auto; }
 main { padding: 24px 32px 60px; min-width: 0; }
 article { max-width: 860px; }
 
+/* The header of the manual: the full logo, the title and the subtitle. */
+.hero { text-align: center; padding: 8px 0 24px; margin-bottom: 8px; border-bottom: 1px solid var(--md-outline-variant); }
+.hero-logo { width: min(100%, 360px); height: auto; }
+.hero-title { margin: 12px 0 0; font-size: 2rem; line-height: 1.2; color: var(--md-on-background); }
+.hero-sub { margin: 4px 0 0; font-size: 1.05rem; color: var(--md-on-surface-variant); }
+
 /* The text. */
 h2, h3, h4 { line-height: 1.25; scroll-margin-top: 76px; color: var(--md-on-background); }
 h2 { font-size: 1.75rem; margin: 2.4em 0 0.6em; padding-bottom: 0.3em; border-bottom: 1px solid var(--md-outline-variant); }
-article > h2:first-child { margin-top: 0.4em; }
+article > h2:first-child, .hero + h2 { margin-top: 0.4em; }
 h3 { font-size: 1.25rem; margin: 1.8em 0 0.5em; }
 h4 { font-size: 1.05rem; margin: 1.4em 0 0.4em; }
 p, ul, ol { margin: 0 0 1em; }
@@ -122,6 +128,8 @@ tr.k-back .kind, tr.k-screen .kind { display: none; }
   .scrim[hidden] { display: none; }
   main { padding: 16px 16px 48px; }
   h2 { font-size: 1.45rem; }
+  .hero-logo { width: min(100%, 260px); }
+  .hero-title { font-size: 1.6rem; }
   .brand-sub { display: none; }
   table { display: block; overflow-x: auto; }
 }
@@ -134,7 +142,7 @@ tr.k-back .kind, tr.k-screen .kind { display: none; }
   body { background: #fff; color: #000; }
   a { color: inherit; }
   h2 { break-before: page; }
-  article > h2:first-child { break-before: auto; }
+  article > h2:first-child, .hero + h2 { break-before: auto; }
   table, figure, .adm { break-inside: avoid; }
 }
 

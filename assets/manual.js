@@ -78,24 +78,33 @@
   update();
 })();
 
-// The tab groups: a choice of one target on one group selects that target on every group,
-// and the page remembers it, as a reference that shows one platform at a time does.
+// The tab groups. A section has two tabs, the board and the configuration app, and the app
+// tab has one tab for each platform where the platforms differ. A choice on one group selects
+// the same tab on every group of the same kind, and the page remembers each choice, as a
+// reference that shows one platform at a time does.
 (function () {
   'use strict';
-  var KEY = 'snapshotpb-manual-target';
+  var KEY = 'snapshotpb-manual-';
+  var GROUPS = ['view', 'target'];
   function select(target) {
     var inputs = document.querySelectorAll('.tabs > input.t-' + target);
     for (var i = 0; i < inputs.length; i++) { inputs[i].checked = true; }
   }
-  var stored = null;
-  try { stored = localStorage.getItem(KEY); } catch (e) { stored = null; }
-  if (stored && document.querySelector('.tabs > input.t-' + stored)) { select(stored); }
+  function groupOf(el) {
+    var tabs = el.parentNode;
+    return (tabs && tabs.getAttribute && tabs.getAttribute('data-group')) || GROUPS[0];
+  }
+  GROUPS.forEach(function (group) {
+    var stored = null;
+    try { stored = localStorage.getItem(KEY + group); } catch (e) { stored = null; }
+    if (stored && document.querySelector('.tabs[data-group="' + group + '"] > input.t-' + stored)) { select(stored); }
+  });
   document.addEventListener('change', function (ev) {
     var el = ev.target;
     if (!el || !el.classList || !el.classList.contains('tab-input')) { return; }
     var target = (el.className.match(/\bt-([a-z0-9_]+)/) || [])[1];
     if (!target) { return; }
     select(target);
-    try { localStorage.setItem(KEY, target); } catch (e) { /* no storage: the choice lasts for this page only */ }
+    try { localStorage.setItem(KEY + groupOf(el), target); } catch (e) { /* no storage: the choice lasts for this page only */ }
   });
 })();

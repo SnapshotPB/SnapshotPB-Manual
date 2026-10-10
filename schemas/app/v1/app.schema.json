@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://snapshotpb.com/schemas/app/v1/app.schema.json",
   "title": "Snapshot PB application documentation",
-  "description": "One document that an application release writes to describe itself: the targets it runs on, and what it shows and edits for each shared key. The generator pairs it with a firmware document by the shared keys, and shows one tab for each target.",
+  "description": "One document that an application release writes to describe itself: the targets it runs on, and what it shows and edits for each shared key. The generator pairs it with a firmware document by the shared keys, and shows the words of the app beside the words of the board.",
   "type": "object",
   "required": [
     "schema_version",
@@ -46,7 +46,7 @@
       }
     },
     "targets": {
-      "description": "The platforms the application runs on, keyed by target key, in the order of the tabs in the manual. The key board is reserved for the tab of the board itself.",
+      "description": "The platforms the application runs on, keyed by target key, in the order of the platform tabs in the manual. The keys board and app are reserved for the tabs of the manual itself.",
       "type": "object",
       "minProperties": 1,
       "propertyNames": {

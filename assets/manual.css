@@ -159,7 +159,8 @@ tr.k-back .kind, tr.k-screen .kind { display: none; }
 .app-title .where { margin-left: 8px; font-size: 0.88rem; color: var(--md-on-surface-variant); }
 .app-title .where::before { content: "in "; }
 
-/* The tab groups: the board and each target of the app. They work with no script. */
+/* The tab groups: the board and the configuration app, and inside the app tab one tab for
+   each platform where the platforms differ. They work with no script. */
 .tabs { margin: 0.6em 0 1.2em; }
 .tabs > .tab-input { position: absolute; opacity: 0; width: 1px; height: 1px; overflow: hidden; }
 .tabs > label { display: inline-block; padding: 6px 14px; margin: 0 2px 0 0; border: 1px solid var(--md-outline-variant); border-bottom: 0; border-radius: 8px 8px 0 0; background: var(--md-surface-container-low); color: var(--md-on-surface-variant); font-size: 0.9rem; cursor: pointer; }
@@ -169,6 +170,10 @@ tr.k-back .kind, tr.k-screen .kind { display: none; }
 .tabs > .panel { display: none; padding: 12px 16px 4px; border: 1px solid var(--md-outline); border-radius: 0 8px 8px 8px; background: var(--md-surface); }
 .panel-name { display: none; }
 .panel-only { margin: 0.6em 0 1.2em; }
+.panel > .tabs { margin: 0.4em 0 0.6em; }
+.panel > .tabs > label { padding: 4px 12px; font-size: 0.84rem; }
+.panel > .tabs > .panel { padding: 10px 14px 2px; background: var(--md-surface-container-lowest, var(--md-surface)); }
+.platforms { font-size: 0.9rem; color: var(--md-on-surface-variant); }
 
 /* The menu tree. */
 figure.tree { padding: 12px; }

@@ -15,8 +15,8 @@ The firmware document has three jobs.
    screen in the graphic and jumps to its section of the manual.
 3. **Shared keys.** Each setting and each topic has a key that the application documentation
    also uses. The generator shows the firmware text and the application text for one key
-   side by side, with one tab for each target, like the platform tabs in the Kotlin reference
-   documentation.
+   side by side, with one tab for the board and one tab for the configuration app, like the
+   platform tabs in the Kotlin reference documentation.
 
 ## Where the document lives
 
@@ -155,12 +155,14 @@ draws the same shape from the document.
 ## Tabs between firmware and application
 
 The application document uses the same shared keys. For each key the generator collects the
-firmware entry and each application entry. It renders one section for the key with one tab for
-each target: the board, then each platform of the app in the order of the application document.
-A target that has no entry for the key has no tab. A target can state that it shows the setting
-but does not let the user edit it. The tabs work with no script. With the script, a choice of
-one target on one section selects that target on every section, and the page remembers it.
-The application schema is in [`docs/app-schema.md`](app-schema.md).
+firmware entry and the application entry. It renders one section for the key with two tabs:
+the board, and the configuration app. The app tab shows the words once when each platform
+gets the same words. When the words differ, the app tab holds one tab for each platform, in
+the order of the application document. A platform that has no entry for the key has no tab.
+A platform can state that it shows the setting but does not let the user edit it. The tabs
+work with no script. With the script, a choice on one section selects the same tab on every
+section, and the page remembers it. The application schema is in
+[`docs/app-schema.md`](app-schema.md).
 
 ## What the firmware must add
 

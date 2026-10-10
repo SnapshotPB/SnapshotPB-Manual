@@ -1,6 +1,10 @@
 //! The blocks that the generator writes from the documents: the settings reference with its
 //! tabs, the menu tree, the controls, the interactions, the topics, the board figures and
 //! the provenance.
+//!
+//! A section that both documents describe has two tabs: the board, and the configuration
+//! app. The app tab shows the words once when each platform gets the same words. It shows
+//! one tab for each platform when the words differ.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -16,8 +20,12 @@ use crate::util::{esc, slug};
 use anyhow::{bail, Context, Result};
 use regex::Regex;
 
-/// The key and the tab name of the board itself, which is the first tab of every group.
-pub const BOARD_TARGET: &str = app::RESERVED_TARGET;
+/// The tab key of the board itself, which is the first tab of a section.
+pub const BOARD_TARGET: &str = app::RESERVED_TARGETS[0];
+/// The tab key of the configuration app, which is the second tab of a section.
+pub const APP_TARGET: &str = app::RESERVED_TARGETS[1];
+/// The name on the tab of the configuration app.
+pub const APP_TAB: &str = "Configuration App";
 
 pub struct Ctx<'a> {
     pub loaded: &'a Loaded,
@@ -43,9 +51,13 @@ pub fn topic_id(key: &str) -> String {
 }
 
 impl<'a> Ctx<'a> {
-    /// The tab targets of the page: the board, then each target of the app document.
+    /// The tab keys of the page with their names: the board, the app, then each platform of
+    /// the app document.
     pub fn targets(&self) -> Vec<(String, String)> {
-        let mut out = vec![(BOARD_TARGET.to_string(), "Board".to_string())];
+        let mut out = vec![
+            (BOARD_TARGET.to_string(), "Board".to_string()),
+            (APP_TARGET.to_string(), APP_TAB.to_string()),
+        ];
         if let Some(app) = self.app {
             for (k, t) in &app.targets {
                 out.push((k.clone(), t.name.clone()));
@@ -281,56 +293,81 @@ impl<'a> Ctx<'a> {
         Ok(out)
     }
 
-    /// A tab group: the board panel first, then one panel for each app target that has the
-    /// key. With no app entry, the board panel stands alone.
+    /// The tabs of a section: the board, then the configuration app. With one document
+    /// alone, its words stand with no tab.
     fn tabs(&self, id: &str, board_html: Option<String>, key: &str) -> Result<String> {
-        let mut panels: Vec<(&str, String, String)> = Vec::new();
+        let mut panels: Vec<(&str, &str, String)> = Vec::new();
         if let Some(b) = board_html {
-            panels.push((BOARD_TARGET, "Board".to_string(), b));
+            panels.push((BOARD_TARGET, "Board", b));
         }
-        if let Some(app) = self.app {
-            if let Some(entry) = app.entry(key) {
-                for (tk, target, r) in app.resolve(entry) {
-                    let mut html = String::new();
-                    html.push_str(&format!("<p class=\"app-title\"><b>{}</b>", esc(r.title)));
-                    if let Some(place) = r.place {
-                        html.push_str(&format!(" <span class=\"where\">{}</span>", esc(place)));
-                    }
-                    html.push_str("</p>\n");
-                    if !r.editable {
-                        html.push_str("<p class=\"when\">The app shows the value and does not change it.</p>\n");
-                    }
-                    html.push_str(&paras(r.description));
-                    for mk in r.media {
-                        let m = &app.media[mk];
-                        html.push_str(&m.html(self.loaded, self.app_dir)?);
-                    }
-                    panels.push((tk, target.name.clone(), html));
-                }
-            }
+        if let Some(a) = self.app_panel(id, key)? {
+            panels.push((APP_TARGET, APP_TAB, a));
         }
         if panels.is_empty() {
             bail!("no document describes `{key}`");
         }
-        if panels.len() == 1 {
-            return Ok(format!("<div class=\"panel-only\">{}</div>\n", panels[0].2));
+        Ok(tab_group(id, "view", &panels))
+    }
+
+    /// The words of the app for a key. When each platform gets the same words, the panel
+    /// shows them once, and it names the platforms when the entry does not cover each one.
+    /// When the words differ, the panel holds one tab for each platform. `None` when the app
+    /// document does not describe the key.
+    fn app_panel(&self, id: &str, key: &str) -> Result<Option<String>> {
+        let Some(app) = self.app else {
+            return Ok(None);
+        };
+        let Some(entry) = app.entry(key) else {
+            return Ok(None);
+        };
+        let resolved = app.resolve(entry);
+        let Some((_, _, first)) = resolved.first() else {
+            return Ok(None);
+        };
+        if app::same_words(&resolved) {
+            let mut html = self.app_words(app, first)?;
+            if !app.covers_all(entry) {
+                let names: Vec<String> = resolved.iter().map(|(_, t, _)| esc(&t.name)).collect();
+                html.push_str(&format!(
+                    "<p class=\"platforms\">Platforms: {}.</p>\n",
+                    names.join(", ")
+                ));
+            }
+            return Ok(Some(html));
         }
-        let mut out = format!("<div class=\"tabs\" data-tabs=\"{id}\">\n");
-        for (i, (tk, name, _)) in panels.iter().enumerate() {
-            out.push_str(&format!(
-                "<input type=\"radio\" name=\"tabs-{id}\" id=\"tab-{id}-{tk}\" class=\"tab-input t-{tk}\"{}><label for=\"tab-{id}-{tk}\">{}</label>\n",
-                if i == 0 { " checked" } else { "" },
-                esc(name)
-            ));
+        let mut panels: Vec<(&str, &str, String)> = Vec::new();
+        for (tk, target, r) in &resolved {
+            panels.push((tk, target.name.as_str(), self.app_words(app, r)?));
         }
-        for (tk, name, html) in &panels {
-            out.push_str(&format!(
-                "<div class=\"panel t-{tk}\" data-target=\"{tk}\"><p class=\"panel-name\">{}</p>{html}</div>\n",
-                esc(name)
-            ));
+        Ok(Some(tab_group(&platform_group_id(id), "target", &panels)))
+    }
+
+    /// The words of the app for one platform: the title, the path, the editable note, the
+    /// description and the media.
+    fn app_words(&self, app: &app::Document, r: &app::Resolved) -> Result<String> {
+        let mut html = String::new();
+        html.push_str(&format!("<p class=\"app-title\"><b>{}</b>", esc(r.title)));
+        if let Some(place) = r.place {
+            html.push_str(&format!(" <span class=\"where\">{}</span>", esc(place)));
         }
-        out.push_str("</div>\n");
-        Ok(out)
+        html.push_str("</p>\n");
+        if !r.editable {
+            html.push_str(
+                "<p class=\"when\">The app shows the value and does not change it.</p>\n",
+            );
+        }
+        html.push_str(&paras(r.description));
+        for mk in r.media {
+            let m = match app.media.get(mk) {
+                Some(m) => m,
+                None => bail!("the app document has no media item `{mk}`"),
+            };
+            html.push_str(
+                &m.html(self.loaded, self.app_dir)
+                    .with_context(|| format!("the media `{mk}`"))?,
+            );
+        }
+        Ok(html)
     }
 
     fn related(&self, keys: &[String]) -> String {
@@ -594,7 +631,7 @@ impl<'a> Ctx<'a> {
         Ok(out)
     }
 
-    /// One topic. A topic that only the app has gets the tabs of the app alone.
+    /// One topic. A topic that only the app has gets the words of the app alone.
     fn topic(&self, key: &str) -> Result<String> {
         let t = match self.fw.topics.get(key) {
             Some(t) => t,
@@ -735,6 +772,40 @@ impl<'a> Ctx<'a> {
     }
 }
 
+/// The id of the platform tab group inside the app tab of a section. A section id comes from
+/// `slug`, which never writes two dashes in a row, so the id cannot be the id of another
+/// section. One section named `x.eye_mode` and one named `x.eye_mode_app` keep their groups
+/// apart.
+fn platform_group_id(section_id: &str) -> String {
+    format!("{section_id}--app")
+}
+
+/// A tab group that works with no script: one radio button and one label for each panel,
+/// then the panels. The first panel is open. `group` names the kind of choice, `view` or
+/// `target`, so the script keeps each kind of choice on its own. With one panel, the panel
+/// stands alone.
+fn tab_group(id: &str, group: &str, panels: &[(&str, &str, String)]) -> String {
+    if let [(_, _, html)] = panels {
+        return format!("<div class=\"panel-only\">{html}</div>\n");
+    }
+    let mut out = format!("<div class=\"tabs\" data-tabs=\"{id}\" data-group=\"{group}\">\n");
+    for (i, (tk, name, _)) in panels.iter().enumerate() {
+        out.push_str(&format!(
+            "<input type=\"radio\" name=\"tabs-{id}\" id=\"tab-{id}-{tk}\" class=\"tab-input t-{tk}\"{}><label for=\"tab-{id}-{tk}\">{}</label>\n",
+            if i == 0 { " checked" } else { "" },
+            esc(name)
+        ));
+    }
+    for (tk, name, html) in panels {
+        out.push_str(&format!(
+            "<div class=\"panel t-{tk}\" data-target=\"{tk}\"><p class=\"panel-name\">{}</p>{html}</div>\n",
+            esc(name)
+        ));
+    }
+    out.push_str("</div>\n");
+    out
+}
+
 fn kind_words(kind: SettingType) -> &'static str {
     match kind {
         SettingType::Int => "a number",
@@ -837,6 +908,31 @@ mod tests {
             "setting-autococker-eye-mode"
         );
         assert_eq!(topic_id("topic.eye_override"), "topic-eye-override");
+    }
+
+    #[test]
+    fn the_platform_group_id_is_not_a_section_id() {
+        let inner = platform_group_id(&setting_id("x.eye_mode"));
+        assert_eq!(inner, "setting-x-eye-mode--app");
+        assert_ne!(inner, setting_id("x.eye_mode_app"));
+    }
+
+    #[test]
+    fn one_panel_stands_alone_and_two_make_a_group() {
+        let one = [("board", "Board", "<p>B</p>".to_string())];
+        assert_eq!(
+            tab_group("x", "view", &one),
+            "<div class=\"panel-only\"><p>B</p></div>\n"
+        );
+        let two = [
+            ("board", "Board", "<p>B</p>".to_string()),
+            ("app", "Configuration App", "<p>A</p>".to_string()),
+        ];
+        let html = tab_group("x", "view", &two);
+        assert!(html.starts_with("<div class=\"tabs\" data-tabs=\"x\" data-group=\"view\">"));
+        assert!(html.contains("id=\"tab-x-board\" class=\"tab-input t-board\" checked>"));
+        assert!(html.contains("id=\"tab-x-app\" class=\"tab-input t-app\">"));
+        assert!(html.contains("<div class=\"panel t-app\" data-target=\"app\"><p class=\"panel-name\">Configuration App</p><p>A</p></div>"));
     }
 
     #[test]

@@ -198,10 +198,25 @@ impl Document {
     }
 }
 
-/// True when each target gets the same words, so the manual shows them once, with no tab
-/// for each platform.
-pub fn same_words(resolved: &[Words<'_>]) -> bool {
-    resolved.windows(2).all(|w| w[0].2 == w[1].2)
+/// True when each target gets the same words, except the path to the setting, so the
+/// manual shows them once with no tab for each platform. A platform that opens the setting
+/// by another route is not a reason for a tab: the manual lists the path of each platform.
+pub fn same_except_place(resolved: &[Words<'_>]) -> bool {
+    resolved.windows(2).all(|w| {
+        // Each field is named, so a new field of `Resolved` cannot escape the comparison.
+        let Resolved {
+            title,
+            description,
+            place: _,
+            editable,
+            media,
+        } = &w[0].2;
+        let b = &w[1].2;
+        *title == b.title
+            && *description == b.description
+            && *editable == b.editable
+            && *media == b.media
+    })
 }
 
 #[cfg(test)]
@@ -268,7 +283,7 @@ mod tests {
     fn the_same_words_on_each_target_need_no_platform_tabs() {
         let d = doc();
         let all = d.resolve(d.entry("a.b").unwrap());
-        assert!(same_words(&all));
+        assert!(same_except_place(&all));
         assert!(d.covers_all(d.entry("a.b").unwrap()));
 
         let mut d = doc();
@@ -286,8 +301,28 @@ mod tests {
         let entry = d.entry("a.c").unwrap();
         let r = d.resolve(entry);
         assert_eq!(r.len(), 2);
-        assert!(!same_words(&r));
+        assert!(!same_except_place(&r));
         assert!(d.covers_all(entry));
+    }
+
+    #[test]
+    fn a_path_that_differs_alone_keeps_the_words_together() {
+        let mut d = doc();
+        d.settings.get_mut("a.b").unwrap().targets = Some(IndexMap::from([
+            ("android".to_string(), Override::default()),
+            (
+                "wear".to_string(),
+                Override {
+                    place: Some("W > Y".into()),
+                    ..Override::default()
+                },
+            ),
+        ]));
+        let r = d.resolve(d.entry("a.b").unwrap());
+        assert_ne!(r[0].2, r[1].2);
+        assert!(same_except_place(&r));
+        let r = d.resolve(d.entry("a.c").unwrap());
+        assert!(same_except_place(&r));
     }
 
     #[test]
@@ -306,7 +341,7 @@ mod tests {
         };
         let r = d.resolve(&entry);
         assert_eq!(r.len(), 1);
-        assert!(same_words(&r));
+        assert!(same_except_place(&r));
         assert!(!d.covers_all(&entry));
         entry.targets = None;
         assert!(d.covers_all(&entry));

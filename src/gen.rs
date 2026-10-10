@@ -313,8 +313,9 @@ impl<'a> Ctx<'a> {
 
     /// The words of the app for a key. When each platform gets the same words, the panel
     /// shows them once, and it names the platforms when the entry does not cover each one.
-    /// When the words differ, the panel holds one tab for each platform. `None` when the app
-    /// document does not describe the key.
+    /// When only the path to the setting differs, the panel shows the words once with the
+    /// path of each platform. When the words differ, the panel holds one tab for each
+    /// platform. `None` when the app document does not describe the key.
     fn app_panel(&self, id: &str, key: &str) -> Result<Option<String>> {
         let Some(app) = self.app else {
             return Ok(None);
@@ -326,8 +327,8 @@ impl<'a> Ctx<'a> {
         let Some((_, _, first)) = resolved.first() else {
             return Ok(None);
         };
-        if app::same_words(&resolved) {
-            let mut html = self.app_words(app, first)?;
+        if app::same_except_place(&resolved) {
+            let mut html = self.app_words(app, first, places_html(&resolved))?;
             if !app.covers_all(entry) {
                 let names: Vec<String> = resolved.iter().map(|(_, t, _)| esc(&t.name)).collect();
                 html.push_str(&format!(
@@ -338,21 +339,26 @@ impl<'a> Ctx<'a> {
             return Ok(Some(html));
         }
         let mut panels: Vec<(&str, &str, String)> = Vec::new();
-        for (tk, target, r) in &resolved {
-            panels.push((tk, target.name.as_str(), self.app_words(app, r)?));
+        for words in &resolved {
+            let (tk, target, r) = words;
+            let place = places_html(std::slice::from_ref(words));
+            panels.push((tk, target.name.as_str(), self.app_words(app, r, place)?));
         }
         Ok(Some(tab_group(&platform_group_id(id), "target", &panels)))
     }
 
-    /// The words of the app for one platform: the title, the path, the editable note, the
-    /// description and the media.
-    fn app_words(&self, app: &app::Document, r: &app::Resolved) -> Result<String> {
+    /// The words of the app for one platform or for all of them: the title, the path or
+    /// the paths, the editable note, the description and the media.
+    fn app_words(&self, app: &app::Document, r: &app::Resolved, place: Place) -> Result<String> {
         let mut html = String::new();
-        html.push_str(&format!("<p class=\"app-title\"><b>{}</b>", esc(r.title)));
-        if let Some(place) = r.place {
-            html.push_str(&format!(" <span class=\"where\">{}</span>", esc(place)));
-        }
-        html.push_str("</p>\n");
+        let (inline, block) = match place {
+            Place::Inline(s) => (s, String::new()),
+            Place::Block(s) => (String::new(), s),
+        };
+        html.push_str(&format!(
+            "<p class=\"app-title\"><b>{}</b>{inline}</p>\n{block}",
+            esc(r.title)
+        ));
         if !r.editable {
             html.push_str(
                 "<p class=\"when\">The app shows the value and does not change it.</p>\n",
@@ -774,6 +780,51 @@ impl<'a> Ctx<'a> {
     }
 }
 
+/// Where the path of a setting goes: after the title on the same line, or as a block of
+/// lines under the title.
+enum Place {
+    Inline(String),
+    Block(String),
+}
+
+/// The path to a setting, after its title.
+fn place_html(place: &str) -> String {
+    format!(" <span class=\"where\">{}</span>", esc(place))
+}
+
+/// The path or the paths of a setting for the platforms that share its words. One path
+/// stands after the title. When the platforms reach the setting by different routes, each
+/// distinct path gets a line with the platforms that use it, and a platform with no path
+/// gets a line that says so.
+fn places_html(resolved: &[app::Words<'_>]) -> Place {
+    let mut groups: Vec<(Option<&str>, Vec<&str>)> = Vec::new();
+    for (_, target, r) in resolved {
+        match groups.iter_mut().find(|(p, _)| *p == r.place) {
+            Some((_, names)) => names.push(&target.name),
+            None => groups.push((r.place, vec![&target.name])),
+        }
+    }
+    match groups.as_slice() {
+        [] | [(None, _)] => Place::Inline(String::new()),
+        [(Some(place), _)] => Place::Inline(place_html(place)),
+        _ => {
+            let mut html = String::from("<ul class=\"where-list\">\n");
+            for (place, names) in &groups {
+                let path = match place {
+                    Some(p) => format!("<span class=\"where\">{}</span>", esc(p)),
+                    None => "<span class=\"no-where\">No path</span>".to_string(),
+                };
+                html.push_str(&format!(
+                    "<li>{path} <span class=\"platforms\">{}</span></li>\n",
+                    names.iter().map(|n| esc(n)).collect::<Vec<_>>().join(", ")
+                ));
+            }
+            html.push_str("</ul>\n");
+            Place::Block(html)
+        }
+    }
+}
+
 /// The id of the platform tab group inside the app tab of a section. A section id comes from
 /// `slug`, which never writes two dashes in a row, so the id cannot be the id of another
 /// section. One section named `x.eye_mode` and one named `x.eye_mode_app` keep their groups
@@ -910,6 +961,53 @@ mod tests {
             "setting-autococker-eye-mode"
         );
         assert_eq!(topic_id("topic.eye_override"), "topic-eye-override");
+    }
+
+    #[test]
+    fn paths_that_differ_make_a_list_with_the_platforms() {
+        let android = app::Target {
+            name: "Android".into(),
+            description: None,
+        };
+        let wear = app::Target {
+            name: "Wear OS".into(),
+            description: None,
+        };
+        let words = |place| app::Resolved {
+            title: "Eye Mode",
+            description: "The eye.",
+            place,
+            editable: true,
+            media: &[],
+        };
+        let one = [
+            ("android", &android, words(Some("A > B"))),
+            ("wear", &wear, words(Some("A > B"))),
+        ];
+        assert!(
+            matches!(places_html(&one), Place::Inline(s) if s == " <span class=\"where\">A &gt; B</span>")
+        );
+        let two = [
+            ("android", &android, words(Some("A > B"))),
+            ("wear", &wear, words(Some("W > B"))),
+        ];
+        match places_html(&two) {
+            Place::Block(s) => {
+                assert!(s.contains("<li><span class=\"where\">A &gt; B</span> <span class=\"platforms\">Android</span></li>"));
+                assert!(s.contains("<li><span class=\"where\">W &gt; B</span> <span class=\"platforms\">Wear OS</span></li>"));
+            }
+            Place::Inline(s) => panic!("expected a block, got {s}"),
+        }
+        let none = [("android", &android, words(None))];
+        assert!(matches!(places_html(&none), Place::Inline(s) if s.is_empty()));
+        let mixed = [
+            ("android", &android, words(Some("A > B"))),
+            ("wear", &wear, words(None)),
+        ];
+        match places_html(&mixed) {
+            Place::Block(s) => assert!(s.contains("<li><span class=\"no-where\">No path</span> <span class=\"platforms\">Wear OS</span></li>")),
+            Place::Inline(s) => panic!("expected a block, got {s}"),
+        }
     }
 
     #[test]

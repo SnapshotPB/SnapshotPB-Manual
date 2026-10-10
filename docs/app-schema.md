@@ -54,8 +54,10 @@ override, `{}`, keeps the words at the top of the entry for that target. An entr
 
 The generator resolves the entry for each target. When each target gets the same words, the
 app tab shows them once. When the entry does not cover each target of the document, the app
-tab names the platforms that have it. When an override changes the words for one target, the
-app tab holds one tab for each target of the entry.
+tab names the platforms that have it. When only the path differs, because a platform opens
+the setting by another route, the app tab shows the words once with each path and the
+platforms that use it. When an override changes the description, the editable flag, or the
+media for one target, the app tab holds one tab for each target of the entry.
 
 ## Rules that the generator checks
 

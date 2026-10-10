@@ -31,8 +31,9 @@ has three parts under `schemas/`:
 A setting has one shared key in both documents, which is its field path in the protocol,
 for example `autococker.eye_mode`. The manual shows the firmware words and the app words
 for one key side by side, with one tab for the board and one tab for the configuration app.
-The app tab shows the words once when each platform gets the same words. It shows one tab
-for each platform when the words differ.
+The app tab shows the words once when each platform gets the same words, with the path of
+each platform when only the path differs. It shows one tab for each platform when the words
+differ.
 
 Each text that the manual prints is localized. A document holds it as an array with one
 item for each language, for example `[{"lang": "en", "text": "Fire mode"}, {"lang": "de",

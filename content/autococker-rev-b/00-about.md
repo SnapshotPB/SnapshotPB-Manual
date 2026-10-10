@@ -6,7 +6,7 @@ The manual is one file. It has no link to the internet, and it works from any fo
 
 The manual comes from two documents. The firmware document describes the firmware `{{value firmware.version}}`: its buttons, its screens, its settings, and how they work. The app document describes the app `{{value app.version}}` on each platform. A tool validates the two documents against a schema set and writes the tables of this manual. The chapter [Sources and versions](#sources-and-versions) lists each source and its version. This copy describes the board at `{{value board.md5}}`.
 
-A setting has the same key in the firmware document and in the app document. Where both describe a setting, the manual shows a tab for the board and a tab for the configuration app. The app tab shows one description where the app is the same on each platform. Where the platforms differ, the app tab shows a tab for each platform. Select a platform once, and every such setting shows that platform.
+A setting has the same key in the firmware document and in the app document. Where both describe a setting, the manual shows a tab for the board and a tab for the configuration app. The app tab shows one description where the app is the same on each platform, with the path on each platform where the paths differ. Where the words differ, the app tab shows a tab for each platform. Select a platform once, and every such setting shows that platform.
 
 The manual shows a warning, a caution or a note in this form:
 

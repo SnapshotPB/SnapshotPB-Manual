@@ -203,11 +203,19 @@ impl Document {
 /// by another route is not a reason for a tab: the manual lists the path of each platform.
 pub fn same_except_place(resolved: &[Words<'_>]) -> bool {
     resolved.windows(2).all(|w| {
-        let (a, b) = (&w[0].2, &w[1].2);
-        a.title == b.title
-            && a.description == b.description
-            && a.editable == b.editable
-            && a.media == b.media
+        // Each field is named, so a new field of `Resolved` cannot escape the comparison.
+        let Resolved {
+            title,
+            description,
+            place: _,
+            editable,
+            media,
+        } = &w[0].2;
+        let b = &w[1].2;
+        *title == b.title
+            && *description == b.description
+            && *editable == b.editable
+            && *media == b.media
     })
 }
 

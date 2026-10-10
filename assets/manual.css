@@ -165,6 +165,7 @@ tr.k-back .kind, tr.k-screen .kind { display: none; }
 .where-list li { margin: 2px 0; }
 .where-list .where { color: var(--md-on-surface-variant); }
 .where-list .where::before { content: "in "; }
+.where-list .no-where { color: var(--md-on-surface-variant); font-style: italic; }
 .where-list .platforms { display: inline; font-size: 0.82rem; color: var(--md-on-surface-variant); }
 .where-list .platforms::before { content: "on "; }
 

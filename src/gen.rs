@@ -339,8 +339,9 @@ impl<'a> Ctx<'a> {
             return Ok(Some(html));
         }
         let mut panels: Vec<(&str, &str, String)> = Vec::new();
-        for (tk, target, r) in &resolved {
-            let place = Place::Inline(r.place.map(place_html).unwrap_or_default());
+        for words in &resolved {
+            let (tk, target, r) = words;
+            let place = places_html(std::slice::from_ref(words));
             panels.push((tk, target.name.as_str(), self.app_words(app, r, place)?));
         }
         Ok(Some(tab_group(&platform_group_id(id), "target", &panels)))
@@ -793,7 +794,8 @@ fn place_html(place: &str) -> String {
 
 /// The path or the paths of a setting for the platforms that share its words. One path
 /// stands after the title. When the platforms reach the setting by different routes, each
-/// distinct path gets a line with the platforms that use it.
+/// distinct path gets a line with the platforms that use it, and a platform with no path
+/// gets a line that says so.
 fn places_html(resolved: &[app::Words<'_>]) -> Place {
     let mut groups: Vec<(Option<&str>, Vec<&str>)> = Vec::new();
     for (_, target, r) in resolved {
@@ -808,9 +810,12 @@ fn places_html(resolved: &[app::Words<'_>]) -> Place {
         _ => {
             let mut html = String::from("<ul class=\"where-list\">\n");
             for (place, names) in &groups {
+                let path = match place {
+                    Some(p) => format!("<span class=\"where\">{}</span>", esc(p)),
+                    None => "<span class=\"no-where\">No path</span>".to_string(),
+                };
                 html.push_str(&format!(
-                    "<li><span class=\"where\">{}</span> <span class=\"platforms\">{}</span></li>\n",
-                    esc(place.unwrap_or("No path")),
+                    "<li>{path} <span class=\"platforms\">{}</span></li>\n",
                     names.iter().map(|n| esc(n)).collect::<Vec<_>>().join(", ")
                 ));
             }
@@ -995,6 +1000,14 @@ mod tests {
         }
         let none = [("android", &android, words(None))];
         assert!(matches!(places_html(&none), Place::Inline(s) if s.is_empty()));
+        let mixed = [
+            ("android", &android, words(Some("A > B"))),
+            ("wear", &wear, words(None)),
+        ];
+        match places_html(&mixed) {
+            Place::Block(s) => assert!(s.contains("<li><span class=\"no-where\">No path</span> <span class=\"platforms\">Wear OS</span></li>")),
+            Place::Inline(s) => panic!("expected a block, got {s}"),
+        }
     }
 
     #[test]

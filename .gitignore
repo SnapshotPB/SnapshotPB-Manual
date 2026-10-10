@@ -1,0 +1,28 @@
+# Editors
+.idea/
+.vscode/
+*.iml
+*.swp
+*~
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Build output
+build/
+dist/
+out/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# Local configuration
+.env
+local.properties

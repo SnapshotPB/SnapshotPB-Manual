@@ -31,7 +31,7 @@ Connect the eye to `EYES`. The eye is optional. A board with no eye fires on the
 
 ## Connect the battery
 
-CAUTION: Make sure that the polarity of the battery lead is correct. Pin 1 of `BATT` is the negative pin. Pad 1 is the rectangular pad, and a dot on the silk marks it. A lead that somebody made for the rev A board is reversed.
+CAUTION: Make sure that the polarity of the battery lead is correct. Pin 1 of `BATT` is the negative pin. Pad 1 is the rectangular pad, and a dot on the silk marks it.
 
 1. Select the type of battery: one 9 V cell, or one 2S LiPo pack.
 2. Connect the battery lead to `BATT`. The board starts.

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "app": {
-    "name": "Snapshot PB app",
+    "name": "SnapshotPB app",
     "version": "26.40.1",
     "protocol_version": "1.0.0",
     "summary": "The Snapshot PB app reads and writes the settings of a board through Bluetooth. It runs on Android, on Wear OS, on iOS, on the desktop, and in a browser."

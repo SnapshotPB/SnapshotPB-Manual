@@ -36,22 +36,22 @@ for one key side by side, with one tab for the board and one tab for each platfo
 Each document carries two versions. The `schema_version` names the schema that the document
 follows. The `firmware.version` or the `app.version` is the release that the document
 describes, and it versions the document. A document is stored by that version:
-`firmware/<board>/<version>.json` and `app/<name>/<version>.json`. A manual is built for one
+`firmware/<model>/<version>.json` and `app/<name>/<version>.json`. A manual is built for one
 firmware version and one app version, which its manifest names.
 
 ## Build a manual
 
 ```sh
 cargo build --release
-./target/release/snapshotpb-manual build manifests/snapshot-v2.toml
+./target/release/snapshotpb-manual build manifests/autococker-rev-b.toml
 ```
 
-The build writes `dist/snapshot-v2.html`. `--out <file>` writes to a different file, and
+The build writes `dist/snapshotpb-autococker-rev-b.html`. `--out <file>` writes to a different file, and
 `--source <name>=<path>` replaces a source root of the manifest. The other commands:
 
 ```sh
-./target/release/snapshotpb-manual check manifests/snapshot-v2.toml
-./target/release/snapshotpb-manual validate firmware firmware/snapshot_v2/26.29.0.json
+./target/release/snapshotpb-manual check manifests/autococker-rev-b.toml
+./target/release/snapshotpb-manual validate firmware firmware/autococker/26.29.0.json
 ./target/release/snapshotpb-manual validate app app/snapshotpb/26.40.1.json
 ```
 
@@ -64,7 +64,7 @@ tree. A fault stops the command with the path of the fault in the document.
 | Path | What it holds |
 |---|---|
 | `schemas/` | The schema set, with an example firmware document under `firmware/v1/examples/` |
-| `firmware/<board>/<version>.json` | One firmware document for each firmware release |
+| `firmware/<model>/<version>.json` | One firmware document for each firmware release, under the board model it runs on |
 | `app/<name>/<version>.json` | One application document for each app release |
 | `manifests/<id>.toml` | One manifest for each manual: the documents, the sources, and the brand |
 | `content/<id>/*.md` | The chapters of a manual, in file order. A chapter is Markdown with directives. |
@@ -108,9 +108,9 @@ relative to the manifest or to the document.
    holds the menu tree, so its generator is the right place to write the document from.
 2. Write the app document as `app/<name>/<version>.json`, with the same shared keys.
 3. Run `validate` on each document.
-4. Copy `manifests/snapshot-v2.toml` to `manifests/<id>.toml`, name the documents, and
+4. Copy `manifests/autococker-rev-b.toml` to `manifests/<id>.toml`, name the documents, and
    change the sources and the board.
-5. Copy `content/snapshot-v2/` to `content/<id>/`, and change the chapters.
+5. Copy `content/autococker-rev-b/` to `content/<id>/`, and change the chapters.
 6. Build, and read the manual in a browser in both colour schemes.
 
 ## Documentation

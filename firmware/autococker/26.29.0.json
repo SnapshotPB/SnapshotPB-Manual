@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0.0",
   "firmware": {
-    "name": "Snapshot PB autococker firmware",
+    "name": "SnapshotPB Autococker firmware",
     "version": "26.29.0",
     "protocol_version": "1.0.0",
     "board_models": ["BOARD_MODEL_AUTOCOCKER"],
-    "summary": "The firmware of the Snapshot PB v2 board. It drives the sear solenoid and the cocking solenoid of an autococker marker, reads the trigger and the ball eye, and shows a menu on the screen of the board."
+    "summary": "The firmware of the SnapshotPB Autococker board. It drives the sear solenoid and the cocking solenoid of an autococker marker, reads the trigger and the ball eye, and shows a menu on the screen of the board."
   },
   "media": {
     "buttons_back": {

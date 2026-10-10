@@ -1,15 +1,15 @@
-# The manual of the SnapshotPB v2 board with its firmware and the app.
+# The manual of the SnapshotPB Autococker: the Rev B board, its firmware, and the app.
 #
 # A path `name:rest` resolves against the source root `name` below. A path with no prefix is
 # relative to this file. `~` is the home directory. `--source name=path` on the command line
 # replaces a root. A media item of a document uses the same `name:rest` form for a file that
 # another repository owns.
 
-id = "snapshot-v2"
-title = "SnapshotPB"
-subtitle = "Board and firmware manual"
-output = "../dist/snapshot-v2.html"
-content = "../content/snapshot-v2"
+id = "autococker-rev-b"
+title = "SnapshotPB Autococker"
+subtitle = "Manual"
+output = "../dist/snapshotpb-autococker-rev-b.html"
+content = "../content/autococker-rev-b"
 
 [sources]
 pcb = "~/workspace/SnapshotPB-PCB"
@@ -20,16 +20,16 @@ logo = "../assets/snapshotpb.svg"
 icon = "../assets/favicon-plain.svg"
 theme = "app:core/common/src/commonMain/kotlin/com/snapshotpb/configuration/common/theme/Color.kt"
 
+# The name of the board as the manual prints it. The metrics file is a source path.
 [board]
-name = "snapshot_v2"
+name = "Rev B"
 metrics = "pcb:snapshot_v2/METRICS.json"
 
 # The firmware document describes the firmware release: its controls, its screens, its
 # settings, and its topics. It follows schemas/firmware/v1. The file is named by the firmware
 # version that it describes.
 [firmware]
-board = "snapshot_v2"
-document = "../firmware/snapshot_v2/26.29.0.json"
+document = "../firmware/autococker/26.29.0.json"
 
 # The application document describes the app release for each target. It follows
 # schemas/app/v1, and it uses the shared keys of the firmware document. Remove this table to

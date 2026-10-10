@@ -27,13 +27,23 @@ pub fn tabs_css(targets: &[(String, String)]) -> String {
 
 pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let m = &ctx.loaded.manifest;
-    // The full logo heads the manual. The small icon marks the top bar, where the full logo
-    // would be too small to read, and it is the icon of the browser tab.
-    let logo = inline_svg(
-        &ctx.loaded.resolve(&m.brand.logo)?,
-        &format!("{} logo", m.title),
-    )?
-    .replacen("<svg", "<svg class=\"hero-logo\"", 1);
+    // The full logo heads the manual, with the emblem of the board family beside it when the
+    // manifest names one. The small icon marks the top bar, where the full logo would be too
+    // small to read, and it is the icon of the browser tab.
+    let hero = |spec: &str, alt: &str| -> Result<String> {
+        Ok(
+            inline_svg(&ctx.loaded.resolve(spec)?, &format!("{} {alt}", m.title))?.replacen(
+                "<svg",
+                "<svg class=\"hero-logo\"",
+                1,
+            ),
+        )
+    };
+    let mut logos = hero(&m.brand.logo, "logo")?;
+    if let Some(emblem) = &m.brand.emblem {
+        logos.push('\n');
+        logos.push_str(&hero(emblem, "emblem")?);
+    }
     let icon_path = ctx.loaded.resolve(&m.brand.icon)?;
     let mark = inline_svg(&icon_path, &format!("{} mark", m.title))?.replacen(
         "<svg",
@@ -99,7 +109,9 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
   <main id="content">
     <article>
 <header class="hero">
-  {logo}
+  <div class="hero-logos">
+  {logos}
+  </div>
   <h1 class="hero-title">{title}</h1>
   <p class="hero-sub">{subtitle}</p>
 </header>

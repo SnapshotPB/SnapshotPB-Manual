@@ -59,3 +59,14 @@ complete.
 
 Trivial changes to `.claude/`, `CLAUDE.md`, `LICENSE`, and `.gitignore` do not need the
 Rust review. They still need items 2, 3, and 4.
+
+## The worktree guard
+
+A hook in `.claude/settings.json` enforces the branch rule, so that several agents can work
+in the repository at once. The script `.claude/hooks/worktree-guard.sh` runs before each
+Edit, Write, NotebookEdit, and Bash call. It denies an edit of a file inside the main
+checkout, and it denies a git command that writes in the main checkout: commit, merge,
+rebase, cherry-pick, revert, am, switch, checkout, push, reset, and stash. It permits each
+read, each command in a worktree under `../SnapshotPB-Manual-wt/`, and each git command
+that does not write, such as fetch, status, log, diff, and worktree. When the guard denies
+a call, make the worktree for the change and do the work there.

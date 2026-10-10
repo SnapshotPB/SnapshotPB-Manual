@@ -1,7 +1,9 @@
 # Trademarks
 
 The **Snapshot PB** source code in this repository is licensed under the
-GNU General Public License, version 3 (see [`LICENSE`](LICENSE)).
+GNU General Public License, version 3 (see [`LICENSE`](LICENSE)). The schema set under
+`schemas/` is licensed under the Mozilla Public License, version 2.0 (see
+[`schemas/LICENSE`](schemas/LICENSE)).
 
 **The Snapshot PB name and logos are *not* covered by that license.**
 

@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://snapshotpb.com/schemas/common/v1/media.schema.json",
+  "$comment": "SPDX-License-Identifier: MPL-2.0. Copyright 2026 Snapshot PB. This file is licensed under the Mozilla Public License, version 2.0. See the LICENSE file beside the schema set.",
   "title": "Snapshot PB media",
   "description": "The definitions that the firmware schema and the application schema share: a media item that a document shows in the manual, and the key patterns.",
   "$defs": {

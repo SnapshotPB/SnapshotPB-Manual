@@ -107,12 +107,12 @@ fn validate(args: &[String]) -> Result<()> {
             schema::Kind::App => {
                 let doc = app::Document::load(p)?;
                 println!(
-                    "ok: {} (schema {}, {} {}, {} targets, {} settings, {} topics)",
+                    "ok: {} (schema {}, {} {}, {} runtimes, {} settings, {} topics)",
                     p.display(),
                     doc.schema_version,
                     doc.app.name,
                     doc.app.version,
-                    doc.targets.len(),
+                    doc.runtimes.len(),
                     doc.settings.len(),
                     doc.topics.len()
                 );

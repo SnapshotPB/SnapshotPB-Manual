@@ -1,7 +1,6 @@
-//! The navigation graphic: the menu tree as an SVG that the reader can click. Each box is a
-//! screen and links to its section. Each edge is the row that opens the child screen.
+//! The navigation graphic: a tree of screens as an SVG that the reader can click. Each box
+//! is a screen and links to its section. Each edge is the control that opens the child.
 
-use crate::firmware::{Document, ItemType, Placed};
 use crate::util::{esc, slug};
 
 const BOX_W: f64 = 168.0;
@@ -12,89 +11,66 @@ const ROW_H: f64 = 15.0;
 const PAD: f64 = 8.0;
 const HOME_H: f64 = 34.0;
 
+/// One screen of the tree, as the caller describes it.
+pub struct Spec<'a> {
+    /// The id of the section that the box links to. Empty for a box with no section.
+    pub id: String,
+    pub title: &'a str,
+    /// The rows that the box lists under the title.
+    pub rows: Vec<&'a str>,
+    /// The children, as indexes into the spec list, with the text of the control that
+    /// opens each one.
+    pub children: Vec<(usize, &'a str)>,
+    /// True for the box that stands for the start of the tree, drawn in another colour.
+    pub home: bool,
+}
+
 struct Node<'a> {
-    key: &'a str,
-    title: &'a str,
-    rows: Vec<&'a str>,
-    children: Vec<usize>,
-    /// The row text that opens this node from its parent.
-    via: &'a str,
+    spec: &'a Spec<'a>,
     x: f64,
     y: f64,
     w: f64,
     h: f64,
 }
 
-/// The id of the section of a screen.
+/// The id of the section of a firmware screen.
 pub fn screen_id(key: &str) -> String {
     format!("screen-{}", slug(key))
 }
 
-/// The graphic of the menu tree, as inline SVG with a link on each screen.
-pub fn svg(doc: &Document, placed: &[Placed]) -> String {
-    // Build the nodes in walk order; the children of a node come from its submenu rows.
-    let mut nodes: Vec<Node> = Vec::with_capacity(placed.len() + 1);
-    nodes.push(Node {
-        key: "",
-        title: &doc.home.title,
-        rows: Vec::new(),
-        children: Vec::new(),
-        via: "",
-        x: 0.0,
-        y: 0.0,
-        w: BOX_W,
-        h: HOME_H,
-    });
-    for p in placed {
-        let rows: Vec<&str> = p
-            .screen
-            .items
-            .iter()
-            .filter(|i| i.kind == ItemType::Setting)
-            .map(|i| i.render.as_str())
-            .collect();
-        let h = TITLE_H + PAD + rows.len() as f64 * ROW_H;
-        nodes.push(Node {
-            key: p.key,
-            title: &p.screen.title,
-            rows,
-            children: Vec::new(),
-            via: "",
-            x: 0.0,
-            y: 0.0,
-            w: BOX_W,
-            h: h.max(HOME_H),
-        });
+/// The id of the section of an app screen.
+pub fn app_screen_id(key: &str) -> String {
+    format!("app-screen-{}", slug(key))
+}
+
+/// Draws the tree. The first spec is the root. The label is the accessible name of the
+/// graphic.
+pub fn svg(specs: &[Spec], label: &str) -> String {
+    if specs.is_empty() {
+        return String::new();
     }
-    let index_of = |key: &str| nodes.iter().position(|n| n.key == key && !n.key.is_empty());
-    let mut links: Vec<(usize, usize, &str)> = Vec::new();
-    for p in placed {
-        let parent = index_of(p.key).unwrap_or(0);
-        for i in &p.screen.items {
-            if i.kind == ItemType::Submenu {
-                if let Some(child) = i.target.as_deref().and_then(index_of) {
-                    links.push((parent, child, i.render.as_str()));
-                }
+    let mut nodes: Vec<Node> = specs
+        .iter()
+        .map(|s| {
+            let h = if s.home {
+                HOME_H
+            } else {
+                (TITLE_H + PAD + s.rows.len() as f64 * ROW_H).max(HOME_H)
+            };
+            Node {
+                spec: s,
+                x: 0.0,
+                y: 0.0,
+                w: BOX_W,
+                h,
             }
-        }
-    }
-    if let Some(root) = index_of(&doc.root) {
-        links.push((
-            0,
-            root,
-            doc.interactions.get("open_menu").map_or("", |i| {
-                doc.controls.get(&i.control).map_or("", |c| c.name.as_str())
-            }),
-        ));
-    }
-    for (parent, child, via) in &links {
-        nodes[*parent].children.push(*child);
-        nodes[*child].via = via;
-    }
+        })
+        .collect();
 
     // Layout: the width of a subtree is the sum of its children; a parent sits over the
     // middle of its children; a level starts below the tallest box of the level above.
-    let widths = subtree_widths(&nodes, 0);
+    let mut widths = vec![0.0; nodes.len()];
+    fill_width(&nodes, 0, &mut widths);
     let mut level_h: Vec<f64> = Vec::new();
     depth_heights(&nodes, 0, 0, &mut level_h);
     let mut level_y = Vec::with_capacity(level_h.len());
@@ -109,35 +85,39 @@ pub fn svg(doc: &Document, placed: &[Placed]) -> String {
 
     let mut out = String::new();
     out.push_str(&format!(
-        "<svg class=\"menu-tree\" viewBox=\"0 0 {total_w:.0} {total_h:.0}\" role=\"img\" aria-label=\"The menu tree. Each box is a screen, and a click on a box opens its section.\">\n"
+        "<svg class=\"menu-tree\" viewBox=\"0 0 {total_w:.0} {total_h:.0}\" role=\"img\" aria-label=\"{}\">\n",
+        esc(label)
     ));
     out.push_str("<defs><marker id=\"tree-arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0 0L10 5L0 10z\" fill=\"currentColor\"/></marker></defs>\n");
-    for (parent, child, via) in &links {
-        let p = &nodes[*parent];
-        let c = &nodes[*child];
-        let x1 = p.x + p.w / 2.0;
-        let y1 = p.y + p.h;
-        let x2 = c.x + c.w / 2.0;
-        let y2 = c.y;
-        let ym = (y1 + y2) / 2.0;
-        out.push_str(&format!(
-            "<path class=\"edge\" d=\"M{x1:.1} {y1:.1} V{ym:.1} H{x2:.1} V{y2:.1}\" marker-end=\"url(#tree-arrow)\"/>\n"
-        ));
-        out.push_str(&format!(
-            "<text class=\"edge-label\" x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"start\">{}</text>\n",
-            x2 + 7.0,
-            y2 - 7.0,
-            esc(via)
-        ));
+    for (i, n) in nodes.iter().enumerate() {
+        for (child, via) in &specs[i].children {
+            let c = &nodes[*child];
+            let x1 = n.x + n.w / 2.0;
+            let y1 = n.y + n.h;
+            let x2 = c.x + c.w / 2.0;
+            let y2 = c.y;
+            let ym = (y1 + y2) / 2.0;
+            out.push_str(&format!(
+                "<path class=\"edge\" d=\"M{x1:.1} {y1:.1} V{ym:.1} H{x2:.1} V{y2:.1}\" marker-end=\"url(#tree-arrow)\"/>\n"
+            ));
+            out.push_str(&format!(
+                "<text class=\"edge-label\" x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"start\">{}</text>\n",
+                x2 + 7.0,
+                y2 - 7.0,
+                esc(via)
+            ));
+        }
     }
     for n in &nodes {
-        let open = if n.key.is_empty() {
-            "<g class=\"node node-home\">".to_string()
+        let s = n.spec;
+        let class = if s.home { "node node-home" } else { "node" };
+        let open = if s.id.is_empty() {
+            format!("<g class=\"{class}\">")
         } else {
             format!(
-                "<a href=\"#{}\" class=\"node\"><title>Open the section {}</title>",
-                screen_id(n.key),
-                esc(n.title)
+                "<a href=\"#{}\" class=\"{class}\"><title>Open the section {}</title>",
+                s.id,
+                esc(s.title)
             )
         };
         out.push_str(&open);
@@ -149,9 +129,9 @@ pub fn svg(doc: &Document, placed: &[Placed]) -> String {
             "<text class=\"node-title\" x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"middle\">{}</text>\n",
             n.x + n.w / 2.0,
             n.y + 17.0,
-            esc(n.title)
+            esc(s.title)
         ));
-        for (i, row) in n.rows.iter().enumerate() {
+        for (i, row) in s.rows.iter().enumerate() {
             out.push_str(&format!(
                 "<text class=\"node-row\" x=\"{:.1}\" y=\"{:.1}\">{}</text>\n",
                 n.x + PAD + 4.0,
@@ -159,29 +139,23 @@ pub fn svg(doc: &Document, placed: &[Placed]) -> String {
                 esc(row)
             ));
         }
-        out.push_str(if n.key.is_empty() { "</g>\n" } else { "</a>\n" });
+        out.push_str(if s.id.is_empty() { "</g>\n" } else { "</a>\n" });
     }
     out.push_str("</svg>\n");
     out
 }
 
-fn subtree_widths(nodes: &[Node], i: usize) -> Vec<f64> {
-    let mut widths = vec![0.0; nodes.len()];
-    fill_width(nodes, i, &mut widths);
-    widths
-}
-
 fn fill_width(nodes: &[Node], i: usize, widths: &mut [f64]) -> f64 {
     let n = &nodes[i];
-    let w = if n.children.is_empty() {
+    let children = &n.spec.children;
+    let w = if children.is_empty() {
         n.w
     } else {
-        let sum: f64 = n
-            .children
+        let sum: f64 = children
             .iter()
-            .map(|c| fill_width(nodes, *c, widths))
+            .map(|(c, _)| fill_width(nodes, *c, widths))
             .sum();
-        (sum + GAP_X * (n.children.len() as f64 - 1.0)).max(n.w)
+        (sum + GAP_X * (children.len() as f64 - 1.0)).max(n.w)
     };
     widths[i] = w;
     w
@@ -192,7 +166,7 @@ fn depth_heights(nodes: &[Node], i: usize, depth: usize, out: &mut Vec<f64>) {
         out.resize(depth + 1, 0.0);
     }
     out[depth] = out[depth].max(nodes[i].h);
-    for c in &nodes[i].children {
+    for (c, _) in &nodes[i].spec.children {
         depth_heights(nodes, *c, depth + 1, out);
     }
 }
@@ -201,7 +175,7 @@ fn place(nodes: &mut [Node], widths: &[f64], level_y: &[f64], i: usize, depth: u
     let span = widths[i];
     nodes[i].x = x0 + (span - nodes[i].w) / 2.0;
     nodes[i].y = level_y[depth];
-    let children = nodes[i].children.clone();
+    let children: Vec<usize> = nodes[i].spec.children.iter().map(|(c, _)| *c).collect();
     let kids: f64 = children.iter().map(|c| widths[*c]).sum::<f64>()
         + GAP_X * (children.len().saturating_sub(1)) as f64;
     let mut x = x0 + (span - kids) / 2.0;
@@ -215,33 +189,62 @@ fn place(nodes: &mut [Node], widths: &[f64], level_y: &[f64], i: usize, depth: u
 mod tests {
     use super::*;
 
+    fn specs() -> Vec<Spec<'static>> {
+        vec![
+            Spec {
+                id: String::new(),
+                title: "Home",
+                rows: vec![],
+                children: vec![(1, "MENU")],
+                home: true,
+            },
+            Spec {
+                id: screen_id("root"),
+                title: "Menu",
+                rows: vec!["Profile"],
+                children: vec![(2, "Fire"), (3, "Eye")],
+                home: false,
+            },
+            Spec {
+                id: screen_id("fire_menu"),
+                title: "Fire",
+                rows: vec!["Mode", "BPS cap"],
+                children: vec![(4, "Ramping")],
+                home: false,
+            },
+            Spec {
+                id: screen_id("eye_menu"),
+                title: "Eye",
+                rows: vec!["Eye mode"],
+                children: vec![],
+                home: false,
+            },
+            Spec {
+                id: screen_id("ramp_menu"),
+                title: "Ramping",
+                rows: vec!["Multiplier"],
+                children: vec![],
+                home: false,
+            },
+        ]
+    }
+
     #[test]
     fn every_screen_is_a_box_with_a_link() {
-        let doc: Document = serde_json::from_str(include_str!(
-            "../schemas/firmware/v1/examples/autococker-26.29.0.json"
-        ))
-        .unwrap();
-        let placed = doc.walk().unwrap();
-        let s = svg(&doc, &placed);
-        for key in doc.screens.keys() {
+        let s = svg(&specs(), "The menu tree");
+        for key in ["root", "fire_menu", "eye_menu", "ramp_menu"] {
             assert!(
                 s.contains(&format!("href=\"#screen-{}\"", slug(key))),
                 "{key}"
             );
         }
-        assert_eq!(s.matches("<rect").count(), doc.screens.len() + 1);
-        // The edge from the home screen carries the name of the control that opens the menu.
-        assert!(s.contains(">ENTER</text>"));
+        assert_eq!(s.matches("<rect").count(), 5);
+        assert!(s.contains(">MENU</text>"));
     }
 
     #[test]
     fn children_do_not_overlap() {
-        let doc: Document = serde_json::from_str(include_str!(
-            "../schemas/firmware/v1/examples/autococker-26.29.0.json"
-        ))
-        .unwrap();
-        let placed = doc.walk().unwrap();
-        let s = svg(&doc, &placed);
+        let s = svg(&specs(), "The menu tree");
         let re = regex::Regex::new(r#"<rect x="(-?[0-9.]+)" y="(-?[0-9.]+)" width="(-?[0-9.]+)""#)
             .unwrap();
         let boxes: Vec<(f64, f64, f64)> = re

@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snapshotpb.com/schemas/app/v2/app.schema.json",
+  "title": "SnapshotPB application documentation",
+  "description": "One document that an application release writes to describe itself on each runtime it runs on. A runtime is one platform build: Android, iOS, Desktop, Browser, Wear OS, Zepp OS. Runtimes that share one user interface form a group. An entry gives the words that hold on every runtime, and a variant gives the words that differ for one runtime or one group. The manual shows one page for every runtime, lets the reader select the runtimes that matter, and shows the variants for those runtimes side by side.",
+  "type": "object",
+  "required": ["schema_version", "app", "runtimes", "settings"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "description": "The version of this schema that the document follows.",
+      "type": "string",
+      "const": "2.0.0"
+    },
+    "app": {
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": {
+          "description": "The application version that this document describes. The document is versioned by this value.",
+          "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/version"
+        },
+        "protocol_version": {
+          "description": "The version of the SnapshotPB protocol that the application speaks.",
+          "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/version"
+        },
+        "summary": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" },
+        "media": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref" }
+      }
+    },
+    "groups": {
+      "description": "The groups of runtimes that share one user interface, keyed by group key, in the order of the manual. A variant keyed by a group applies to each runtime in the group.",
+      "type": "object",
+      "propertyNames": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/local_key" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "description": "The name of the group in the manual, for example Phone, tablet, desktop, and browser.", "type": "string", "minLength": 1 },
+          "description": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" }
+        }
+      }
+    },
+    "runtimes": {
+      "description": "The platforms the application runs on, keyed by runtime key, in the order of the runtime selector of the manual. The key board is reserved for the board itself.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/local_key" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "description": "The name on the selector, for example Android.", "type": "string", "minLength": 1 },
+          "group": { "description": "The group that the runtime belongs to.", "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/local_key" },
+          "description": { "description": "What the runtime is, and how it differs: the devices, the store it comes from, and its limits.", "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" },
+          "since": { "description": "The application version that first ran on this runtime.", "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/version" },
+          "media": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref" }
+        }
+      }
+    },
+    "screens": {
+      "description": "The screens of the application, keyed by screen key. Each screen names the runtimes or the groups it exists on. Each group has one root screen, and the screens of a group form a tree.",
+      "type": "object",
+      "propertyNames": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/local_key" },
+      "additionalProperties": { "$ref": "#/$defs/screen" }
+    },
+    "roots": {
+      "description": "The first screen of each user interface, keyed by group key or by runtime key.",
+      "type": "object",
+      "propertyNames": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/local_key" },
+      "additionalProperties": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/local_key" }
+    },
+    "settings": {
+      "description": "What the application shows for each setting, keyed by the shared key of the firmware document. A setting that only the application has, such as the boot text, is marked app_only.",
+      "type": "object",
+      "propertyNames": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/shared_key" },
+      "additionalProperties": { "$ref": "#/$defs/entry" }
+    },
+    "topics": {
+      "description": "The procedures and the explanations of the application, keyed by shared key. A topic with the key of a firmware topic joins it in the manual. A topic that only the application has stands alone.",
+      "type": "object",
+      "propertyNames": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/shared_key" },
+      "additionalProperties": { "$ref": "#/$defs/entry" }
+    },
+    "features": {
+      "description": "The capabilities that differ between runtimes, keyed by a shared key with the scope feature, for example feature.add_profile. The manual renders them as a matrix of feature by runtime.",
+      "type": "object",
+      "propertyNames": { "type": "string", "pattern": "^feature\\.[a-z][a-z0-9_]*$" },
+      "additionalProperties": { "$ref": "#/$defs/feature" }
+    },
+    "media": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_map" }
+  },
+  "$defs": {
+    "selector": {
+      "description": "A runtime key or a group key.",
+      "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/local_key"
+    },
+    "steps": {
+      "description": "The steps of a procedure, in order. Each step is one instruction.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" }
+    },
+    "screen": {
+      "type": "object",
+      "required": ["title", "runtimes", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "description": "The title of the screen as the application shows it.", "type": "string", "minLength": 1 },
+        "description": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" },
+        "runtimes": {
+          "description": "The runtimes or the groups that have this screen.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/selector" }
+        },
+        "items": {
+          "description": "What the screen holds, in the order of the screen: settings by shared key, the screens it opens, actions, and information.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/item" }
+        },
+        "media": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref" },
+        "variants": {
+          "description": "The words that differ for one runtime or one group: the description, or a different list of items.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/selector" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": { "type": "string", "minLength": 1 },
+              "description": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" },
+              "items": { "type": "array", "items": { "$ref": "#/$defs/item" } },
+              "media": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref" }
+            }
+          }
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["setting", "screen", "action", "info"] },
+        "runtimes": {
+          "description": "The runtimes or the groups that have this item, when not every runtime of the screen has it.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/selector" }
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "type": { "const": "setting" },
+            "key": { "description": "The shared key of the setting.", "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/shared_key" },
+            "runtimes": true
+          },
+          "required": ["key"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "screen" },
+            "ref": { "description": "The key of the screen that the item opens.", "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/local_key" },
+            "text": { "description": "The control that opens it, as the application labels it.", "type": "string", "minLength": 1 },
+            "runtimes": true
+          },
+          "required": ["ref", "text"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "action" },
+            "text": { "description": "The label of the control.", "type": "string", "minLength": 1 },
+            "description": { "description": "What the control does.", "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" },
+            "topic": { "description": "The key of the topic that explains the action.", "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/shared_key" },
+            "runtimes": true
+          },
+          "required": ["text", "description"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "info" },
+            "text": { "description": "What the screen shows, in words.", "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" },
+            "runtimes": true
+          },
+          "required": ["text"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "entry": {
+      "description": "The words for one shared key. The fields at the top hold on every runtime. A variant, keyed by a runtime or a group, changes a field for that runtime or group, or marks the entry absent there. A runtime variant wins over a group variant, and a group variant wins over the top.",
+      "type": "object",
+      "required": ["title", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "description": "The name of the setting or the topic in the application.", "type": "string", "minLength": 1 },
+        "description": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" },
+        "where": {
+          "description": "The path to the setting in the application, from the first screen, with a > between the steps.",
+          "type": "string",
+          "minLength": 1
+        },
+        "editable": {
+          "description": "True when the application can change the value. False when it only shows the value.",
+          "type": "boolean",
+          "default": true
+        },
+        "app_only": {
+          "description": "True for a setting that the firmware document does not have, such as the boot text or the display window. The generator refuses a key that is in neither document and not marked app_only.",
+          "type": "boolean",
+          "default": false
+        },
+        "since": { "description": "The application version that first had this entry.", "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/version" },
+        "steps": { "$ref": "#/$defs/steps" },
+        "media": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref" },
+        "related": {
+          "description": "Shared keys of settings, topics, or features that the reader must also know.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/shared_key" }
+        },
+        "variants": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/selector" },
+          "additionalProperties": { "$ref": "#/$defs/variant" }
+        }
+      }
+    },
+    "variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "absent": { "description": "True when the runtime or the group does not have this entry at all.", "type": "boolean" },
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" },
+        "where": { "type": "string", "minLength": 1 },
+        "editable": { "type": "boolean" },
+        "since": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/version" },
+        "steps": { "$ref": "#/$defs/steps" },
+        "media": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/media_ref" }
+      }
+    },
+    "feature": {
+      "type": "object",
+      "required": ["title", "support"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" },
+        "support": {
+          "description": "The level of support, keyed by runtime or by group. A runtime key wins over a group key. Every runtime must be covered.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/selector" },
+          "additionalProperties": {
+            "oneOf": [
+              { "$ref": "#/$defs/level" },
+              {
+                "type": "object",
+                "required": ["level"],
+                "additionalProperties": false,
+                "properties": {
+                  "level": { "$ref": "#/$defs/level" },
+                  "note": { "description": "What the limit is, or how the runtime does it.", "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/text" },
+                  "since": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/version" }
+                }
+              }
+            ]
+          }
+        },
+        "related": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "https://snapshotpb.com/schemas/common/v1/media.schema.json#/$defs/shared_key" }
+        }
+      }
+    },
+    "level": {
+      "description": "yes: the runtime has the feature. limited: the runtime has part of it, and the note says which part. no: the runtime does not have it.",
+      "type": "string",
+      "enum": ["yes", "limited", "no"]
+    }
+  }
+}

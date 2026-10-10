@@ -3,7 +3,7 @@
 use anyhow::Result;
 use base64::Engine;
 
-use crate::gen::Ctx;
+use crate::gen::{Ctx, RuntimeChip};
 use crate::markdown::{toc_html, Body};
 use crate::media::inline_svg;
 use crate::theme::Theme;
@@ -12,16 +12,45 @@ use crate::util::{esc, read_bytes};
 const CSS: &str = include_str!("../assets/manual.css");
 const JS: &str = include_str!("../assets/manual.js");
 
-/// The style rules of the tab groups. A page holds one rule for each target, so a group
-/// shows the panel of the target whose radio button is checked, with no script.
-pub fn tabs_css(targets: &[(String, String)]) -> String {
-    let mut css = String::new();
-    for (key, _) in targets {
-        css.push_str(&format!(
-            ".tabs > input.t-{key}:checked ~ .panel.t-{key} {{ display: block; }}\n"
+/// The runtime selector: one chip for the board and one for each runtime of the app, in
+/// groups. With no script, the chips do nothing and every block shows.
+pub fn runtime_bar(chips: &[RuntimeChip]) -> String {
+    if chips.len() <= 1 {
+        return String::new();
+    }
+    let mut out = String::from(
+        "<div class=\"runtime-bar\" id=\"runtime-bar\" role=\"group\" aria-label=\"The runtimes to show\">\n<span class=\"runtime-label\">Show</span>\n",
+    );
+    let mut group = String::from("\u{0}");
+    for c in chips {
+        if c.group != group {
+            if group != "\u{0}" {
+                out.push_str("</span>\n");
+            }
+            group = c.group.clone();
+            out.push_str(&format!(
+                "<span class=\"chip-group\" data-group=\"{}\">{}",
+                esc(&c.group),
+                if c.group_name.is_empty() {
+                    String::new()
+                } else {
+                    format!("<span class=\"group-name\">{}</span>", esc(&c.group_name))
+                }
+            ));
+        }
+        out.push_str(&format!(
+            "<label class=\"chip\"><input type=\"checkbox\" data-runtime=\"{}\" checked> {}</label>\n",
+            esc(&c.key),
+            esc(&c.name)
         ));
     }
-    css
+    if group != "\u{0}" {
+        out.push_str("</span>\n");
+    }
+    out.push_str(
+        "<button type=\"button\" class=\"chip-all\" id=\"runtime-all\">All</button>\n</div>\n",
+    );
+    out
 }
 
 pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
@@ -55,7 +84,12 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let subtitle = esc(&m.subtitle);
     let toc = toc_html(&body.toc);
     let theme_css = theme.css();
-    let tabs_css = tabs_css(&ctx.targets());
+    let runtime_bar = runtime_bar(&ctx.runtimes());
+    let html_class = if runtime_bar.is_empty() {
+        ""
+    } else {
+        " class=\"has-runtime-bar\""
+    };
     let content = &body.html;
     let board = esc(&m.board.name);
     let md5 = esc(ctx.board.md5_short());
@@ -63,7 +97,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let gen_version = env!("CARGO_PKG_VERSION");
     Ok(format!(
         r##"<!DOCTYPE html>
-<html lang="en">
+<html lang="en"{html_class}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -74,7 +108,6 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
 <style>
 {theme_css}
 {CSS}
-{tabs_css}
 </style>
 </head>
 <body>
@@ -88,7 +121,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18V4a8 8 0 0 1 0 16z"/></svg>
   </button>
 </header>
-<div class="shell" id="top">
+{runtime_bar}<div class="shell" id="top">
   <nav class="side" id="nav" aria-label="Contents">
     <p class="side-title">Contents</p>
     {toc}
@@ -125,13 +158,47 @@ mod tests {
     use super::*;
 
     #[test]
-    fn one_rule_per_target() {
-        let css = tabs_css(&[
-            ("board".into(), "Board".into()),
-            ("android".into(), "Android".into()),
-        ]);
-        assert!(css.contains(".tabs > input.t-board:checked ~ .panel.t-board"));
-        assert!(css.contains(".tabs > input.t-android:checked ~ .panel.t-android"));
-        assert_eq!(css.lines().count(), 2);
+    fn the_bar_groups_the_chips() {
+        let chips = vec![
+            RuntimeChip {
+                key: "board".into(),
+                name: "Board".into(),
+                group: String::new(),
+                group_name: String::new(),
+            },
+            RuntimeChip {
+                key: "android".into(),
+                name: "Android".into(),
+                group: "shared".into(),
+                group_name: "Shared".into(),
+            },
+            RuntimeChip {
+                key: "ios".into(),
+                name: "iOS".into(),
+                group: "shared".into(),
+                group_name: "Shared".into(),
+            },
+            RuntimeChip {
+                key: "wear".into(),
+                name: "Wear OS".into(),
+                group: "watch".into(),
+                group_name: "Watch".into(),
+            },
+        ];
+        let html = runtime_bar(&chips);
+        assert_eq!(html.matches("<span class=\"chip-group\"").count(), 3);
+        assert_eq!(html.matches("data-runtime=").count(), 4);
+        assert!(html.contains("<span class=\"group-name\">Shared</span>"));
+    }
+
+    #[test]
+    fn no_bar_for_the_board_alone() {
+        let chips = vec![RuntimeChip {
+            key: "board".into(),
+            name: "Board".into(),
+            group: String::new(),
+            group_name: String::new(),
+        }];
+        assert!(runtime_bar(&chips).is_empty());
     }
 }

@@ -8,7 +8,7 @@ use serde_json::Value;
 
 pub const COMMON: &str = include_str!("../schemas/common/v1/media.schema.json");
 pub const FIRMWARE: &str = include_str!("../schemas/firmware/v1/firmware.schema.json");
-pub const APP: &str = include_str!("../schemas/app/v1/app.schema.json");
+pub const APP: &str = include_str!("../schemas/app/v2/app.schema.json");
 
 /// Which schema of the set a document follows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

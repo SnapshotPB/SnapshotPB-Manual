@@ -1,23 +1,28 @@
-//! The blocks that the generator writes from the documents: the settings reference with its
-//! tabs, the menu tree, the controls, the interactions, the topics, the board figures and
-//! the provenance.
+//! The blocks that the generator writes from the documents: the settings reference, the
+//! menu tree, the controls, the interactions, the topics, the app screens, the feature
+//! matrix, the media figures, the board figures and the provenance.
+//!
+//! A section that differs by runtime holds one block for each set of runtimes that share
+//! the same words. Each block carries its runtimes, so the runtime selector of the page can
+//! show and hide it.
 
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::LazyLock;
 
-use crate::app;
+use anyhow::{bail, Context, Result};
+use regex::Regex;
+
+use crate::app::{self, ItemType as AppItemType, Level};
 use crate::board::BoardInfo;
 use crate::firmware::{self, ItemType, Placed, Scope, SettingType};
 use crate::manifest::Loaded;
 use crate::media;
-use crate::tree;
+use crate::tree::{self, Spec};
 use crate::util::{esc, slug};
-use anyhow::{bail, Context, Result};
-use regex::Regex;
 
-/// The key and the tab name of the board itself, which is the first tab of every group.
-pub const BOARD_TARGET: &str = app::RESERVED_TARGET;
+/// The runtime key and the badge of the board itself.
+pub const BOARD_RUNTIME: &str = app::RESERVED_RUNTIME;
 
 pub struct Ctx<'a> {
     pub loaded: &'a Loaded,
@@ -42,16 +47,58 @@ pub fn topic_id(key: &str) -> String {
     format!("topic-{}", slug(key.strip_prefix("topic.").unwrap_or(key)))
 }
 
+/// The id of the row of a feature.
+pub fn feature_id(key: &str) -> String {
+    format!(
+        "feature-{}",
+        slug(key.strip_prefix("feature.").unwrap_or(key))
+    )
+}
+
+/// One runtime of the page, for the selector and the badges.
+pub struct RuntimeChip {
+    pub key: String,
+    pub name: String,
+    /// The group key, or empty for the board.
+    pub group: String,
+    pub group_name: String,
+}
+
 impl<'a> Ctx<'a> {
-    /// The tab targets of the page: the board, then each target of the app document.
-    pub fn targets(&self) -> Vec<(String, String)> {
-        let mut out = vec![(BOARD_TARGET.to_string(), "Board".to_string())];
+    /// The runtimes of the page: the board, then each runtime of the app document.
+    pub fn runtimes(&self) -> Vec<RuntimeChip> {
+        let mut out = vec![RuntimeChip {
+            key: BOARD_RUNTIME.to_string(),
+            name: "Board".to_string(),
+            group: String::new(),
+            group_name: String::new(),
+        }];
         if let Some(app) = self.app {
-            for (k, t) in &app.targets {
-                out.push((k.clone(), t.name.clone()));
+            for (k, r) in &app.runtimes {
+                let group = r.group.clone().unwrap_or_default();
+                out.push(RuntimeChip {
+                    key: k.clone(),
+                    name: r.name.clone(),
+                    group_name: app
+                        .groups
+                        .get(&group)
+                        .map(|g| g.name.clone())
+                        .unwrap_or_default(),
+                    group,
+                });
             }
         }
         out
+    }
+
+    fn runtime_name(&self, key: &str) -> String {
+        if key == BOARD_RUNTIME {
+            return "Board".to_string();
+        }
+        self.app
+            .and_then(|a| a.runtimes.get(key))
+            .map(|r| r.name.clone())
+            .unwrap_or_else(|| key.to_string())
     }
 
     /// Runs one `{{name args}}` directive.
@@ -64,7 +111,10 @@ impl<'a> Ctx<'a> {
             "home" => self.home(),
             "topic" => self.topic(args.trim()),
             "topics" => self.topics(),
-            "targets" => Ok(self.app_targets()),
+            "runtimes" => Ok(self.runtimes_table()),
+            "app-screens" => self.app_screens(),
+            "app-settings" => self.app_settings(),
+            "features" => Ok(self.features()),
             "media" => self.media_item(args.trim()),
             "board" => Ok(self.board_table()),
             "provenance" => Ok(self.provenance_table()),
@@ -100,7 +150,68 @@ impl<'a> Ctx<'a> {
         bail!("{{{{value {key}}}}}: unknown value")
     }
 
-    // ----- the settings reference -----
+    // ----- blocks and badges -----
+
+    /// One block of a section: the runtimes it applies to, and its words.
+    fn block(&self, runtimes: &[&str], since: Option<&str>, html: &str) -> String {
+        let mut badges = String::new();
+        for rt in runtimes {
+            badges.push_str(&format!(
+                "<span class=\"badge badge-{}\">{}</span>",
+                esc(rt),
+                esc(&self.runtime_name(rt))
+            ));
+        }
+        if let Some(s) = since {
+            badges.push_str(&format!("<span class=\"since\">Since {}</span>", esc(s)));
+        }
+        format!(
+            "<div class=\"variant\" data-runtimes=\"{}\"><p class=\"badges\">{badges}</p>\n{html}</div>\n",
+            esc(&runtimes.join(" "))
+        )
+    }
+
+    /// The blocks of the app for a shared key, after the board block.
+    fn app_blocks(&self, key: &str) -> Result<String> {
+        let app = match self.app {
+            Some(a) => a,
+            None => return Ok(String::new()),
+        };
+        let entry = match app.entry(key) {
+            Some(e) => e,
+            None => return Ok(String::new()),
+        };
+        let mut out = String::new();
+        for b in app.blocks(entry) {
+            let w = &b.words;
+            let mut html = String::new();
+            html.push_str(&format!("<p class=\"app-title\"><b>{}</b>", esc(w.title)));
+            if let Some(place) = w.place {
+                html.push_str(&format!(" <span class=\"where\">{}</span>", esc(place)));
+            }
+            html.push_str("</p>\n");
+            if !w.editable {
+                html.push_str(
+                    "<p class=\"when\">The app shows the value and does not change it.</p>\n",
+                );
+            }
+            html.push_str(&paras(w.description));
+            if let Some(steps) = w.steps {
+                html.push_str(&steps_html(steps));
+            }
+            for mk in w.media {
+                let m = &app.media[mk];
+                html.push_str(&m.html(self.loaded, self.app_dir)?);
+            }
+            out.push_str(&self.block(&b.runtimes, w.since, &html));
+        }
+        if !entry.related.is_empty() {
+            out.push_str(&self.related(&entry.related));
+        }
+        Ok(out)
+    }
+
+    // ----- the settings reference of the firmware -----
 
     fn menu_reference(&self) -> Result<String> {
         let mut out = String::new();
@@ -218,7 +329,9 @@ impl<'a> Ctx<'a> {
         let s = &self.fw.settings[key];
         let id = setting_id(key);
         let mut out = String::new();
-        out.push_str(&format!("<section class=\"setting\" id=\"{id}\">\n"));
+        out.push_str(&format!(
+            "<section class=\"setting\" id=\"{id}\" data-section>\n"
+        ));
         out.push_str(&format!(
             "<h4>{} <code class=\"key\">{}</code></h4>\n",
             esc(&s.title),
@@ -228,18 +341,20 @@ impl<'a> Ctx<'a> {
             "<p class=\"crumbs\">{}</p>\n",
             self.crumbs(&p.keys, Some(&item.render))
         ));
-        out.push_str("<dl class=\"facts\">\n");
-        out.push_str(&format!(
+
+        // The board block: the facts of the row, then the words of the firmware.
+        let mut board = String::from("<dl class=\"facts\">\n");
+        board.push_str(&format!(
             "<dt>Row</dt><dd><b>{}</b> <span class=\"kind\">{}</span></dd>\n",
             esc(&item.render),
             kind_words(s.kind)
         ));
-        out.push_str(&format!("<dt>Values</dt><dd>{}</dd>\n", self.values_of(s)?));
+        board.push_str(&format!("<dt>Values</dt><dd>{}</dd>\n", self.values_of(s)?));
         let default = self.default_of(s)?;
         if !default.is_empty() {
-            out.push_str(&format!("<dt>Default</dt><dd>{default}</dd>\n"));
+            board.push_str(&format!("<dt>Default</dt><dd>{default}</dd>\n"));
         }
-        out.push_str(&format!(
+        board.push_str(&format!(
             "<dt>Scope</dt><dd>{}</dd>\n",
             scope_words(s.scope)
         ));
@@ -257,12 +372,10 @@ impl<'a> Ctx<'a> {
             ));
         }
         if !when.is_empty() {
-            out.push_str(&format!("<dt>When</dt><dd>{}</dd>\n", when.join(" ")));
+            board.push_str(&format!("<dt>When</dt><dd>{}</dd>\n", when.join(" ")));
         }
-        out.push_str("</dl>\n");
-
-        // The board panel: the words of the firmware.
-        let mut board = paras(&s.description);
+        board.push_str("</dl>\n");
+        board.push_str(&paras(&s.description));
         if s.kind == SettingType::Enum {
             board.push_str("<table class=\"options\"><thead><tr><th>Option</th><th>What it does</th></tr></thead><tbody>\n");
             for o in &s.options {
@@ -276,60 +389,9 @@ impl<'a> Ctx<'a> {
         }
         board.push_str(&self.fw_media(&s.media)?);
         board.push_str(&self.related(&s.related));
-        out.push_str(&self.tabs(&id, Some(board), key)?);
+        out.push_str(&self.block(&[BOARD_RUNTIME], None, &board));
+        out.push_str(&self.app_blocks(key)?);
         out.push_str("</section>\n");
-        Ok(out)
-    }
-
-    /// A tab group: the board panel first, then one panel for each app target that has the
-    /// key. With no app entry, the board panel stands alone.
-    fn tabs(&self, id: &str, board_html: Option<String>, key: &str) -> Result<String> {
-        let mut panels: Vec<(&str, String, String)> = Vec::new();
-        if let Some(b) = board_html {
-            panels.push((BOARD_TARGET, "Board".to_string(), b));
-        }
-        if let Some(app) = self.app {
-            if let Some(entry) = app.entry(key) {
-                for (tk, target, r) in app.resolve(entry) {
-                    let mut html = String::new();
-                    html.push_str(&format!("<p class=\"app-title\"><b>{}</b>", esc(r.title)));
-                    if let Some(place) = r.place {
-                        html.push_str(&format!(" <span class=\"where\">{}</span>", esc(place)));
-                    }
-                    html.push_str("</p>\n");
-                    if !r.editable {
-                        html.push_str("<p class=\"when\">The app shows the value and does not change it.</p>\n");
-                    }
-                    html.push_str(&paras(r.description));
-                    for mk in r.media {
-                        let m = &app.media[mk];
-                        html.push_str(&m.html(self.loaded, self.app_dir)?);
-                    }
-                    panels.push((tk, target.name.clone(), html));
-                }
-            }
-        }
-        if panels.is_empty() {
-            bail!("no document describes `{key}`");
-        }
-        if panels.len() == 1 {
-            return Ok(format!("<div class=\"panel-only\">{}</div>\n", panels[0].2));
-        }
-        let mut out = format!("<div class=\"tabs\" data-tabs=\"{id}\">\n");
-        for (i, (tk, name, _)) in panels.iter().enumerate() {
-            out.push_str(&format!(
-                "<input type=\"radio\" name=\"tabs-{id}\" id=\"tab-{id}-{tk}\" class=\"tab-input t-{tk}\"{}><label for=\"tab-{id}-{tk}\">{}</label>\n",
-                if i == 0 { " checked" } else { "" },
-                esc(name)
-            ));
-        }
-        for (tk, name, html) in &panels {
-            out.push_str(&format!(
-                "<div class=\"panel t-{tk}\" data-target=\"{tk}\"><p class=\"panel-name\">{}</p>{html}</div>\n",
-                esc(name)
-            ));
-        }
-        out.push_str("</div>\n");
         Ok(out)
     }
 
@@ -344,6 +406,12 @@ impl<'a> Ctx<'a> {
                     format!("<a href=\"#{}\">{}</a>", setting_id(k), esc(&s.title))
                 } else if let Some(t) = self.fw.topics.get(k) {
                     format!("<a href=\"#{}\">{}</a>", topic_id(k), esc(&t.title))
+                } else if let Some(e) = self.app.and_then(|a| a.settings.get(k)) {
+                    format!("<a href=\"#{}\">{}</a>", setting_id(k), esc(&e.title))
+                } else if let Some(e) = self.app.and_then(|a| a.topics.get(k)) {
+                    format!("<a href=\"#{}\">{}</a>", topic_id(k), esc(&e.title))
+                } else if let Some(f) = self.app.and_then(|a| a.features.get(k)) {
+                    format!("<a href=\"#{}\">{}</a>", feature_id(k), esc(&f.title))
                 } else {
                     esc(k)
                 }
@@ -444,11 +512,56 @@ impl<'a> Ctx<'a> {
         Ok(out)
     }
 
-    // ----- the menu tree -----
+    // ----- the menu tree of the firmware -----
 
     fn menu_map(&self) -> String {
+        let open_via: &str = self
+            .fw
+            .interactions
+            .get("open_menu")
+            .and_then(|i| self.fw.controls.get(&i.control))
+            .map_or("", |c| c.name.as_str());
+        let mut specs: Vec<Spec> = Vec::with_capacity(self.placed.len() + 1);
+        specs.push(Spec {
+            id: String::new(),
+            title: &self.fw.home.title,
+            rows: Vec::new(),
+            children: Vec::new(),
+            home: true,
+        });
+        for p in &self.placed {
+            specs.push(Spec {
+                id: tree::screen_id(p.key),
+                title: &p.screen.title,
+                rows: p
+                    .screen
+                    .items
+                    .iter()
+                    .filter(|i| i.kind == ItemType::Setting)
+                    .map(|i| i.render.as_str())
+                    .collect(),
+                children: Vec::new(),
+                home: false,
+            });
+        }
+        let index_of = |key: &str| self.placed.iter().position(|p| p.key == key).map(|i| i + 1);
+        if let Some(root) = index_of(&self.fw.root) {
+            specs[0].children.push((root, open_via));
+        }
+        for (i, p) in self.placed.iter().enumerate() {
+            for item in &p.screen.items {
+                if item.kind == ItemType::Submenu {
+                    if let Some(c) = item.target.as_deref().and_then(index_of) {
+                        specs[i + 1].children.push((c, item.render.as_str()));
+                    }
+                }
+            }
+        }
         let mut out = String::from("<figure class=\"tree\">\n");
-        out.push_str(&tree::svg(self.fw, &self.placed));
+        out.push_str(&tree::svg(
+            &specs,
+            "The menu tree of the board. Each box is a screen, and a click on a box opens its section.",
+        ));
         out.push_str(
             "<figcaption>The menu tree. Select a box to open its section.</figcaption></figure>\n",
         );
@@ -529,15 +642,18 @@ impl<'a> Ctx<'a> {
         Ok(out)
     }
 
+    fn action_words(&self, i: &firmware::Interaction) -> String {
+        let c = &self.fw.controls[&i.control];
+        let e = &c.events[&i.event];
+        match e.hold_ms {
+            Some(ms) => format!("Hold {} for {ms} ms", c.name),
+            None => format!("Press {}", c.name),
+        }
+    }
+
     fn interactions(&self) -> String {
         let mut out = String::from("<table class=\"interactions\"><thead><tr><th>Do this</th><th>Where</th><th>Result</th></tr></thead><tbody>\n");
         for i in self.fw.interactions.values() {
-            let c = &self.fw.controls[&i.control];
-            let e = &c.events[&i.event];
-            let action = match e.hold_ms {
-                Some(ms) => format!("Hold {} for {ms} ms", c.name),
-                None => format!("Press {}", c.name),
-            };
             let place = if i.applies_to.is_empty() {
                 "Each screen that takes input".to_string()
             } else {
@@ -549,7 +665,7 @@ impl<'a> Ctx<'a> {
             };
             out.push_str(&format!(
                 "<tr><td><b>{}</b></td><td>{}</td><td>{}</td></tr>\n",
-                esc(&action),
+                esc(&self.action_words(i)),
                 esc(&place),
                 esc(&i.description)
             ));
@@ -594,73 +710,356 @@ impl<'a> Ctx<'a> {
         Ok(out)
     }
 
-    /// One topic. A topic that only the app has gets the tabs of the app alone.
+    /// One topic: the board block when the firmware has it, then the app blocks.
     fn topic(&self, key: &str) -> Result<String> {
-        let t = match self.fw.topics.get(key) {
-            Some(t) => t,
-            None => {
-                let entry = match self.app.and_then(|a| a.topics.get(key)) {
-                    Some(e) => e,
-                    None => bail!("{{{{topic {key}}}}}: no document has such a topic"),
-                };
-                let id = topic_id(key);
-                let mut out = format!(
-                    "<section class=\"topic\" id=\"{id}\">\n<h3>{} <code class=\"key\">{}</code></h3>\n",
-                    esc(&entry.title),
-                    esc(key)
-                );
-                out.push_str(&self.tabs(&id, None, key)?);
-                out.push_str("</section>\n");
-                return Ok(out);
-            }
+        let fw_topic = self.fw.topics.get(key);
+        let app_entry = self.app.and_then(|a| a.topics.get(key));
+        let title = match (fw_topic, app_entry) {
+            (Some(t), _) => &t.title,
+            (None, Some(e)) => &e.title,
+            (None, None) => bail!("{{{{topic {key}}}}}: no document has such a topic"),
         };
         let id = topic_id(key);
         let mut out = format!(
-            "<section class=\"topic\" id=\"{id}\">\n<h3>{} <code class=\"key\">{}</code></h3>\n",
-            esc(&t.title),
+            "<section class=\"topic\" id=\"{id}\" data-section>\n<h3>{} <code class=\"key\">{}</code></h3>\n",
+            esc(title),
             esc(key)
         );
-        let mut board = paras(&t.description);
-        if !t.interactions.is_empty() {
-            board.push_str("<table class=\"interactions\"><thead><tr><th>Do this</th><th>Result</th></tr></thead><tbody>\n");
-            for ik in &t.interactions {
-                let i = &self.fw.interactions[ik];
-                let c = &self.fw.controls[&i.control];
-                let e = &c.events[&i.event];
-                let action = match e.hold_ms {
-                    Some(ms) => format!("Hold {} for {ms} ms", c.name),
-                    None => format!("Press {}", c.name),
-                };
-                board.push_str(&format!(
-                    "<tr><td><b>{}</b></td><td>{}</td></tr>\n",
-                    esc(&action),
-                    esc(&i.description)
-                ));
+        if let Some(t) = fw_topic {
+            let mut board = paras(&t.description);
+            if !t.interactions.is_empty() {
+                board.push_str("<table class=\"interactions\"><thead><tr><th>Do this</th><th>Result</th></tr></thead><tbody>\n");
+                for ik in &t.interactions {
+                    let i = &self.fw.interactions[ik];
+                    board.push_str(&format!(
+                        "<tr><td><b>{}</b></td><td>{}</td></tr>\n",
+                        esc(&self.action_words(i)),
+                        esc(&i.description)
+                    ));
+                }
+                board.push_str("</tbody></table>\n");
             }
-            board.push_str("</tbody></table>\n");
+            board.push_str(&self.fw_media(&t.media)?);
+            board.push_str(&self.related(&t.related));
+            out.push_str(&self.block(&[BOARD_RUNTIME], None, &board));
         }
-        board.push_str(&self.fw_media(&t.media)?);
-        board.push_str(&self.related(&t.related));
-        out.push_str(&self.tabs(&id, Some(board), key)?);
+        out.push_str(&self.app_blocks(key)?);
         out.push_str("</section>\n");
         Ok(out)
     }
 
-    /// The platforms of the app, with what each one does.
-    fn app_targets(&self) -> String {
+    // ----- the app -----
+
+    fn runtimes_table(&self) -> String {
         let app = match self.app {
             Some(a) => a,
             None => return "<p>This manual has no application document.</p>\n".to_string(),
         };
-        let mut out = String::from("<table class=\"targets\"><thead><tr><th>Platform</th><th>What it does</th></tr></thead><tbody>\n");
-        for t in app.targets.values() {
+        let mut out = String::from("<table class=\"runtimes\"><thead><tr><th>Runtime</th><th>User interface</th><th>What it is</th></tr></thead><tbody>\n");
+        for (k, r) in &app.runtimes {
+            let group = r
+                .group
+                .as_deref()
+                .and_then(|g| app.groups.get(g))
+                .map(|g| g.name.as_str())
+                .unwrap_or("");
             out.push_str(&format!(
-                "<tr><td><b>{}</b></td><td>{}</td></tr>\n",
-                esc(&t.name),
-                t.description.as_deref().map(paras).unwrap_or_default()
+                "<tr data-runtimes=\"{}\"><td><b>{}</b>{}</td><td>{}</td><td>{}</td></tr>\n",
+                esc(k),
+                esc(&r.name),
+                r.since
+                    .as_deref()
+                    .map(|s| format!(" <span class=\"since\">Since {}</span>", esc(s)))
+                    .unwrap_or_default(),
+                esc(group),
+                r.description.as_deref().map(paras).unwrap_or_default()
             ));
         }
         out.push_str("</tbody></table>\n");
+        for (k, g) in &app.groups {
+            if let Some(d) = &g.description {
+                let rts: Vec<&str> = app
+                    .runtimes
+                    .iter()
+                    .filter(|(_, r)| r.group.as_deref() == Some(k))
+                    .map(|(k, _)| k.as_str())
+                    .collect();
+                if rts.is_empty() {
+                    continue;
+                }
+                out.push_str(&self.block(
+                    &rts,
+                    None,
+                    &format!("<p><b>{}.</b> {}</p>\n", esc(&g.name), esc(d)),
+                ));
+            }
+        }
+        out
+    }
+
+    /// The screens of the app: one tree and one section for each user interface.
+    fn app_screens(&self) -> Result<String> {
+        let app = match self.app {
+            Some(a) => a,
+            None => return Ok("<p>This manual has no application document.</p>\n".to_string()),
+        };
+        let mut out = String::new();
+        let mut done: Vec<&str> = Vec::new();
+        for sel in app.roots.keys() {
+            let placed = app.walk(sel)?;
+            let rts: Vec<&str> = app
+                .runtimes
+                .keys()
+                .filter(|rt| app.selects(sel, rt))
+                .map(String::as_str)
+                .collect();
+            out.push_str(&format!(
+                "<h3 id=\"app-screens-{}\">{}</h3>\n",
+                slug(sel),
+                esc(&app.selector_name(sel))
+            ));
+            // The tree.
+            let mut specs: Vec<Spec> = Vec::with_capacity(placed.len());
+            for p in &placed {
+                let first = app
+                    .covered_runtimes(p.screen, sel)
+                    .first()
+                    .copied()
+                    .unwrap_or("");
+                let words = app.screen_words(p.screen, first);
+                let rows: Vec<&str> = words
+                    .items
+                    .iter()
+                    .filter_map(|it| match it.kind {
+                        AppItemType::Setting => it
+                            .key
+                            .as_deref()
+                            .and_then(|k| app.settings.get(k))
+                            .map(|e| e.title.as_str()),
+                        AppItemType::Action => it.text.as_deref(),
+                        _ => None,
+                    })
+                    .collect();
+                specs.push(Spec {
+                    id: tree::app_screen_id(p.key),
+                    title: words.title,
+                    rows,
+                    children: Vec::new(),
+                    home: false,
+                });
+            }
+            for (i, p) in placed.iter().enumerate() {
+                for (t, via) in app.children_of(p.screen, sel) {
+                    // A screen that two items open sits under the parent that placed it.
+                    let placed_under_p = placed.iter().position(|c| {
+                        c.key == t
+                            && c.keys.len() == p.keys.len() + 1
+                            && c.keys[..p.keys.len()] == p.keys[..]
+                    });
+                    if let Some(j) = placed_under_p {
+                        specs[i].children.push((j, placed[j].via.unwrap_or(via)));
+                    }
+                }
+            }
+            let figure = format!(
+                "<figure class=\"tree\">\n{}<figcaption>The screens of the app on {}. Select a box to open its section.</figcaption></figure>\n",
+                tree::svg(
+                    &specs,
+                    &format!("The screens of the app on {}. Each box is a screen, and a click on a box opens its section.", app.selector_name(sel))
+                ),
+                esc(&app.selector_name(sel))
+            );
+            out.push_str(&self.block(&rts, None, &figure));
+            // The sections.
+            for p in &placed {
+                if done.contains(&p.key) {
+                    continue;
+                }
+                done.push(p.key);
+                out.push_str(&self.app_screen_section(app, p)?);
+            }
+        }
+        Ok(out)
+    }
+
+    fn app_screen_section(&self, app: &app::Document, p: &app::PlacedScreen) -> Result<String> {
+        let id = tree::app_screen_id(p.key);
+        let mut out = format!(
+            "<section class=\"app-screen\" id=\"{id}\" data-section>\n<h4>{}</h4>\n",
+            esc(&p.screen.title)
+        );
+        let crumbs: Vec<String> = p
+            .keys
+            .iter()
+            .map(|k| {
+                format!(
+                    "<a href=\"#{}\">{}</a>",
+                    tree::app_screen_id(k),
+                    esc(app.screens.get(*k).map_or(*k, |s| s.title.as_str()))
+                )
+            })
+            .collect();
+        out.push_str(&format!(
+            "<p class=\"crumbs\">{}</p>\n",
+            crumbs.join(" &rsaquo; ")
+        ));
+        for (rts, words) in app.screen_blocks(p.screen) {
+            let mut html = String::new();
+            if let Some(d) = words.description {
+                html.push_str(&paras(d));
+            }
+            for mk in words.media {
+                html.push_str(&app.media[mk].html(self.loaded, self.app_dir)?);
+            }
+            if !words.items.is_empty() {
+                html.push_str("<table class=\"rows\"><thead><tr><th>On the screen</th><th>What it is</th></tr></thead><tbody>\n");
+                for it in words.items {
+                    let (name, what) = match it.kind {
+                        AppItemType::Setting => {
+                            let k = it.key.as_deref().unwrap_or_default();
+                            let e = &app.settings[k];
+                            (
+                                format!("<a href=\"#{}\">{}</a>", setting_id(k), esc(&e.title)),
+                                "A setting".to_string(),
+                            )
+                        }
+                        AppItemType::Screen => {
+                            let t = it.target.as_deref().unwrap_or_default();
+                            let title = app.screens.get(t).map_or(t, |s| s.title.as_str());
+                            (
+                                format!("<b>{}</b>", esc(it.text.as_deref().unwrap_or(""))),
+                                format!(
+                                    "Opens the <a href=\"#{}\">{}</a> screen",
+                                    tree::app_screen_id(t),
+                                    esc(title)
+                                ),
+                            )
+                        }
+                        AppItemType::Action => {
+                            let mut what = esc(it.description.as_deref().unwrap_or(""));
+                            if let Some(t) = &it.topic {
+                                if let Some(e) = app.topics.get(t) {
+                                    what.push_str(&format!(
+                                        " See <a href=\"#{}\">{}</a>.",
+                                        topic_id(t),
+                                        esc(&e.title)
+                                    ));
+                                }
+                            }
+                            (
+                                format!("<b>{}</b>", esc(it.text.as_deref().unwrap_or(""))),
+                                what,
+                            )
+                        }
+                        AppItemType::Info => (
+                            "<span class=\"kind\">shows</span>".to_string(),
+                            esc(it.text.as_deref().unwrap_or("")),
+                        ),
+                    };
+                    let (attr, only) = match &it.runtimes {
+                        Some(sel) => {
+                            let r = app.runtimes_of(sel);
+                            let badges: Vec<String> = r
+                                .iter()
+                                .map(|rt| {
+                                    format!(
+                                        "<span class=\"badge badge-{}\">{}</span>",
+                                        esc(rt),
+                                        esc(&self.runtime_name(rt))
+                                    )
+                                })
+                                .collect();
+                            (
+                                format!(" data-runtimes=\"{}\"", esc(&r.join(" "))),
+                                format!(
+                                    " <span class=\"badges inline\">{}</span>",
+                                    badges.join("")
+                                ),
+                            )
+                        }
+                        None => (String::new(), String::new()),
+                    };
+                    html.push_str(&format!(
+                        "<tr{attr}><td>{name}{only}</td><td>{what}</td></tr>\n"
+                    ));
+                }
+                html.push_str("</tbody></table>\n");
+            }
+            out.push_str(&self.block(&rts, None, &html));
+        }
+        out.push_str("</section>\n");
+        Ok(out)
+    }
+
+    /// The settings that only the app has, each as a section.
+    fn app_settings(&self) -> Result<String> {
+        let app = match self.app {
+            Some(a) => a,
+            None => return Ok(String::new()),
+        };
+        let mut out = String::new();
+        for (key, e) in &app.settings {
+            if !e.app_only {
+                continue;
+            }
+            out.push_str(&format!(
+                "<section class=\"setting\" id=\"{}\" data-section>\n<h4>{} <code class=\"key\">{}</code></h4>\n",
+                setting_id(key),
+                esc(&e.title),
+                esc(key)
+            ));
+            out.push_str(&self.app_blocks(key)?);
+            out.push_str("</section>\n");
+        }
+        Ok(out)
+    }
+
+    /// The matrix of feature by runtime.
+    fn features(&self) -> String {
+        let app = match self.app {
+            Some(a) => a,
+            None => return "<p>This manual has no application document.</p>\n".to_string(),
+        };
+        let mut out = String::from(
+            "<div class=\"table-wrap\"><table class=\"features\"><thead><tr><th>Feature</th>",
+        );
+        for (k, r) in &app.runtimes {
+            out.push_str(&format!(
+                "<th data-runtimes=\"{}\">{}</th>",
+                esc(k),
+                esc(&r.name)
+            ));
+        }
+        out.push_str("</tr></thead><tbody>\n");
+        for (key, f) in &app.features {
+            out.push_str(&format!(
+                "<tr id=\"{}\"><td><b>{}</b>{}{}</td>",
+                feature_id(key),
+                esc(&f.title),
+                f.description.as_deref().map(paras).unwrap_or_default(),
+                self.related(&f.related)
+            ));
+            for k in app.runtimes.keys() {
+                let s = app.support_of(f, k);
+                let (level, note, since) = match s {
+                    Some(s) => (s.level(), s.note(), s.since()),
+                    None => (Level::No, None, None),
+                };
+                out.push_str(&format!(
+                    "<td data-runtimes=\"{}\" class=\"level-{}\"><span class=\"level\">{}</span>{}{}</td>",
+                    esc(k),
+                    level.class(),
+                    level.word(),
+                    note.map(|n| format!("<span class=\"note\">{}</span>", esc(n)))
+                        .unwrap_or_default(),
+                    since
+                        .map(|s| format!("<span class=\"since\">Since {}</span>", esc(s)))
+                        .unwrap_or_default()
+                ));
+            }
+            out.push_str("</tr>\n");
+        }
+        out.push_str("</tbody></table></div>\n");
         out
     }
 
@@ -762,6 +1161,16 @@ fn place_words(place: &str) -> &str {
     }
 }
 
+/// The steps of a procedure as a numbered list.
+fn steps_html(steps: &[String]) -> String {
+    let mut out = String::from("<ol class=\"steps\">\n");
+    for s in steps {
+        out.push_str(&format!("<li>{}</li>\n", inline(s)));
+    }
+    out.push_str("</ol>\n");
+    out
+}
+
 /// `105` with one decimal and `bps` reads `10.5 bps`.
 pub fn fmt_num(n: i64, decimals: u32, unit: &str) -> Result<String> {
     let text = if decimals == 0 {
@@ -787,25 +1196,33 @@ pub fn fmt_num(n: i64, decimals: u32, unit: &str) -> Result<String> {
     })
 }
 
-/// Paragraphs of plain text as HTML, with `code` for a span in backticks and a link for
-/// `[words](#id)`. A paragraph that starts with a number and a dot is a step.
-pub fn paras(text: &str) -> String {
-    // The three patterns are constants, so they compile once and cannot fail.
+/// One line of text as HTML, with `code` for a span in backticks and a link for
+/// `[words](#id)`.
+fn inline(text: &str) -> String {
+    // The two patterns are constants, so they compile once and cannot fail.
     static RE_CODE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"`([^`]+)`").expect("a constant pattern"));
     static RE_LINK: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"\[([^\]]+)\]\((#[A-Za-z0-9_-]+)\)").expect("a constant pattern")
     });
+    let e = esc(text.trim());
+    let e = RE_CODE.replace_all(&e, "<code>$1</code>");
+    RE_LINK
+        .replace_all(&e, "<a href=\"$2\">$1</a>")
+        .into_owned()
+}
+
+/// Paragraphs of plain text as HTML. A paragraph that starts with a number and a dot is a
+/// step.
+pub fn paras(text: &str) -> String {
+    // The pattern is a constant, so it compiles once and cannot fail.
     static RE_STEP: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^(\d+)\.\s+").expect("a constant pattern"));
-    let (re_code, re_link, re_step) = (&*RE_CODE, &*RE_LINK, &*RE_STEP);
     text.split("\n\n")
         .filter(|p| !p.trim().is_empty())
         .map(|p| {
-            let e = esc(p.trim());
-            let e = re_code.replace_all(&e, "<code>$1</code>");
-            let e = re_link.replace_all(&e, "<a href=\"$2\">$1</a>");
-            match re_step.captures(&e) {
+            let e = inline(p);
+            match RE_STEP.captures(&e) {
                 Some(c) => format!(
                     "<p class=\"step\"><span class=\"step-n\">{}</span> {}</p>",
                     &c[1],
@@ -837,6 +1254,7 @@ mod tests {
             "setting-autococker-eye-mode"
         );
         assert_eq!(topic_id("topic.eye_override"), "topic-eye-override");
+        assert_eq!(feature_id("feature.add_profile"), "feature-add-profile");
     }
 
     #[test]
@@ -845,5 +1263,14 @@ mod tests {
         assert!(html
             .contains("<p class=\"step\"><span class=\"step-n\">1</span> Pull the trigger.</p>"));
         assert!(html.starts_with("<p>Text.</p>"));
+    }
+
+    #[test]
+    fn steps_make_a_list() {
+        let html = steps_html(&["One.".to_string(), "Two `x`.".to_string()]);
+        assert_eq!(
+            html,
+            "<ol class=\"steps\">\n<li>One.</li>\n<li>Two <code>x</code>.</li>\n</ol>\n"
+        );
     }
 }

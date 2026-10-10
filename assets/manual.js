@@ -78,24 +78,53 @@
   update();
 })();
 
-// The tab groups: a choice of one target on one group selects that target on every group,
-// and the page remembers it, as a reference that shows one platform at a time does.
+// The runtime selector: the reader selects the runtimes that matter, and each block shows
+// while one of its runtimes is selected. A section with no block left folds to one line.
+// The page remembers the selection.
 (function () {
   'use strict';
-  var KEY = 'snapshotpb-manual-target';
-  function select(target) {
-    var inputs = document.querySelectorAll('.tabs > input.t-' + target);
-    for (var i = 0; i < inputs.length; i++) { inputs[i].checked = true; }
+  var KEY = 'snapshotpb-manual-runtimes';
+  var bar = document.getElementById('runtime-bar');
+  if (!bar) { return; }
+  var inputs = Array.prototype.slice.call(bar.querySelectorAll('input[data-runtime]'));
+  var all = inputs.map(function (i) { return i.getAttribute('data-runtime'); });
+  var blocks = Array.prototype.slice.call(document.querySelectorAll('[data-runtimes]'));
+  var sections = Array.prototype.slice.call(document.querySelectorAll('[data-section]'));
+  sections.forEach(function (s) {
+    var note = document.createElement('p');
+    note.className = 'folded-note';
+    note.textContent = 'Nothing for the runtimes you selected. Select another runtime above.';
+    var head = s.querySelector('.crumbs') || s.querySelector('h3, h4');
+    if (head && head.nextSibling) { s.insertBefore(note, head.nextSibling); } else { s.appendChild(note); }
+  });
+  function selected() {
+    var out = {};
+    inputs.forEach(function (i) { if (i.checked) { out[i.getAttribute('data-runtime')] = true; } });
+    return out;
+  }
+  function apply() {
+    var on = selected();
+    blocks.forEach(function (b) {
+      var keys = b.getAttribute('data-runtimes').split(/\s+/);
+      var show = keys.some(function (k) { return on[k]; });
+      b.classList.toggle('hidden', !show);
+    });
+    sections.forEach(function (s) {
+      var any = Array.prototype.some.call(s.querySelectorAll('.variant'), function (v) { return !v.classList.contains('hidden'); });
+      s.classList.toggle('folded', !any);
+    });
+    try { localStorage.setItem(KEY, Object.keys(on).join(' ')); } catch (e) { /* no storage */ }
   }
   var stored = null;
   try { stored = localStorage.getItem(KEY); } catch (e) { stored = null; }
-  if (stored && document.querySelector('.tabs > input.t-' + stored)) { select(stored); }
-  document.addEventListener('change', function (ev) {
-    var el = ev.target;
-    if (!el || !el.classList || !el.classList.contains('tab-input')) { return; }
-    var target = (el.className.match(/\bt-([a-z0-9_]+)/) || [])[1];
-    if (!target) { return; }
-    select(target);
-    try { localStorage.setItem(KEY, target); } catch (e) { /* no storage: the choice lasts for this page only */ }
-  });
+  if (stored !== null) {
+    var set = {};
+    stored.split(/\s+/).forEach(function (k) { set[k] = true; });
+    var known = all.some(function (k) { return set[k]; });
+    if (known) { inputs.forEach(function (i) { i.checked = !!set[i.getAttribute('data-runtime')]; }); }
+  }
+  bar.addEventListener('change', apply);
+  var allBtn = document.getElementById('runtime-all');
+  if (allBtn) { allBtn.addEventListener('click', function () { inputs.forEach(function (i) { i.checked = true; }); apply(); }); }
+  apply();
 })();

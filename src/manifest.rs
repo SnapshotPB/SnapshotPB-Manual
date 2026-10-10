@@ -61,7 +61,7 @@ pub struct Firmware {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct App {
-    /// The application document, which follows `schemas/app/v1`.
+    /// The application document, which follows `schemas/app/v2`.
     pub document: String,
 }
 

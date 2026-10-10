@@ -15,8 +15,9 @@ The firmware document has three jobs.
    screen in the graphic and jumps to its section of the manual.
 3. **Shared keys.** Each setting and each topic has a key that the application documentation
    also uses. The generator shows the firmware text and the application text for one key
-   side by side, with one tab for each target, like the platform tabs in the Kotlin reference
-   documentation.
+   in one section, as a block for the board and a block for each set of runtimes, and a
+   selector lets the reader show only the runtimes that matter, like a platform reference
+   that covers many targets on one page.
 
 ## Where the document lives
 
@@ -152,15 +153,15 @@ the back row. Each box links to the section of the manual for that screen. The f
 repository already draws this map with Mermaid in `docs/menu/menu-map.md`, and the manual
 draws the same shape from the document.
 
-## Tabs between firmware and application
+## One section for the board and the app
 
 The application document uses the same shared keys. For each key the generator collects the
-firmware entry and each application entry. It renders one section for the key with one tab for
-each target: the board, then each platform of the app in the order of the application document.
-A target that has no entry for the key has no tab. A target can state that it shows the setting
-but does not let the user edit it. The tabs work with no script. With the script, a choice of
-one target on one section selects that target on every section, and the page remembers it.
-The application schema is in [`docs/app-schema.md`](app-schema.md).
+firmware entry and each application entry. It renders one section for the key: a block for
+the board, then one block for each set of runtimes that share the same words, each with a
+badge for each runtime. A runtime that has no entry for the key has no block. A selector
+under the top of the page lets the reader select the runtimes that matter, and each block
+shows while one of its runtimes is selected. With no script, every block shows. The
+application schema is in [`docs/app-schema.md`](app-schema.md).
 
 ## What the firmware must add
 

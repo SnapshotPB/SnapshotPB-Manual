@@ -1,0 +1,631 @@
+{
+  "schema_version": "2.0.0",
+  "app": {
+    "name": "SnapshotPB app",
+    "version": "26.41.1",
+    "protocol_version": "1.0.0",
+    "summary": "The SnapshotPB app reads and writes the settings of a board through Bluetooth. It runs on a phone or a tablet, on a desktop computer, in a browser, and on a watch. The phone, tablet, desktop, and browser versions share one user interface. The watch versions have a smaller user interface of their own."
+  },
+  "groups": {
+    "shared": {
+      "name": "Phone, tablet, desktop, and browser",
+      "description": "One user interface on Android, iOS, Desktop, and Browser. Each setting and each screen is the same on the four. The differences are in Bluetooth, in the back control, and in photos."
+    },
+    "watch": {
+      "name": "Watch",
+      "description": "A smaller user interface on Wear OS and Zepp OS. A watch connects to the board by itself. It edits the active profile only, and it has no boot text, no display window, no profile names, and no timing diagram."
+    }
+  },
+  "runtimes": {
+    "android": { "name": "Android", "group": "shared", "description": "A phone or a tablet with Android 7 or later, from Google Play. Android is the only runtime that reads the firmware version and the board model from the advertisement of the board." },
+    "ios": { "name": "iOS", "group": "shared", "description": "An iPhone or an iPad with iOS 17 or later, from the App Store." },
+    "desktop": { "name": "Desktop", "group": "shared", "description": "A macOS, Windows, or Linux computer with a Bluetooth adapter. On Linux, the user must be in the bluetooth group. The desktop app updates itself." },
+    "browser": { "name": "Browser", "group": "shared", "description": "A browser with Web Bluetooth, such as Chrome or Edge. Firefox and Safari do not have Web Bluetooth, and the app shows a page that says so." },
+    "wear": { "name": "Wear OS", "group": "watch", "description": "A Wear OS 4 watch, from Google Play. The watch connects to the board by itself, and it syncs its saved boards with the Android phone app." },
+    "zepp": { "name": "Zepp OS", "group": "watch", "description": "An Amazfit GTR 4, T-Rex 3, or Bip 5 Unity watch. The watch connects to the board by itself. It is in English only, and it does not sync with a phone." }
+  },
+  "roots": {
+    "shared": "device_browser",
+    "watch": "device_list"
+  },
+  "screens": {
+    "device_browser": {
+      "title": "Devices",
+      "runtimes": ["shared"],
+      "description": "The first screen. It lists the saved boards, and it shows the state of Bluetooth with the control that the state needs: grant the permission, turn Bluetooth on, turn Location on, or scan.",
+      "items": [
+        { "type": "info", "text": "The version of the app." },
+        { "type": "action", "text": "Scan for devices", "description": "Scans for boards in range and lists them. Select a board to connect to it.", "topic": "topic.connect", "runtimes": ["android", "ios", "desktop"] },
+        { "type": "action", "text": "Pair a board", "description": "Opens the chooser of the browser, which lists the boards in range. The browser has no scan list of its own.", "topic": "topic.connect", "runtimes": ["browser"] },
+        { "type": "screen", "ref": "connecting", "text": "A discovered board" },
+        { "type": "screen", "ref": "profiles", "text": "A saved board" },
+        { "type": "action", "text": "Delete", "description": "Swipe a saved board to the left, then confirm. The app forgets the board. The board itself does not change.", "topic": "topic.save_device" }
+      ]
+    },
+    "connecting": {
+      "title": "Setting up your board",
+      "runtimes": ["shared"],
+      "description": "The four steps of a connection: connect, confirm the features of the board, download the device configuration, and download the profiles. A step that fails shows a retry count, and a connection that fails shows a Back button.",
+      "items": [
+        { "type": "info", "text": "The firmware version of the board." },
+        { "type": "action", "text": "Finish configuration", "description": "Saves the board in the app with a name from its advertisement, and opens the Configure device screen.", "topic": "topic.save_device" }
+      ]
+    },
+    "profiles": {
+      "title": "Profiles",
+      "runtimes": ["shared"],
+      "description": "The home of one saved board. It shows the name and the photo of the board, the connection card, the device configuration card, one card for each profile with its maximum rate of fire, and the unsaved changes banner.",
+      "items": [
+        { "type": "setting", "key": "device.name" },
+        { "type": "setting", "key": "device.photo" },
+        { "type": "action", "text": "Connect", "description": "Connects to the board. The card also shows Cancel, Disconnect, and Retry.", "topic": "topic.connect" },
+        { "type": "screen", "ref": "device_configure", "text": "Device configuration" },
+        { "type": "screen", "ref": "profile", "text": "A profile card" },
+        { "type": "screen", "ref": "profile_add", "text": "Add profile" },
+        { "type": "action", "text": "Delete a profile", "description": "Swipe a profile card, then confirm. The last profile cannot be deleted.", "topic": "topic.edit_profile" },
+        { "type": "action", "text": "Save to board", "description": "Writes every unsaved change to the board. The button is enabled while the board is connected, no write runs, and the board is not locked.", "topic": "topic.write_to_board" },
+        { "type": "action", "text": "Discard changes", "description": "Drops every unsaved change and keeps the values of the board.", "topic": "topic.write_to_board" }
+      ]
+    },
+    "profile": {
+      "title": "Profile",
+      "runtimes": ["shared"],
+      "description": "The editor of one profile, in sections: Basic function, Eye, Timing overview, Timing, Trigger, and Ramping. The Ramping section shows only for a ramping fire mode. Save and Cancel change the app only. Save to board on the Profiles screen writes to the board.",
+      "items": [
+        { "type": "setting", "key": "profile.name" },
+        { "type": "setting", "key": "autococker.fire_mode" },
+        { "type": "setting", "key": "profile.fire_rate_cap" },
+        { "type": "setting", "key": "autococker.eye_mode" },
+        { "type": "setting", "key": "autococker.eye_threshold" },
+        { "type": "setting", "key": "autococker.eye_debounce" },
+        { "type": "info", "text": "The Timing overview diagram draws one firing cycle from the trigger pull: the debounce, the sear pulse, and the cocking sequence." },
+        { "type": "setting", "key": "autococker.sear_solenoid_dwell" },
+        { "type": "setting", "key": "autococker.cocking_solenoid_delay" },
+        { "type": "setting", "key": "autococker.cocking_solenoid_dwell_open" },
+        { "type": "setting", "key": "autococker.cocking_solenoid_dwell_closed" },
+        { "type": "setting", "key": "autococker.cocking_solenoid_timeout" },
+        { "type": "setting", "key": "autococker.trigger_debounce_on" },
+        { "type": "setting", "key": "autococker.trigger_debounce_off" },
+        { "type": "setting", "key": "autococker.ramping_custom_multiplier" },
+        { "type": "setting", "key": "autococker.ramping_custom_trigger_pulls" },
+        { "type": "setting", "key": "autococker.ramping_custom_rof_minimum" }
+      ]
+    },
+    "profile_add": {
+      "title": "Create profile",
+      "runtimes": ["shared"],
+      "description": "Asks for the name of the new profile and creates it. The Add button hides when the board holds its maximum of four profiles.",
+      "items": [
+        { "type": "setting", "key": "profile.name" }
+      ]
+    },
+    "device_configure": {
+      "title": "Configure device",
+      "runtimes": ["shared"],
+      "description": "The board settings that do not belong to a profile. Save changes the app only. Save to board on the Profiles screen writes to the board.",
+      "items": [
+        { "type": "setting", "key": "device.name" },
+        { "type": "setting", "key": "device_config.boot_text" },
+        { "type": "setting", "key": "device_config.active_profile" },
+        { "type": "setting", "key": "device_config.language" },
+        { "type": "setting", "key": "device_config.screen_brightness" },
+        { "type": "setting", "key": "device_config.screen_off_delay" },
+        { "type": "setting", "key": "device_config.display_window" },
+        { "type": "setting", "key": "device.lockout" }
+      ]
+    },
+    "device_list": {
+      "title": "Devices",
+      "runtimes": ["watch"],
+      "description": "The first screen of the watch. It lists the saved boards and the boards in range, with one chip for what Bluetooth needs: grant the permission, turn Bluetooth on, turn Location on, or scan.",
+      "variants": {
+        "zepp": { "description": "The first screen of the watch. It lists the saved boards and the boards in range. A scan stops by itself after 60 seconds. The watch finds a board by its name, Snapshot PB." }
+      },
+      "items": [
+        { "type": "action", "text": "Scan for boards", "description": "Scans for boards in range and lists them.", "topic": "topic.connect" },
+        { "type": "screen", "ref": "watch_connecting", "text": "A board" }
+      ]
+    },
+    "watch_connecting": {
+      "title": "Connecting",
+      "runtimes": ["watch"],
+      "description": "The steps of the connection. A new board is saved when you continue.",
+      "variants": {
+        "zepp": { "description": "The steps of the connection. A new board asks Do you want to sync this board, with Sync board and Ignore. A conflict between the watch and the board also shows here, with Use board values, Keep my values, and Cancel." }
+      },
+      "items": [
+        { "type": "action", "text": "Continue", "description": "Saves a new board and opens its configuration.", "topic": "topic.save_device" },
+        { "type": "screen", "ref": "watch_device_config", "text": "Continue" }
+      ]
+    },
+    "watch_device_config": {
+      "title": "Device configuration",
+      "runtimes": ["watch"],
+      "description": "Cards for the active profile, the profile editor, the board settings, the lockout state, the connection, and the Save and Discard controls. A board setting card shows only when the board has reported a value.",
+      "variants": {
+        "zepp": { "description": "The active profile, the profile editor, the board settings, and the Save control. A board setting shows only when the board has reported a value. While the board is locked, a line that says so takes the place of Save." }
+      },
+      "items": [
+        { "type": "setting", "key": "device_config.active_profile" },
+        { "type": "screen", "ref": "watch_profile_edit", "text": "Tune profile" },
+        { "type": "setting", "key": "device_config.language" },
+        { "type": "setting", "key": "device_config.screen_brightness" },
+        { "type": "setting", "key": "device_config.screen_off_delay" },
+        { "type": "setting", "key": "device.lockout", "runtimes": ["wear"] },
+        { "type": "action", "text": "Save to board", "description": "Writes the unsaved changes to the board. The watch shows Saved to board or Save failed.", "topic": "topic.write_to_board" },
+        { "type": "action", "text": "Discard", "description": "Drops the unsaved changes.", "topic": "topic.write_to_board", "runtimes": ["wear"] }
+      ]
+    },
+    "watch_profile_edit": {
+      "title": "Tune profile",
+      "runtimes": ["watch"],
+      "description": "The editor of the active profile. One chip for each setting opens its editor. The maximum rate of fire shows as a line. To tune another profile, make it active first.",
+      "items": [
+        { "type": "setting", "key": "autococker.fire_mode" },
+        { "type": "setting", "key": "profile.fire_rate_cap" },
+        { "type": "setting", "key": "autococker.eye_mode" },
+        { "type": "setting", "key": "autococker.eye_threshold" },
+        { "type": "setting", "key": "autococker.eye_debounce" },
+        { "type": "setting", "key": "autococker.sear_solenoid_dwell" },
+        { "type": "setting", "key": "autococker.cocking_solenoid_delay" },
+        { "type": "setting", "key": "autococker.cocking_solenoid_dwell_open" },
+        { "type": "setting", "key": "autococker.cocking_solenoid_dwell_closed" },
+        { "type": "setting", "key": "autococker.cocking_solenoid_timeout" },
+        { "type": "setting", "key": "autococker.trigger_debounce_on" },
+        { "type": "setting", "key": "autococker.trigger_debounce_off" },
+        { "type": "setting", "key": "autococker.ramping_custom_multiplier" },
+        { "type": "setting", "key": "autococker.ramping_custom_trigger_pulls" },
+        { "type": "setting", "key": "autococker.ramping_custom_rof_minimum" },
+        { "type": "screen", "ref": "watch_field_edit", "text": "A number setting" }
+      ]
+    },
+    "watch_field_edit": {
+      "title": "Edit a value",
+      "runtimes": ["watch"],
+      "description": "A stepper for one number. The plus and the minus buttons change the value by one step, and a Fine or Coarse toggle selects the size of the step. On Wear OS, the crown also changes the value.",
+      "items": [
+        { "type": "info", "text": "The value with its unit, and the maximum rate of fire that the timing gives." }
+      ]
+    }
+  },
+  "settings": {
+    "device_config.active_profile": {
+      "title": "Active profile",
+      "description": "The profile that the board uses. Select one of the profiles of the board. Save to board writes the choice.",
+      "where": "Profiles > Device configuration > Active profile",
+      "variants": {
+        "watch": { "where": "Device configuration > Active profile", "description": "The profile that the board uses. Select one of the profiles of the board. The watch edits the settings of the active profile only, so make a profile active to tune it." }
+      }
+    },
+    "device_config.language": {
+      "title": "Board language",
+      "description": "The language of the text that the board draws. The app itself follows the language of the device it runs on, and it has no language setting of its own.",
+      "where": "Profiles > Device configuration > Board language",
+      "variants": {
+        "watch": { "where": "Device configuration > Language", "description": "The language of the text that the board draws. The card shows only when the board has reported its language." }
+      }
+    },
+    "device_config.screen_brightness": {
+      "title": "Screen brightness",
+      "description": "How bright the board drives its screen.",
+      "where": "Profiles > Device configuration > Screen brightness",
+      "variants": {
+        "watch": { "where": "Device configuration > Brightness", "description": "How bright the board drives its screen. The card shows only when the board has reported its brightness." }
+      }
+    },
+    "device_config.screen_off_delay": {
+      "title": "Screen off delay",
+      "description": "The time after the last button press at which the screen of the board goes dark, from 1 to 999 seconds.",
+      "where": "Profiles > Device configuration > Screen off delay",
+      "variants": {
+        "watch": { "where": "Device configuration > Screen off delay", "description": "The time after the last button press at which the screen of the board goes dark. The watch offers a list of values: the default, 10, 15, 30, 60, 120, 300, and 999 seconds, and the current value. The card shows only when the board has reported its delay." }
+      }
+    },
+    "device_config.boot_text": {
+      "title": "Boot text",
+      "description": "The text that the board shows for a moment when it turns on, up to 10 bytes. The default is SnapshotPB.",
+      "where": "Profiles > Device configuration > Boot text",
+      "app_only": true,
+      "variants": {
+        "watch": { "absent": true }
+      }
+    },
+    "device_config.display_window": {
+      "title": "Display area",
+      "description": "The part of the screen of the board that the grip frame shows. Select a grip frame from the list, or set the rectangle by hand. A wrong rectangle can hide the menu of the board: use the Full window switch on the board to see the menu again.",
+      "where": "Profiles > Device configuration > Display area",
+      "app_only": true,
+      "related": ["runtime.display_window_full"],
+      "variants": {
+        "watch": { "absent": true }
+      }
+    },
+    "device.name": {
+      "title": "Device name",
+      "description": "The name of the board in the app, up to 10 characters. The app keeps it. The board does not.",
+      "where": "Profiles > Device configuration > Device name",
+      "app_only": true,
+      "variants": {
+        "watch": { "editable": false, "where": "Devices", "description": "The name of the board in the app. The watch shows it and does not change it." },
+        "wear": { "editable": false, "where": "Devices", "description": "The name of the board in the app. The watch shows the name that the phone app gave the board, and does not change it." }
+      }
+    },
+    "device.photo": {
+      "title": "Device photo",
+      "description": "A photo of the marker, for the card of the board. Take it with the camera, or select it from the gallery.",
+      "where": "Profiles > the camera button or the gallery button",
+      "app_only": true,
+      "variants": {
+        "desktop": { "description": "A photo of the marker, for the card of the board. Select it from a file." },
+        "browser": { "description": "A photo of the marker, for the card of the board. Select it from a file. The browser keeps it in its own storage, and the buttons hide in a browser that cannot keep it." },
+        "wear": { "editable": false, "where": "Devices", "description": "The photo that the phone app set. The watch shows it and does not change it." },
+        "zepp": { "absent": true }
+      }
+    },
+    "device.lockout": {
+      "title": "Firing lockout",
+      "description": "Whether the board is locked. The app shows the state and does not change it: the LOCKOUT button on the board does. A locked board does not accept a write.",
+      "where": "Profiles > Device configuration > Firing lockout",
+      "editable": false,
+      "app_only": true,
+      "related": ["topic.lockout"],
+      "variants": {
+        "wear": { "where": "Device configuration > Lockout" },
+        "zepp": { "where": "Device configuration", "description": "Whether the board is locked. While the board is locked, a line that says so takes the place of the Save control." }
+      }
+    },
+    "profile.name": {
+      "title": "Name",
+      "description": "The name of the profile, up to 10 characters. The board shows it on the Profile row of its menu.",
+      "where": "Profiles > a profile > Name",
+      "app_only": true,
+      "variants": {
+        "watch": { "editable": false, "where": "Device configuration > Active profile", "description": "The name of the profile. The watch shows it and does not change it." }
+      }
+    },
+    "autococker.fire_mode": {
+      "title": "Fire mode",
+      "description": "How the board answers a trigger pull. The app shows the modes that it knows. A mode that the app does not know shows as Unknown, and a save keeps the mode of the board until you select a mode.",
+      "where": "Profiles > a profile > Basic function > Fire mode",
+      "variants": {
+        "watch": { "where": "Tune profile > Fire mode" }
+      }
+    },
+    "profile.fire_rate_cap": {
+      "title": "Fire rate cap",
+      "description": "The maximum rate of fire in balls per second, with one decimal place. The board makes the cocking solenoid closed time longer when the cap is lower than the timing permits. The app does not send 0, which the board reads as no cap.",
+      "where": "Profiles > a profile > Basic function > Fire rate cap",
+      "variants": {
+        "watch": { "where": "Tune profile > Fire rate cap" }
+      }
+    },
+    "autococker.eye_mode": {
+      "title": "Eye mode",
+      "description": "The type of eye that the marker has, if any. The eye settings below show only when the mode is not Off.",
+      "where": "Profiles > a profile > Eye > Eye mode",
+      "variants": {
+        "watch": { "where": "Tune profile > Eye mode" }
+      }
+    },
+    "autococker.eye_threshold": {
+      "title": "Eye threshold",
+      "description": "The eye threshold as 1 to 100 percent of full scale. The eye sees a ball when the reading is below it. The app does not send 0, because the board would use its 50 percent default.",
+      "where": "Profiles > a profile > Eye > Eye threshold",
+      "variants": {
+        "watch": { "where": "Tune profile > Eye threshold" }
+      }
+    },
+    "autococker.eye_debounce": {
+      "title": "Eye debounce",
+      "description": "The time in milliseconds, in steps of 0.1 ms, that the eye must see a ball before the board accepts it.",
+      "where": "Profiles > a profile > Eye > Eye debounce",
+      "variants": {
+        "watch": { "where": "Tune profile > Eye debounce" }
+      }
+    },
+    "autococker.sear_solenoid_dwell": {
+      "title": "Sear solenoid dwell",
+      "description": "The time in milliseconds, in steps of 0.1 ms, that the sear solenoid is energized in the firing cycle. The Timing overview diagram shows it in one cycle.",
+      "where": "Profiles > a profile > Timing > Sear solenoid dwell",
+      "variants": {
+        "watch": { "where": "Tune profile > Sear dwell", "description": "The time in milliseconds, in steps of 0.1 ms, that the sear solenoid is energized in the firing cycle." }
+      }
+    },
+    "autococker.cocking_solenoid_delay": {
+      "title": "Cocking solenoid delay",
+      "description": "The time in milliseconds, in steps of 0.1 ms, that the cocking solenoid waits after a trigger pull before it energizes.",
+      "where": "Profiles > a profile > Timing > Cocking solenoid delay",
+      "variants": {
+        "watch": { "where": "Tune profile > Cock delay" }
+      }
+    },
+    "autococker.cocking_solenoid_dwell_open": {
+      "title": "Cocking solenoid dwell open",
+      "description": "The time in milliseconds, in steps of 0.1 ms, that the cocking solenoid energizes to open the breech. With an eye, the board ignores this setting.",
+      "where": "Profiles > a profile > Timing > Cocking solenoid dwell open",
+      "variants": {
+        "watch": { "where": "Tune profile > Cock open" }
+      }
+    },
+    "autococker.cocking_solenoid_dwell_closed": {
+      "title": "Cocking solenoid dwell closed",
+      "description": "The time in milliseconds, in steps of 0.1 ms, that the cocking solenoid stays de-energized to close the breech before the next cycle.",
+      "where": "Profiles > a profile > Timing > Cocking solenoid dwell closed",
+      "variants": {
+        "watch": { "where": "Tune profile > Cock close" }
+      }
+    },
+    "autococker.cocking_solenoid_timeout": {
+      "title": "Cocking solenoid timeout",
+      "description": "The longest time in milliseconds, in steps of 0.1 ms, that the cocking solenoid waits for the eye before it closes on timing. The app always sends a value, so the timeout is never off. The setting shows only with an eye and a fire mode that has a cocking phase.",
+      "where": "Profiles > a profile > Timing > Cocking solenoid timeout",
+      "variants": {
+        "watch": { "where": "Tune profile > Cock timeout" }
+      }
+    },
+    "autococker.trigger_debounce_on": {
+      "title": "Trigger debounce on",
+      "description": "The time in milliseconds, in steps of 0.1 ms, that the trigger must stay pulled to start a firing cycle.",
+      "where": "Profiles > a profile > Trigger > Trigger debounce on",
+      "variants": {
+        "watch": { "where": "Tune profile > Debounce on" }
+      }
+    },
+    "autococker.trigger_debounce_off": {
+      "title": "Trigger debounce off",
+      "description": "The time in milliseconds, in steps of 0.1 ms, that the trigger must stay released before the next pull counts.",
+      "where": "Profiles > a profile > Trigger > Trigger debounce off",
+      "variants": {
+        "watch": { "where": "Tune profile > Debounce off" }
+      }
+    },
+    "autococker.ramping_custom_multiplier": {
+      "title": "Ramping multiplier",
+      "description": "The rate of fire in ramping, as a multiple of the trigger pull rate, after the pull threshold is met. For example, 2.5 with 3 pulls in one second gives 7.5 balls per second. The ramping settings show only for a ramping fire mode.",
+      "where": "Profiles > a profile > Ramping > Ramping custom multiplier",
+      "variants": {
+        "watch": { "where": "Tune profile > Multiplier" }
+      }
+    },
+    "autococker.ramping_custom_trigger_pulls": {
+      "title": "Ramping trigger pulls",
+      "description": "The number of trigger pulls in a one second window that starts ramping for the next second.",
+      "where": "Profiles > a profile > Ramping > Ramping custom trigger pulls",
+      "variants": {
+        "watch": { "where": "Tune profile > Trigger pulls" }
+      }
+    },
+    "autococker.ramping_custom_rof_minimum": {
+      "title": "Ramping ROF minimum",
+      "description": "The minimum rate of fire in ramping, in whole balls per second, whatever the number of trigger pulls in the window.",
+      "where": "Profiles > a profile > Ramping > Ramping custom ROF minimum",
+      "variants": {
+        "watch": { "where": "Tune profile > RoF minimum" }
+      }
+    }
+  },
+  "topics": {
+    "topic.bluetooth": {
+      "title": "Bluetooth",
+      "description": "The app needs Bluetooth to reach the board, and each runtime asks for it in its own way. Turn the Bluetooth radio of the board on first: press MENU on the Bluetooth row of its Menu screen.",
+      "variants": {
+        "android": { "description": "The app asks for the Bluetooth permissions the first time you scan. On Android 11 or earlier, Location must also be on, and the app asks for the Location permission instead. A card tells you which one is missing, with a button that opens the setting." },
+        "ios": { "description": "The app asks for the Bluetooth permission the first time you scan. If you refuse, the app shows a card with Open Settings, which opens the Settings app of the phone. Turn Bluetooth on in Settings or Control Center: the app has no button for it." },
+        "desktop": { "description": "The computer needs a Bluetooth adapter. There is no permission step. On Linux, add your user to the bluetooth group. On Windows, the app needs the Bluetooth library that comes with it." },
+        "browser": { "description": "The browser needs Web Bluetooth, which Chrome and Edge have, and Firefox and Safari do not. Pair a board opens the chooser of the browser. The chooser is the permission step. After a reload, the app connects again to a board that you already allowed, with no chooser." },
+        "wear": { "description": "The watch asks for the Bluetooth permissions and the Location permission the first time you scan. The scan chip tells you which one is missing." },
+        "zepp": { "description": "The watch asks for Bluetooth access the first time you scan. If Bluetooth is off, the watch says so. A scan stops by itself after 60 seconds." }
+      }
+    },
+    "topic.connect": {
+      "title": "Connect to a board",
+      "description": "Find the board in range and connect to it. The app downloads the configuration and the profiles of the board in four steps.",
+      "steps": [
+        "Turn the Bluetooth radio of the board on.",
+        "Open the Devices screen and select Scan for devices.",
+        "Select the board in the list. The app connects and downloads the configuration and the profiles.",
+        "For a new board, select Finish configuration. The app saves the board."
+      ],
+      "variants": {
+        "browser": {
+          "steps": [
+            "Turn the Bluetooth radio of the board on.",
+            "Open the Devices screen and select Pair a board.",
+            "Select the board in the chooser of the browser. The app connects and downloads the configuration and the profiles.",
+            "For a new board, select Finish configuration. The app saves the board."
+          ]
+        },
+        "watch": {
+          "steps": [
+            "Turn the Bluetooth radio of the board on.",
+            "Select Scan for boards.",
+            "Select the board in the list. The watch connects and downloads the configuration and the profiles.",
+            "Select Continue. A new board is saved."
+          ]
+        },
+        "zepp": {
+          "steps": [
+            "Turn the Bluetooth radio of the board on.",
+            "Select Scan for boards.",
+            "Select the board in the list. The watch connects and downloads the configuration and the profiles.",
+            "For a new board, select Sync board."
+          ]
+        }
+      }
+    },
+    "topic.save_device": {
+      "title": "Saved boards",
+      "description": "The app keeps each board that you finished setting up, with its name and its photo. Select a saved board to open its Profiles screen. To forget a board, swipe it to the left on the Devices screen and confirm. The board itself does not change.",
+      "variants": {
+        "watch": { "description": "The watch keeps each board that you connected to. Select a saved board to open its configuration. The watch cannot forget a board by itself." },
+        "wear": { "description": "The watch keeps each board that you connected to, and it syncs the list with the Android phone app in both directions. A board that you delete on the phone leaves the watch. The watch cannot forget a board by itself." }
+      }
+    },
+    "topic.edit_profile": {
+      "title": "Edit a profile",
+      "description": "A board holds up to four profiles. Each profile has its own fire, eye, timing, trigger, and ramping settings. A change in the app stays in the app until you select Save to board.",
+      "steps": [
+        "Open the saved board. The Profiles screen lists its profiles.",
+        "Select a profile card. The Profile screen opens.",
+        "Change the settings. The Timing overview diagram shows the effect on one firing cycle.",
+        "Select Save. The change stays in the app.",
+        "On the Profiles screen, select Save to board."
+      ],
+      "variants": {
+        "watch": {
+          "description": "The watch edits the active profile only. To tune another profile, make it active first. A change stays on the watch until you select Save to board.",
+          "steps": [
+            "Open the saved board. The Device configuration screen opens.",
+            "Select Active profile and select the profile to tune.",
+            "Select Tune profile. One chip for each setting opens its editor.",
+            "Change a value with the plus and the minus buttons. Fine and Coarse select the size of a step.",
+            "Select Save to board."
+          ]
+        }
+      }
+    },
+    "topic.write_to_board": {
+      "title": "Save to board",
+      "description": "The app writes to the board only when you select Save to board. An Unsaved changes banner shows while the app holds a change that the board does not. Save to board is enabled while the board is connected, no write runs, and the board is not locked. Discard changes drops the changes and keeps the values of the board. The banner goes away when the write succeeds. A write that fails shows a hint on the connection card, and the app keeps the changes.",
+      "variants": {
+        "wear": { "description": "The watch writes to the board only when you select Save to board, on the Device configuration screen or the Tune profile screen. The watch shows Saved to board or Save failed. Discard drops the changes." },
+        "zepp": { "description": "The watch writes to the board only when you select Save to board. The watch shows Save successful, or a message that says what the board did not accept. A write that fails keeps the changes on the watch." }
+      }
+    },
+    "topic.conflict": {
+      "title": "The board changed",
+      "description": "The app checks the board before each write. When the board holds values that the app does not know, from its own menu or from another device, the app asks which values to keep. Use device values takes the values of the board. Keep my values keeps the values of the app, and the next Save to board writes them. When the app holds no change of its own, it takes the values of the board with no question.",
+      "variants": {
+        "wear": { "description": "The watch checks the board before each write. When the board holds values that the watch does not know, a full screen asks which values to keep: Use device values or Keep my values." },
+        "zepp": { "description": "The watch checks the board before each write. When the board holds values that the watch does not know, the Connecting page asks which values to keep: Use board values, Keep my values, or Cancel." }
+      }
+    },
+    "topic.lockout": {
+      "title": "Lockout",
+      "description": "A locked board does not accept a write. The Firing lockout row on the Configure device screen shows the state, and the Unsaved changes banner says that the board is locked. Unlock the board with its LOCKOUT button, then select Save to board.",
+      "variants": {
+        "wear": { "description": "A locked board does not accept a write. The Lockout card shows the state, and the Save to board chip is disabled with the words Board in lockout. Unlock the board with its LOCKOUT button, then save." },
+        "zepp": { "description": "A locked board does not accept a write. While the board is locked, a line that says Board in lockout takes the place of Save to board. Unlock the board with its LOCKOUT button, connect again, then save." }
+      }
+    },
+    "topic.sync_phone_watch": {
+      "title": "Sync between the phone and the watch",
+      "description": "The Android phone app and the Wear OS watch app sync their saved boards in both directions: the name, the photo, the profiles, and the configuration. A change on one shows on the other. The other runtimes do not sync.",
+      "variants": {
+        "ios": { "absent": true },
+        "desktop": { "absent": true },
+        "browser": { "absent": true },
+        "zepp": { "absent": true }
+      }
+    },
+    "topic.unsupported_browser": {
+      "title": "A browser without Web Bluetooth",
+      "description": "Firefox and Safari do not have Web Bluetooth. The app shows a page that says so, with the reason for each browser. Use Chrome or Edge.",
+      "variants": {
+        "android": { "absent": true },
+        "ios": { "absent": true },
+        "desktop": { "absent": true },
+        "watch": { "absent": true }
+      }
+    },
+    "topic.desktop_update": {
+      "title": "Updates of the desktop app",
+      "description": "The desktop app checks for a new version when it starts, and it asks before it installs one. The phone and watch apps update through their stores. The browser app is always the current version.",
+      "variants": {
+        "android": { "absent": true },
+        "ios": { "absent": true },
+        "browser": { "absent": true },
+        "watch": { "absent": true }
+      }
+    },
+    "topic.back": {
+      "title": "Go back",
+      "description": "Each runtime has its own back control.",
+      "variants": {
+        "android": { "description": "The Back gesture or the Back button of the phone." },
+        "ios": { "description": "A swipe from the left edge of the screen." },
+        "desktop": { "description": "The round Back button at the bottom of the window." },
+        "browser": { "description": "The round Back button at the bottom of the page, or the Back button of the browser." },
+        "wear": { "description": "A swipe from the left edge, the stem button, or a Back button on the screen." },
+        "zepp": { "description": "The Back button at the top of each page." }
+      }
+    }
+  },
+  "features": {
+    "feature.edit_any_profile": {
+      "title": "Edit a profile that is not active",
+      "support": { "shared": "yes", "watch": { "level": "no", "note": "The watch edits the active profile only. Make a profile active to tune it." } }
+    },
+    "feature.manage_profiles": {
+      "title": "Add, rename, and delete profiles",
+      "support": { "shared": "yes", "watch": "no" }
+    },
+    "feature.timing_diagram": {
+      "title": "Timing overview diagram",
+      "support": { "shared": "yes", "watch": { "level": "no", "note": "The watch shows the maximum rate of fire as a line." } }
+    },
+    "feature.boot_text": {
+      "title": "Boot text",
+      "support": { "shared": "yes", "watch": "no" }
+    },
+    "feature.display_window": {
+      "title": "Display area",
+      "support": { "shared": "yes", "watch": "no" }
+    },
+    "feature.device_name": {
+      "title": "Name a board",
+      "support": { "shared": "yes", "watch": { "level": "limited", "note": "The watch shows the name and does not change it." } }
+    },
+    "feature.device_photo": {
+      "title": "Photo of the marker",
+      "support": {
+        "android": "yes",
+        "ios": "yes",
+        "desktop": { "level": "limited", "note": "From a file." },
+        "browser": { "level": "limited", "note": "From a file, in a browser that can keep it." },
+        "wear": { "level": "limited", "note": "Shows the photo from the phone." },
+        "zepp": "no"
+      }
+    },
+    "feature.forget_device": {
+      "title": "Forget a saved board",
+      "support": { "shared": "yes", "watch": "no", "wear": { "level": "limited", "note": "A board deleted on the phone leaves the watch." } }
+    },
+    "feature.board_language": {
+      "title": "Board language",
+      "support": { "shared": "yes", "watch": { "level": "limited", "note": "Only when the board has reported it." } }
+    },
+    "feature.screen_off_presets": {
+      "title": "Screen off delay, any value from 1 to 999 seconds",
+      "support": { "shared": "yes", "watch": { "level": "limited", "note": "A list of values." } }
+    },
+    "feature.lockout_state": {
+      "title": "Lockout state",
+      "support": { "shared": "yes", "wear": "yes", "zepp": { "level": "limited", "note": "Only as the line that takes the place of Save." } }
+    },
+    "feature.save_confirmation": {
+      "title": "Message after Save to board",
+      "support": { "shared": { "level": "no", "note": "The Unsaved changes banner goes away." }, "watch": "yes" }
+    },
+    "feature.phone_watch_sync": {
+      "title": "Sync between the phone and the watch",
+      "support": { "android": "yes", "wear": "yes", "ios": "no", "desktop": "no", "browser": "no", "zepp": "no" }
+    },
+    "feature.advertised_firmware": {
+      "title": "Firmware version in the device list",
+      "support": { "android": "yes", "wear": "yes", "ios": "no", "desktop": "no", "browser": "no", "zepp": "no" }
+    },
+    "feature.enable_bluetooth_button": {
+      "title": "Button that turns Bluetooth on",
+      "support": { "android": "yes", "wear": "yes", "ios": "no", "desktop": "no", "browser": "no", "zepp": "no" }
+    },
+    "feature.localized": {
+      "title": "Text in English, Spanish, German, and French",
+      "support": { "shared": "yes", "wear": "yes", "zepp": { "level": "no", "note": "English only." } }
+    },
+    "feature.self_update": {
+      "title": "Updates itself",
+      "support": { "desktop": "yes", "android": { "level": "limited", "note": "Through Google Play." }, "ios": { "level": "limited", "note": "Through the App Store." }, "browser": { "level": "limited", "note": "Always the current version." }, "wear": { "level": "limited", "note": "Through Google Play." }, "zepp": { "level": "limited", "note": "Through the Zepp app." } }
+    }
+  }
+}

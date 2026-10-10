@@ -24,12 +24,15 @@ has three parts under `schemas/`:
 - **`firmware/v1`** describes a firmware revision: its controls, how its menu works, its
   screens, its settings, and its topics. The screens form an explicit tree, and the
   generator draws the tree as a graphic that links to each section.
-- **`app/v1`** describes an application revision: the platforms it runs on, and what it
-  shows for each setting and topic of the firmware, by the same key.
+- **`app/v2`** describes an application revision: the runtimes it runs on, the groups of
+  runtimes that share one user interface, its screens, what it shows for each setting and
+  topic of the firmware by the same key, and the features that differ between runtimes.
 
 A setting has one shared key in both documents, which is its field path in the protocol,
 for example `autococker.eye_mode`. The manual shows the firmware words and the app words
-for one key side by side, with one tab for the board and one tab for each platform.
+for one key in one section, as one block for the board and one block for each set of
+runtimes that share the same words. A selector under the top of the page lets the reader
+select the runtimes that matter, and the page shows only their blocks.
 
 ## Versioning
 
@@ -63,7 +66,7 @@ tree. A fault stops the command with the path of the fault in the document.
 
 | Path | What it holds |
 |---|---|
-| `schemas/` | The schema set, with an example firmware document under `firmware/v1/examples/` |
+| `schemas/` | The schema set: `common/v1`, `firmware/v1` with an example document, and `app/v2` |
 | `firmware/<model>/<version>.json` | One firmware document for each firmware release, under the board model it runs on |
 | `app/<name>/<version>.json` | One application document for each app release |
 | `manifests/<id>.toml` | One manifest for each manual: the documents, the sources, and the brand |
@@ -80,14 +83,17 @@ block. A line that holds one directive puts a generated block there:
 
 | Directive | Block |
 |---|---|
-| `{{menu}}` | The settings reference: each screen in the order of the tree, its rows, and one section for each setting with its tabs |
+| `{{menu}}` | The settings reference: each screen in the order of the tree, its rows, and one section for each setting with its blocks |
 | `{{menu-map}}` | The menu tree as a graphic with a link on each screen, and as a list |
 | `{{controls}}` | The buttons of the board and what each press does |
 | `{{interactions}}` | What the user can do, where, and with which button |
 | `{{home}}` | The home screen and its marks |
-| `{{topic <key>}}` | One topic of the firmware document, with its tabs |
-| `{{topics}}` | Every topic of the firmware document |
-| `{{targets}}` | The platforms of the app |
+| `{{topic <key>}}` | One topic, with a block for the board and a block for each set of runtimes |
+| `{{topics}}` | Every topic of the firmware document, then every topic that only the app has |
+| `{{runtimes}}` | The runtimes of the app and their groups |
+| `{{app-screens}}` | The screens of the app: one tree and one section for each user interface |
+| `{{app-settings}}` | The settings that only the app has |
+| `{{features}}` | The matrix of feature by runtime |
 | `{{media <key>}}` | One media item of the firmware document |
 | `{{board}}` | The board figures |
 | `{{provenance}}` | Each source with its version |
@@ -118,7 +124,7 @@ relative to the manifest or to the document.
 - [`docs/firmware-schema.md`](docs/firmware-schema.md) describes the firmware schema:
   the controls, the screens, the settings, the menu tree, the media, and the shared keys.
 - [`docs/app-schema.md`](docs/app-schema.md) describes the application schema: the
-  targets, the entries, and the overrides for one target.
+  runtimes and their groups, the entries and their variants, the screens, and the features.
 
 ## License
 

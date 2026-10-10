@@ -11,8 +11,9 @@ use crate::media::Media;
 use crate::schema;
 use crate::util::read_text;
 
-/// The target key of the board tab in the manual. An app target cannot use it.
-pub const RESERVED_TARGET: &str = "board";
+/// The tab keys of the manual itself: the board tab and the app tab. An app target cannot
+/// use them, because a tab key must select one tab alone.
+pub const RESERVED_TARGETS: [&str; 2] = ["board", "app"];
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -69,7 +70,11 @@ pub struct Override {
     pub media: Vec<String>,
 }
 
+/// The words of one entry on one target: the target key, the target, and the resolved text.
+pub type Words<'a> = (&'a str, &'a Target, Resolved<'a>);
+
 /// The text of one entry for one target, after the override is applied.
+#[derive(Debug, PartialEq, Eq)]
 pub struct Resolved<'a> {
     pub title: &'a str,
     pub description: &'a str,
@@ -93,10 +98,12 @@ impl Document {
     }
 
     /// The rules that JSON Schema cannot state: each target and each media key that an
-    /// entry names exists, and no target takes the key of the board tab.
+    /// entry names exists, and no target takes a tab key of the manual.
     pub fn check(&self) -> Result<()> {
-        if self.targets.contains_key(RESERVED_TARGET) {
-            bail!("the target key `{RESERVED_TARGET}` is reserved for the board tab of the manual");
+        for reserved in RESERVED_TARGETS {
+            if self.targets.contains_key(reserved) {
+                bail!("the target key `{reserved}` is reserved for a tab of the manual");
+            }
         }
         for (key, entry) in self.settings.iter().chain(self.topics.iter()) {
             self.media_exist(&entry.media, key)?;
@@ -113,7 +120,7 @@ impl Document {
 
     /// Each setting of the app must be a setting of the firmware, or the app words would
     /// render nowhere. A topic that only the app has is permitted, and the manual renders it
-    /// with the tabs of the app alone.
+    /// with the app words alone.
     pub fn check_against(&self, firmware_has_setting: impl Fn(&str) -> bool) -> Result<()> {
         for key in self.settings.keys() {
             if !firmware_has_setting(key) {
@@ -139,7 +146,7 @@ impl Document {
 
     /// The targets that an entry applies to, in the order of the document, with the text
     /// for each one.
-    pub fn resolve<'a>(&'a self, entry: &'a Entry) -> Vec<(&'a str, &'a Target, Resolved<'a>)> {
+    pub fn resolve<'a>(&'a self, entry: &'a Entry) -> Vec<Words<'a>> {
         let mut out = Vec::new();
         for (key, target) in &self.targets {
             let o: Option<&Override> = match &entry.targets {
@@ -173,6 +180,20 @@ impl Document {
         }
         out
     }
+
+    /// True when the entry applies to every target of the document.
+    pub fn covers_all(&self, entry: &Entry) -> bool {
+        match &entry.targets {
+            Some(map) => self.targets.keys().all(|k| map.contains_key(k)),
+            None => true,
+        }
+    }
+}
+
+/// True when each target gets the same words, so the manual shows them once, with no tab
+/// for each platform.
+pub fn same_words(resolved: &[Words<'_>]) -> bool {
+    resolved.windows(2).all(|w| w[0].2 == w[1].2)
 }
 
 #[cfg(test)]
@@ -221,16 +242,66 @@ mod tests {
     }
 
     #[test]
-    fn the_board_key_is_reserved() {
+    fn the_tab_keys_of_the_manual_are_reserved() {
+        for key in RESERVED_TARGETS {
+            let mut d = doc();
+            d.targets.insert(
+                key.into(),
+                Target {
+                    name: key.into(),
+                    description: None,
+                },
+            );
+            assert!(d.check().unwrap_err().to_string().contains("reserved"));
+        }
+    }
+
+    #[test]
+    fn the_same_words_on_each_target_need_no_platform_tabs() {
+        let d = doc();
+        let all = d.resolve(d.entry("a.b").unwrap());
+        assert!(same_words(&all));
+        assert!(d.covers_all(d.entry("a.b").unwrap()));
+
         let mut d = doc();
-        d.targets.insert(
-            "board".into(),
-            Target {
-                name: "Board".into(),
-                description: None,
-            },
-        );
-        assert!(d.check().unwrap_err().to_string().contains("reserved"));
+        let entry = d.settings.get_mut("a.c").unwrap();
+        entry.targets = Some(IndexMap::from([
+            ("android".to_string(), Override::default()),
+            (
+                "wear".to_string(),
+                Override {
+                    description: Some("Watch.".into()),
+                    ..Override::default()
+                },
+            ),
+        ]));
+        let entry = d.entry("a.c").unwrap();
+        let r = d.resolve(entry);
+        assert_eq!(r.len(), 2);
+        assert!(!same_words(&r));
+        assert!(d.covers_all(entry));
+    }
+
+    #[test]
+    fn an_empty_override_keeps_the_words_and_limits_the_targets() {
+        let d = doc();
+        let mut entry = Entry {
+            title: "B".into(),
+            description: "All.".into(),
+            place: None,
+            editable: None,
+            media: vec![],
+            targets: Some(IndexMap::from([(
+                "android".to_string(),
+                Override::default(),
+            )])),
+        };
+        let r = d.resolve(&entry);
+        assert_eq!(r.len(), 1);
+        assert!(same_words(&r));
+        assert!(!d.covers_all(&entry));
+        entry.targets = None;
+        assert!(d.covers_all(&entry));
     }
 
     #[test]

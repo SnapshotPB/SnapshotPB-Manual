@@ -29,7 +29,9 @@ has three parts under `schemas/`:
 
 A setting has one shared key in both documents, which is its field path in the protocol,
 for example `autococker.eye_mode`. The manual shows the firmware words and the app words
-for one key side by side, with one tab for the board and one tab for each platform.
+for one key side by side, with one tab for the board and one tab for the configuration app.
+The app tab shows the words once when each platform gets the same words. It shows one tab
+for each platform when the words differ.
 
 ## Versioning
 

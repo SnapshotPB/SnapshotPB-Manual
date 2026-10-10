@@ -58,13 +58,14 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let theme_css = theme.css();
     let tabs_css = tabs_css(&ctx.targets());
     let content = Names::new(&m.names)?.apply(&body.html);
+    let lang = esc(&ctx.lang);
     let board = esc(&m.board.name);
     let md5 = esc(ctx.board.md5_short());
     let generator = env!("CARGO_PKG_NAME");
     let gen_version = env!("CARGO_PKG_VERSION");
     Ok(format!(
         r##"<!DOCTYPE html>
-<html lang="en">
+<html lang="{lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

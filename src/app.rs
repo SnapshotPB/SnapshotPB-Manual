@@ -7,6 +7,7 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::localize::localize;
 use crate::media::Media;
 use crate::schema;
 use crate::util::read_text;
@@ -84,12 +85,19 @@ pub struct Resolved<'a> {
 }
 
 impl Document {
-    /// Reads a document, validates it against the schema, and checks the rules below.
-    pub fn load(path: &Path) -> Result<Document> {
+    /// Reads a document, validates it against the schema, selects the text of `lang`, and
+    /// checks the rules below.
+    pub fn load(path: &Path, lang: &str) -> Result<Document> {
         let text = read_text(path)?;
         let value: Value = serde_json::from_str(&text)
             .with_context(|| format!("{} is not JSON", path.display()))?;
         schema::validate(schema::Kind::App, &value, &path.display().to_string())?;
+        let value = localize(value, lang).with_context(|| {
+            format!(
+                "{} holds a localized text that is not complete",
+                path.display()
+            )
+        })?;
         let doc: Document = serde_json::from_value(value)
             .with_context(|| format!("{} does not fit the app model", path.display()))?;
         doc.check()

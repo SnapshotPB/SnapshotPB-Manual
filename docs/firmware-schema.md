@@ -1,8 +1,8 @@
 # Firmware documentation schema
 
 This document describes the JSON Schema that a firmware release uses to describe itself.
-The schema is in [`schemas/firmware/v1/firmware.schema.json`](../schemas/firmware/v1/firmware.schema.json).
-A full example is in [`schemas/firmware/v1/examples/autococker-26.29.0.json`](../schemas/firmware/v1/examples/autococker-26.29.0.json).
+The schema is in [`schemas/firmware/v2/firmware.schema.json`](../schemas/firmware/v2/firmware.schema.json).
+A full example is in [`schemas/firmware/v2/examples/autococker-26.29.0.json`](../schemas/firmware/v2/examples/autococker-26.29.0.json).
 
 ## Goals
 
@@ -128,7 +128,7 @@ The manual is one file with no link to the internet, so a viewer must be small e
 with the page.
 
 The common definitions, the media item and the key patterns, are in
-[`schemas/common/v1/media.schema.json`](../schemas/common/v1/media.schema.json). The firmware
+[`schemas/common/v2/media.schema.json`](../schemas/common/v2/media.schema.json). The firmware
 schema and the application schema both refer to it.
 
 ## The menu tree
@@ -151,6 +151,29 @@ and its rows. Each solid edge is a submenu row, labelled with the row text. Each
 the back row. Each box links to the section of the manual for that screen. The firmware
 repository already draws this map with Mermaid in `docs/menu/menu-map.md`, and the manual
 draws the same shape from the document.
+
+## Localized text
+
+Each text that the manual prints is a `localized` value of the common schema: an array with
+one item for each language, `{"lang": "en", "text": "Fire mode"}`. The language is a tag
+such as `en`, `de`, or `es-MX`. The English item is required, and each language appears
+once. The `text` definition is prose for the manual, and the `label` definition is a short
+text that the manual prints as it is: a name, a title, a row, an option, or a path. A `render`
+holds 16 characters in each language, as the panel does.
+
+The generator reads a document for one language, which the manifest or `--lang` names. It
+takes the item of that language. When there is none, it takes the first item of the same
+language with another region, in document order, and then the English item. Put the item
+with no region first, so that `de` finds `de` before `de-AT`. The typed model holds the
+words of one language, so the rest of the generator does not know about languages.
+
+The generator finds a localized text by its shape: an array whose items are objects with
+the two members `lang` and `text` alone. No other value of the schema set has that shape,
+and a later version of the schema set must not add one. The `params` member of a media
+item is free-form and is not read for text.
+
+A key, a protocol symbol, a version, a unit, and a path to a file are not localized. They
+stay plain strings.
 
 ## Tabs between firmware and application
 
@@ -180,9 +203,9 @@ these fields before its generator can write a complete document.
 
 ## Open points
 
-- **Languages.** The firmware draws four languages. Version 1.0.0 of the schema holds English
-  text only. A later version can add a `translations` member keyed by language, or the manual can
-  stay in English.
+- **Languages.** The firmware draws four languages, and version 2.0.0 of the schema holds
+  each text in each language. The chapters of a manual and the words of the page itself are
+  in English. A manual in another language needs chapters in that language too.
 - **The `render` limit.** The schema limits a row text to 16 characters, which is the limit of
   the panel today. A firmware with a larger panel needs a larger limit in a later schema version.
 - **The editor states.** The schema names five places where an interaction applies: `home`,

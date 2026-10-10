@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snapshotpb.com/schemas/app/v2/app.schema.json",
+  "$comment": "SPDX-License-Identifier: MPL-2.0. Copyright 2026 Snapshot PB. This file is licensed under the Mozilla Public License, version 2.0. See the LICENSE file beside the schema set.",
+  "title": "Snapshot PB application documentation",
+  "description": "One document that an application release writes to describe itself: the targets it runs on, and what it shows and edits for each shared key. The generator pairs it with a firmware document by the shared keys, and shows the words of the app beside the words of the board. Each text that the manual prints is localized: an array with one item for each language, with English required.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "app",
+    "targets",
+    "settings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "description": "The version of this schema that the document follows.",
+      "type": "string",
+      "const": "2.0.0"
+    },
+    "app": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "The name of the application, as the manual prints it.",
+          "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/label"
+        },
+        "version": {
+          "description": "The application version that this document describes. The document is versioned by this value.",
+          "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/version"
+        },
+        "protocol_version": {
+          "description": "The version of the SnapshotPB protocol that the application speaks.",
+          "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/version"
+        },
+        "summary": {
+          "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/text"
+        },
+        "media": {
+          "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/media_ref"
+        }
+      }
+    },
+    "targets": {
+      "description": "The platforms the application runs on, keyed by target key, in the order of the platform tabs in the manual. The keys board and app are reserved for the tabs of the manual itself.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/local_key"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "The name on the tab, for example Android.",
+            "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/label"
+          },
+          "description": {
+            "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/text"
+          }
+        }
+      }
+    },
+    "settings": {
+      "description": "What the application shows for each setting, keyed by the shared key that the firmware document uses.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/shared_key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/entry"
+      }
+    },
+    "topics": {
+      "description": "What the application says for each topic, keyed by the shared key that the firmware document uses. A topic that only the application has is permitted.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/shared_key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/entry"
+      }
+    },
+    "media": {
+      "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/media_map"
+    }
+  },
+  "$defs": {
+    "entry": {
+      "description": "The text for one shared key. The fields at the top apply to every target. The targets map overrides them for one target, or limits the entry to the targets it names.",
+      "type": "object",
+      "required": [
+        "title",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "description": "The name of the setting or the topic in the application.",
+          "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/label"
+        },
+        "description": {
+          "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/text"
+        },
+        "where": {
+          "description": "The path to the setting in the application, from the first screen, with a > between the steps. The path is in the language of the app.",
+          "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/label"
+        },
+        "editable": {
+          "description": "True when the application can change the value. False when it only shows the value.",
+          "type": "boolean",
+          "default": true
+        },
+        "media": {
+          "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/media_ref"
+        },
+        "targets": {
+          "description": "The targets that this entry applies to, with the fields that differ for each target. When this map is absent, the entry applies to every target of the document.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/local_key"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "description": {
+                "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/text"
+              },
+              "where": {
+                "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/label"
+              },
+              "editable": {
+                "type": "boolean"
+              },
+              "media": {
+                "$ref": "https://snapshotpb.com/schemas/common/v2/media.schema.json#/$defs/media_ref"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

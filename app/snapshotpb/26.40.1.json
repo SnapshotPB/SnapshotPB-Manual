@@ -1,148 +1,591 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "2.0.0",
   "app": {
-    "name": "SnapshotPB app",
+    "name": [
+      {
+        "lang": "en",
+        "text": "SnapshotPB app"
+      }
+    ],
     "version": "26.40.1",
     "protocol_version": "1.0.0",
-    "summary": "The Snapshot PB app reads and writes the settings of a board through Bluetooth. It runs on Android, on Wear OS, on iOS, on the desktop, and in a browser."
+    "summary": [
+      {
+        "lang": "en",
+        "text": "The Snapshot PB app reads and writes the settings of a board through Bluetooth. It runs on Android, on Wear OS, on iOS, on the desktop, and in a browser."
+      }
+    ]
   },
   "targets": {
-    "android": { "name": "Android" },
-    "ios": { "name": "iOS" },
-    "wear": { "name": "Wear OS", "description": "The watch app shows the profiles and the fire mode. It does not edit the timing." },
-    "desktop": { "name": "Desktop" },
-    "browser": { "name": "Browser" }
+    "android": {
+      "name": [
+        {
+          "lang": "en",
+          "text": "Android"
+        }
+      ]
+    },
+    "ios": {
+      "name": [
+        {
+          "lang": "en",
+          "text": "iOS"
+        }
+      ]
+    },
+    "wear": {
+      "name": [
+        {
+          "lang": "en",
+          "text": "Wear OS"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The watch app shows the profiles and the fire mode. It does not edit the timing."
+        }
+      ]
+    },
+    "desktop": {
+      "name": [
+        {
+          "lang": "en",
+          "text": "Desktop"
+        }
+      ]
+    },
+    "browser": {
+      "name": [
+        {
+          "lang": "en",
+          "text": "Browser"
+        }
+      ]
+    }
   },
   "settings": {
     "device_config.active_profile": {
-      "title": "Active profile",
-      "description": "The device screen shows the active profile under the name of the board. Select a profile in the list to make it active.",
-      "where": "Devices > the board > Active Profile"
+      "title": [
+        {
+          "lang": "en",
+          "text": "Active profile"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The device screen shows the active profile under the name of the board. Select a profile in the list to make it active."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Devices > the board > Active Profile"
+        }
+      ]
     },
     "device_config.language": {
-      "title": "Language",
-      "description": "The app does not change the language of the board. Set the language on the board.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Language"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The app does not change the language of the board. Set the language on the board."
+        }
+      ],
       "editable": false
     },
     "autococker.fire_mode": {
-      "title": "Fire Mode",
-      "description": "The fire mode of the profile. The app shows the modes that the board reports. A mode that the app does not know shows as Unknown.",
-      "where": "Profile > Basic Function > Fire Mode",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Fire Mode"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The fire mode of the profile. The app shows the modes that the board reports. A mode that the app does not know shows as Unknown."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Basic Function > Fire Mode"
+        }
+      ],
       "targets": {
         "android": {},
         "ios": {},
         "desktop": {},
         "browser": {},
-        "wear": { "where": "Profile > Fire Mode", "description": "The watch app shows the fire mode and lets you select another one." }
+        "wear": {
+          "where": [
+            {
+              "lang": "en",
+              "text": "Profile > Fire Mode"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "The watch app shows the fire mode and lets you select another one."
+            }
+          ]
+        }
       }
     },
     "profile.fire_rate_cap": {
-      "title": "Fire Rate Cap",
-      "description": "The maximum fire rate in balls per second. The cocking solenoid closed dwell increases when the fire rate is lower than the timing cycle permits. The app does not send 0, which the board reads as no cap.",
-      "where": "Profile > Basic Function > Fire Rate Cap",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Fire Rate Cap"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The maximum fire rate in balls per second. The cocking solenoid closed dwell increases when the fire rate is lower than the timing cycle permits. The app does not send 0, which the board reads as no cap."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Basic Function > Fire Rate Cap"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.eye_mode": {
-      "title": "Eye Mode",
-      "description": "The type of eye that the marker has, if any.",
-      "where": "Profile > Eye > Eye Mode",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Eye Mode"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The type of eye that the marker has, if any."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Eye > Eye Mode"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.eye_threshold": {
-      "title": "Eye Threshold",
-      "description": "The eye threshold as 0 to 100 percent of full scale. The eye sees a ball when the reading is below it. The app does not send 0, because the board would use its 50 percent default.",
-      "where": "Profile > Eye > Eye Threshold",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Eye Threshold"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The eye threshold as 0 to 100 percent of full scale. The eye sees a ball when the reading is below it. The app does not send 0, because the board would use its 50 percent default."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Eye > Eye Threshold"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.eye_debounce": {
-      "title": "Eye Debounce",
-      "description": "The time in milliseconds, in steps of 0.1 ms, that the eye must see a ball before the board accepts it.",
-      "where": "Profile > Eye > Eye Debounce",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Eye Debounce"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time in milliseconds, in steps of 0.1 ms, that the eye must see a ball before the board accepts it."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Eye > Eye Debounce"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.sear_solenoid_dwell": {
-      "title": "Sear Solenoid Dwell",
-      "description": "The time in milliseconds, in steps of 0.1 ms, that the sear solenoid is energized in the firing cycle. The Timing Overview diagram shows it in one cycle.",
-      "where": "Profile > Timing > Sear Solenoid Dwell",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Sear Solenoid Dwell"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time in milliseconds, in steps of 0.1 ms, that the sear solenoid is energized in the firing cycle. The Timing Overview diagram shows it in one cycle."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Timing > Sear Solenoid Dwell"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.cocking_solenoid_delay": {
-      "title": "Cocking Solenoid Delay",
-      "description": "The time in milliseconds, in steps of 0.1 ms, that the cocking solenoid waits after a trigger pull before it energizes.",
-      "where": "Profile > Timing > Cocking Solenoid Delay",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Cocking Solenoid Delay"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time in milliseconds, in steps of 0.1 ms, that the cocking solenoid waits after a trigger pull before it energizes."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Timing > Cocking Solenoid Delay"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.cocking_solenoid_dwell_open": {
-      "title": "Cocking Solenoid Dwell Open",
-      "description": "The time in milliseconds, in steps of 0.1 ms, that the cocking solenoid energizes to open the breech. With an eye, the board ignores this setting.",
-      "where": "Profile > Timing > Cocking Solenoid Dwell Open",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Cocking Solenoid Dwell Open"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time in milliseconds, in steps of 0.1 ms, that the cocking solenoid energizes to open the breech. With an eye, the board ignores this setting."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Timing > Cocking Solenoid Dwell Open"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.cocking_solenoid_dwell_closed": {
-      "title": "Cocking Solenoid Dwell Closed",
-      "description": "The time in milliseconds, in steps of 0.1 ms, that the cocking solenoid stays de-energized to close the breech before the next cycle.",
-      "where": "Profile > Timing > Cocking Solenoid Dwell Closed",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Cocking Solenoid Dwell Closed"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time in milliseconds, in steps of 0.1 ms, that the cocking solenoid stays de-energized to close the breech before the next cycle."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Timing > Cocking Solenoid Dwell Closed"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.cocking_solenoid_timeout": {
-      "title": "Cocking Solenoid Timeout",
-      "description": "The longest time in milliseconds, in steps of 0.1 ms, that the cocking solenoid waits for the eye before it closes on timing. The app always sends a value, so the timeout is never off.",
-      "where": "Profile > Timing > Cocking Solenoid Timeout",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Cocking Solenoid Timeout"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The longest time in milliseconds, in steps of 0.1 ms, that the cocking solenoid waits for the eye before it closes on timing. The app always sends a value, so the timeout is never off."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Timing > Cocking Solenoid Timeout"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.trigger_debounce_on": {
-      "title": "Trigger Debounce On",
-      "description": "The time in milliseconds, in steps of 0.1 ms, that the trigger must stay pulled to start a firing cycle.",
-      "where": "Profile > Trigger > Trigger Debounce On",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Trigger Debounce On"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time in milliseconds, in steps of 0.1 ms, that the trigger must stay pulled to start a firing cycle."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Trigger > Trigger Debounce On"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.trigger_debounce_off": {
-      "title": "Trigger Debounce Off",
-      "description": "The time in milliseconds, in steps of 0.1 ms, that the trigger must stay released before the next pull counts.",
-      "where": "Profile > Trigger > Trigger Debounce Off",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Trigger Debounce Off"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time in milliseconds, in steps of 0.1 ms, that the trigger must stay released before the next pull counts."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Trigger > Trigger Debounce Off"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.ramping_custom_multiplier": {
-      "title": "Ramping Custom Multiplier",
-      "description": "The fire rate in ramping, as a multiple of the trigger pull rate, after the pull threshold is met. For example, 2.5 with 3 pulls in one second gives 7.5 balls per second.",
-      "where": "Profile > Ramping > Ramping Custom Multiplier",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Ramping Custom Multiplier"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The fire rate in ramping, as a multiple of the trigger pull rate, after the pull threshold is met. For example, 2.5 with 3 pulls in one second gives 7.5 balls per second."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Ramping > Ramping Custom Multiplier"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.ramping_custom_trigger_pulls": {
-      "title": "Ramping Custom Trigger Pulls",
-      "description": "The number of trigger pulls in a one second window that starts ramping for the next second.",
-      "where": "Profile > Ramping > Ramping Custom Trigger Pulls",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Ramping Custom Trigger Pulls"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The number of trigger pulls in a one second window that starts ramping for the next second."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Ramping > Ramping Custom Trigger Pulls"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "autococker.ramping_custom_rof_minimum": {
-      "title": "Ramping Custom ROF Minimum",
-      "description": "The minimum rate of fire in ramping, whatever the number of trigger pulls in the window.",
-      "where": "Profile > Ramping > Ramping Custom ROF Minimum",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Ramping Custom ROF Minimum"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The minimum rate of fire in ramping, whatever the number of trigger pulls in the window."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Ramping > Ramping Custom ROF Minimum"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     },
     "profile.board_auto_off": {
-      "title": "Board Auto Off",
-      "description": "The time in minutes after the last trigger pull or button press at which the board turns off. The value 0 keeps the board on.",
-      "where": "Profile > Basic Function > Board Auto Off",
-      "targets": { "android": {}, "ios": {}, "desktop": {}, "browser": {} }
+      "title": [
+        {
+          "lang": "en",
+          "text": "Board Auto Off"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time in minutes after the last trigger pull or button press at which the board turns off. The value 0 keeps the board on."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Profile > Basic Function > Board Auto Off"
+        }
+      ],
+      "targets": {
+        "android": {},
+        "ios": {},
+        "desktop": {},
+        "browser": {}
+      }
     }
   },
   "topics": {
     "topic.bluetooth": {
-      "title": "Connect to a board",
-      "description": "Turn the Bluetooth radio of the board on. Open the Devices screen. The app lists the boards in range under Discovered Devices. Tap a board to connect to it.",
-      "where": "Devices",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Connect to a board"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "Turn the Bluetooth radio of the board on. Open the Devices screen. The app lists the boards in range under Discovered Devices. Tap a board to connect to it."
+        }
+      ],
+      "where": [
+        {
+          "lang": "en",
+          "text": "Devices"
+        }
+      ],
       "targets": {
         "android": {},
         "ios": {},
-        "wear": { "description": "The watch app connects to the board that the phone app saved." },
+        "wear": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "The watch app connects to the board that the phone app saved."
+            }
+          ]
+        },
         "desktop": {},
-        "browser": { "description": "The browser app uses Web Bluetooth. It works in a browser that supports Web Bluetooth, such as Chrome." }
+        "browser": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "The browser app uses Web Bluetooth. It works in a browser that supports Web Bluetooth, such as Chrome."
+            }
+          ]
+        }
       }
     },
     "topic.lockout": {
-      "title": "Lockout",
-      "description": "A locked board does not keep a change from the app. The app shows the lock state of the board on the device screen. Unlock the board with its LOCKOUT button."
+      "title": [
+        {
+          "lang": "en",
+          "text": "Lockout"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "A locked board does not keep a change from the app. The app shows the lock state of the board on the device screen. Unlock the board with its LOCKOUT button."
+        }
+      ]
     }
   }
 }

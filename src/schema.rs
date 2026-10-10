@@ -6,9 +6,9 @@ use anyhow::{bail, Result};
 use jsonschema::{Retrieve, Uri, Validator};
 use serde_json::Value;
 
-pub const COMMON: &str = include_str!("../schemas/common/v1/media.schema.json");
-pub const FIRMWARE: &str = include_str!("../schemas/firmware/v1/firmware.schema.json");
-pub const APP: &str = include_str!("../schemas/app/v1/app.schema.json");
+pub const COMMON: &str = include_str!("../schemas/common/v2/media.schema.json");
+pub const FIRMWARE: &str = include_str!("../schemas/firmware/v2/firmware.schema.json");
+pub const APP: &str = include_str!("../schemas/app/v2/app.schema.json");
 
 /// Which schema of the set a document follows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn the_example_follows_the_firmware_schema() {
         let doc: Value = serde_json::from_str(include_str!(
-            "../schemas/firmware/v1/examples/autococker-26.29.0.json"
+            "../schemas/firmware/v2/examples/autococker-26.29.0.json"
         ))
         .unwrap();
         validate(Kind::Firmware, &doc, "the example").unwrap();
@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn a_back_row_with_a_predicate_is_rejected() {
         let mut doc: Value = serde_json::from_str(include_str!(
-            "../schemas/firmware/v1/examples/autococker-26.29.0.json"
+            "../schemas/firmware/v2/examples/autococker-26.29.0.json"
         ))
         .unwrap();
         let items = doc["screens"]["root"]["items"].as_array_mut().unwrap();
@@ -130,11 +130,11 @@ mod tests {
     #[test]
     fn a_media_item_of_an_unknown_kind_is_valid() {
         let mut doc: Value = serde_json::from_str(include_str!(
-            "../schemas/firmware/v1/examples/autococker-26.29.0.json"
+            "../schemas/firmware/v2/examples/autococker-26.29.0.json"
         ))
         .unwrap();
         doc["media"] = serde_json::json!({
-            "board": { "kind": "hologram", "src": "pcb:board.holo", "caption": "The board." }
+            "board": { "kind": "hologram", "src": "pcb:board.holo", "caption": [{"lang": "en", "text": "The board."}] }
         });
         validate(Kind::Firmware, &doc, "the example").unwrap();
         doc["media"]["board"]["kind"] = Value::from("Not A Kind");

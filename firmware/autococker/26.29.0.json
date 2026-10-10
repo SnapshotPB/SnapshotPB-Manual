@@ -1,211 +1,1120 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "2.0.0",
   "firmware": {
-    "name": "SnapshotPB Autococker firmware",
+    "name": [
+      {
+        "lang": "en",
+        "text": "SnapshotPB Autococker firmware"
+      }
+    ],
     "version": "26.29.0",
     "protocol_version": "1.0.0",
-    "board_models": ["BOARD_MODEL_AUTOCOCKER"],
-    "summary": "The firmware of the SnapshotPB Autococker board. It drives the sear solenoid and the cocking solenoid of an autococker marker, reads the trigger and the ball eye, and shows a menu on the screen of the board."
+    "board_models": [
+      "BOARD_MODEL_AUTOCOCKER"
+    ],
+    "summary": [
+      {
+        "lang": "en",
+        "text": "The firmware of the SnapshotPB Autococker board. It drives the sear solenoid and the cocking solenoid of an autococker marker, reads the trigger and the ball eye, and shows a menu on the screen of the board."
+      }
+    ]
   },
   "media": {
     "buttons_back": {
       "kind": "image",
       "src": "pcb:docs/images/quick-start/buttons-back.svg",
-      "caption": "The three buttons at the back of the grip frame: UP, MENU, and DOWN."
+      "caption": [
+        {
+          "lang": "en",
+          "text": "The three buttons at the back of the grip frame: UP, MENU, and DOWN."
+        }
+      ]
     }
   },
   "controls": {
     "enter": {
-      "name": "MENU",
-      "description": "The centre button of the three at the back of the grip frame. It opens the menu, selects a row, and commits a value.",
+      "name": [
+        {
+          "lang": "en",
+          "text": "MENU"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The centre button of the three at the back of the grip frame. It opens the menu, selects a row, and commits a value."
+        }
+      ],
       "events": {
-        "short": { "description": "A press and a release in less than the hold time." },
-        "long": { "description": "A push that lasts the hold time or longer.", "hold_ms": 600 }
+        "short": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A press and a release in less than the hold time."
+            }
+          ]
+        },
+        "long": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A push that lasts the hold time or longer."
+            }
+          ],
+          "hold_ms": 600
+        }
       },
-      "media": ["buttons_back"]
+      "media": [
+        "buttons_back"
+      ]
     },
     "up": {
-      "name": "UP",
-      "description": "The top button of the three. It moves the cursor up and increases a value.",
+      "name": [
+        {
+          "lang": "en",
+          "text": "UP"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The top button of the three. It moves the cursor up and increases a value."
+        }
+      ],
       "events": {
-        "short": { "description": "A press and a release in less than the hold time." },
-        "long": { "description": "A push that lasts the hold time or longer.", "hold_ms": 600 }
+        "short": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A press and a release in less than the hold time."
+            }
+          ]
+        },
+        "long": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A push that lasts the hold time or longer."
+            }
+          ],
+          "hold_ms": 600
+        }
       }
     },
     "down": {
-      "name": "DOWN",
-      "description": "The bottom button of the three. It moves the cursor down and decreases a value.",
+      "name": [
+        {
+          "lang": "en",
+          "text": "DOWN"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The bottom button of the three. It moves the cursor down and decreases a value."
+        }
+      ],
       "events": {
-        "short": { "description": "A press." }
+        "short": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A press."
+            }
+          ]
+        }
       }
     },
     "lockout": {
-      "name": "LOCKOUT",
-      "description": "The button on the board. It locks and unlocks the settings.",
+      "name": [
+        {
+          "lang": "en",
+          "text": "LOCKOUT"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The button on the board. It locks and unlocks the settings."
+        }
+      ],
       "events": {
-        "short": { "description": "A press." }
+        "short": {
+          "description": [
+            {
+              "lang": "en",
+              "text": "A press."
+            }
+          ]
+        }
       }
     }
   },
   "interactions": {
-    "open_menu": { "control": "enter", "event": "short", "description": "Opens the Menu screen from the home screen.", "applies_to": ["home"] },
-    "cursor_up": { "control": "up", "event": "short", "description": "Moves the cursor one row up. On the first row, the cursor stays.", "applies_to": ["screen"] },
-    "cursor_down": { "control": "down", "event": "short", "description": "Moves the cursor one row down. On the last row, the cursor stays.", "applies_to": ["screen"] },
-    "select": { "control": "enter", "event": "short", "description": "Acts on the row under the cursor. A screen row opens its screen. A number row opens the number editor. A choice row opens the choice editor. A switch row changes its value at once. A row that does not apply does nothing.", "applies_to": ["screen"] },
-    "back": { "control": "enter", "event": "short", "description": "On the Back row, returns to the parent screen. On the Back row of the Menu screen, returns to the home screen.", "applies_to": ["screen"] },
-    "value_up": { "control": "up", "event": "short", "description": "In the number editor, increases the value by one step. In the choice editor, moves to the next option. The value stops at the maximum.", "applies_to": ["edit_int", "edit_enum"] },
-    "value_down": { "control": "down", "event": "short", "description": "In the number editor, decreases the value by one step. In the choice editor, moves to the previous option. The value stops at the minimum.", "applies_to": ["edit_int", "edit_enum"] },
-    "commit": { "control": "enter", "event": "short", "description": "In an editor, keeps the value and returns to the screen. An editor has no cancel. A value that did not change is not written.", "applies_to": ["edit_int", "edit_enum"] },
-    "power_off": { "control": "enter", "event": "long", "description": "Turns the board off from each screen that takes input. The screen shows Powering Off, and then it goes dark." },
-    "wake": { "control": "enter", "event": "long", "description": "Turns the board on. A short press wakes the board, and the board goes back to sleep if you release MENU before the hold time." },
-    "eye_override": { "control": "up", "event": "long", "description": "Turns the eyes off or on for this session. The screen shows EYES OFF or EYES ON. The stored eye mode does not change.", "applies_to": ["home"] },
-    "lockout_toggle": { "control": "lockout", "event": "short", "description": "Locks or unlocks the settings. The screen shows LOCKED or UNLOCKED." }
+    "open_menu": {
+      "control": "enter",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Opens the Menu screen from the home screen."
+        }
+      ],
+      "applies_to": [
+        "home"
+      ]
+    },
+    "cursor_up": {
+      "control": "up",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Moves the cursor one row up. On the first row, the cursor stays."
+        }
+      ],
+      "applies_to": [
+        "screen"
+      ]
+    },
+    "cursor_down": {
+      "control": "down",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Moves the cursor one row down. On the last row, the cursor stays."
+        }
+      ],
+      "applies_to": [
+        "screen"
+      ]
+    },
+    "select": {
+      "control": "enter",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Acts on the row under the cursor. A screen row opens its screen. A number row opens the number editor. A choice row opens the choice editor. A switch row changes its value at once. A row that does not apply does nothing."
+        }
+      ],
+      "applies_to": [
+        "screen"
+      ]
+    },
+    "back": {
+      "control": "enter",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "On the Back row, returns to the parent screen. On the Back row of the Menu screen, returns to the home screen."
+        }
+      ],
+      "applies_to": [
+        "screen"
+      ]
+    },
+    "value_up": {
+      "control": "up",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "In the number editor, increases the value by one step. In the choice editor, moves to the next option. The value stops at the maximum."
+        }
+      ],
+      "applies_to": [
+        "edit_int",
+        "edit_enum"
+      ]
+    },
+    "value_down": {
+      "control": "down",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "In the number editor, decreases the value by one step. In the choice editor, moves to the previous option. The value stops at the minimum."
+        }
+      ],
+      "applies_to": [
+        "edit_int",
+        "edit_enum"
+      ]
+    },
+    "commit": {
+      "control": "enter",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "In an editor, keeps the value and returns to the screen. An editor has no cancel. A value that did not change is not written."
+        }
+      ],
+      "applies_to": [
+        "edit_int",
+        "edit_enum"
+      ]
+    },
+    "power_off": {
+      "control": "enter",
+      "event": "long",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Turns the board off from each screen that takes input. The screen shows Powering Off, and then it goes dark."
+        }
+      ]
+    },
+    "wake": {
+      "control": "enter",
+      "event": "long",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Turns the board on. A short press wakes the board, and the board goes back to sleep if you release MENU before the hold time."
+        }
+      ]
+    },
+    "eye_override": {
+      "control": "up",
+      "event": "long",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Turns the eyes off or on for this session. The screen shows EYES OFF or EYES ON. The stored eye mode does not change."
+        }
+      ],
+      "applies_to": [
+        "home"
+      ]
+    },
+    "lockout_toggle": {
+      "control": "lockout",
+      "event": "short",
+      "description": [
+        {
+          "lang": "en",
+          "text": "Locks or unlocks the settings. The screen shows LOCKED or UNLOCKED."
+        }
+      ]
+    }
   },
   "home": {
-    "title": "Shot counter",
-    "description": "The screen that the board shows after the boot text. It shows the shot count and the state marks. Press MENU on this screen to open the menu. The screen goes dark after the Screen off time, and the first press after that wakes the screen and does nothing else.",
+    "title": [
+      {
+        "lang": "en",
+        "text": "Shot counter"
+      }
+    ],
+    "description": [
+      {
+        "lang": "en",
+        "text": "The screen that the board shows after the boot text. It shows the shot count and the state marks. Press MENU on this screen to open the menu. The screen goes dark after the Screen off time, and the first press after that wakes the screen and does nothing else."
+      }
+    ],
     "indicators": {
-      "lock": "The LOCK tag shows while the board is locked.",
-      "bluetooth": "The Bluetooth mark shows while the Bluetooth radio is on.",
-      "eyes": "The eye mark shows the eye state: on, off, or off for this session."
+      "lock": [
+        {
+          "lang": "en",
+          "text": "The LOCK tag shows while the board is locked."
+        }
+      ],
+      "bluetooth": [
+        {
+          "lang": "en",
+          "text": "The Bluetooth mark shows while the Bluetooth radio is on."
+        }
+      ],
+      "eyes": [
+        {
+          "lang": "en",
+          "text": "The eye mark shows the eye state: on, off, or off for this session."
+        }
+      ]
     }
   },
   "root": "root",
   "screens": {
     "root": {
-      "title": "Menu",
-      "description": "The first screen of the menu. The Profile row and the Language row select how the whole board works. The screen rows below them hold the settings of one subject each. The Bluetooth row turns the radio on or off.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Menu"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The first screen of the menu. The Profile row and the Language row select how the whole board works. The screen rows below them hold the settings of one subject each. The Bluetooth row turns the radio on or off."
+        }
+      ],
       "items": [
-        { "type": "setting", "render": "Profile", "key": "device_config.active_profile" },
-        { "type": "setting", "render": "Language", "key": "device_config.language" },
-        { "type": "submenu", "render": "Fire", "ref": "fire_menu" },
-        { "type": "submenu", "render": "Timing", "ref": "timing_menu" },
-        { "type": "submenu", "render": "Trigger", "ref": "trigger_menu" },
-        { "type": "submenu", "render": "Eye", "ref": "eye_menu" },
-        { "type": "submenu", "render": "Setup", "ref": "setup_menu" },
-        { "type": "setting", "render": "Bluetooth", "key": "runtime.bluetooth_active" },
-        { "type": "back", "render": "Back" }
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Profile"
+            }
+          ],
+          "key": "device_config.active_profile"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Language"
+            }
+          ],
+          "key": "device_config.language"
+        },
+        {
+          "type": "submenu",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Fire"
+            }
+          ],
+          "ref": "fire_menu"
+        },
+        {
+          "type": "submenu",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Timing"
+            }
+          ],
+          "ref": "timing_menu"
+        },
+        {
+          "type": "submenu",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Trigger"
+            }
+          ],
+          "ref": "trigger_menu"
+        },
+        {
+          "type": "submenu",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Eye"
+            }
+          ],
+          "ref": "eye_menu"
+        },
+        {
+          "type": "submenu",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Setup"
+            }
+          ],
+          "ref": "setup_menu"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Bluetooth"
+            }
+          ],
+          "key": "runtime.bluetooth_active"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
       ]
     },
     "fire_menu": {
-      "title": "Fire",
-      "description": "The fire mode and the rate of fire of the active profile. The Ramping row shows only while the fire mode is NXL 2026.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Fire"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The fire mode and the rate of fire of the active profile. The Ramping row shows only while the fire mode is NXL 2026."
+        }
+      ],
       "items": [
-        { "type": "setting", "render": "Mode", "key": "autococker.fire_mode" },
-        { "type": "setting", "render": "BPS cap", "key": "profile.fire_rate_cap" },
-        { "type": "submenu", "render": "Ramping", "ref": "ramp_menu", "hidden_when": "ramping_off" },
-        { "type": "back", "render": "Back" }
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Mode"
+            }
+          ],
+          "key": "autococker.fire_mode"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "BPS cap"
+            }
+          ],
+          "key": "profile.fire_rate_cap"
+        },
+        {
+          "type": "submenu",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Ramping"
+            }
+          ],
+          "ref": "ramp_menu",
+          "hidden_when": "ramping_off"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
       ]
     },
     "timing_menu": {
-      "title": "Timing",
-      "description": "The times of one firing cycle, in milliseconds with one decimal place.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Timing"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The times of one firing cycle, in milliseconds with one decimal place."
+        }
+      ],
       "items": [
-        { "type": "setting", "render": "Sear dwell", "key": "autococker.sear_solenoid_dwell" },
-        { "type": "setting", "render": "Cock delay", "key": "autococker.cocking_solenoid_delay" },
-        { "type": "setting", "render": "Cock open", "key": "autococker.cocking_solenoid_dwell_open" },
-        { "type": "setting", "render": "Cock close", "key": "autococker.cocking_solenoid_dwell_closed" },
-        { "type": "setting", "render": "Cock timeout", "key": "autococker.cocking_solenoid_timeout", "disabled_when": "eye_inactive" },
-        { "type": "back", "render": "Back" }
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Sear dwell"
+            }
+          ],
+          "key": "autococker.sear_solenoid_dwell"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Cock delay"
+            }
+          ],
+          "key": "autococker.cocking_solenoid_delay"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Cock open"
+            }
+          ],
+          "key": "autococker.cocking_solenoid_dwell_open"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Cock close"
+            }
+          ],
+          "key": "autococker.cocking_solenoid_dwell_closed"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Cock timeout"
+            }
+          ],
+          "key": "autococker.cocking_solenoid_timeout",
+          "disabled_when": "eye_inactive"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
       ]
     },
     "trigger_menu": {
-      "title": "Trigger",
-      "description": "The debounce times of the trigger.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Trigger"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The debounce times of the trigger."
+        }
+      ],
       "items": [
-        { "type": "setting", "render": "Debounce on", "key": "autococker.trigger_debounce_on" },
-        { "type": "setting", "render": "Debounce off", "key": "autococker.trigger_debounce_off" },
-        { "type": "back", "render": "Back" }
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Debounce on"
+            }
+          ],
+          "key": "autococker.trigger_debounce_on"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Debounce off"
+            }
+          ],
+          "key": "autococker.trigger_debounce_off"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
       ]
     },
     "eye_menu": {
-      "title": "Eye",
-      "description": "The ball eye of the active profile. The rows apply only in a fire mode with an eye phase.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Eye"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The ball eye of the active profile. The rows apply only in a fire mode with an eye phase."
+        }
+      ],
       "items": [
-        { "type": "setting", "render": "Eye mode", "key": "autococker.eye_mode", "disabled_when": "no_eye_phase" },
-        { "type": "setting", "render": "Threshold", "key": "autococker.eye_threshold", "disabled_when": "eye_inactive" },
-        { "type": "setting", "render": "Debounce", "key": "autococker.eye_debounce", "disabled_when": "eye_inactive" },
-        { "type": "back", "render": "Back" }
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Eye mode"
+            }
+          ],
+          "key": "autococker.eye_mode",
+          "disabled_when": "no_eye_phase"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Threshold"
+            }
+          ],
+          "key": "autococker.eye_threshold",
+          "disabled_when": "eye_inactive"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Debounce"
+            }
+          ],
+          "key": "autococker.eye_debounce",
+          "disabled_when": "eye_inactive"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
       ]
     },
     "ramp_menu": {
-      "title": "Ramping",
-      "description": "The custom ramp settings. The rows apply only while the fire mode is NXL 2026.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Ramping"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The custom ramp settings. The rows apply only while the fire mode is NXL 2026."
+        }
+      ],
       "items": [
-        { "type": "setting", "render": "Multiplier", "key": "autococker.ramping_custom_multiplier", "disabled_when": "ramping_off" },
-        { "type": "setting", "render": "Trigger pulls", "key": "autococker.ramping_custom_trigger_pulls", "disabled_when": "ramping_off" },
-        { "type": "setting", "render": "RoF minimum", "key": "autococker.ramping_custom_rof_minimum", "disabled_when": "ramping_off" },
-        { "type": "back", "render": "Back" }
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Multiplier"
+            }
+          ],
+          "key": "autococker.ramping_custom_multiplier",
+          "disabled_when": "ramping_off"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Trigger pulls"
+            }
+          ],
+          "key": "autococker.ramping_custom_trigger_pulls",
+          "disabled_when": "ramping_off"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "RoF minimum"
+            }
+          ],
+          "key": "autococker.ramping_custom_rof_minimum",
+          "disabled_when": "ramping_off"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
       ]
     },
     "setup_menu": {
-      "title": "Setup",
-      "description": "The board settings: the power, the screen, and the battery.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Setup"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The board settings: the power, the screen, and the battery."
+        }
+      ],
       "items": [
-        { "type": "setting", "render": "Auto off", "key": "profile.board_auto_off" },
-        { "type": "setting", "render": "Screen off", "key": "device_config.screen_off_delay" },
-        { "type": "setting", "render": "Brightness", "key": "device_config.screen_brightness" },
-        { "type": "setting", "render": "Full window", "key": "runtime.display_window_full" },
-        { "type": "setting", "render": "Battery", "key": "device_config.battery_type" },
-        { "type": "back", "render": "Back" }
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Auto off"
+            }
+          ],
+          "key": "profile.board_auto_off"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Screen off"
+            }
+          ],
+          "key": "device_config.screen_off_delay"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Brightness"
+            }
+          ],
+          "key": "device_config.screen_brightness"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Full window"
+            }
+          ],
+          "key": "runtime.display_window_full"
+        },
+        {
+          "type": "setting",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Battery"
+            }
+          ],
+          "key": "device_config.battery_type"
+        },
+        {
+          "type": "back",
+          "render": [
+            {
+              "lang": "en",
+              "text": "Back"
+            }
+          ]
+        }
       ]
     }
   },
   "settings": {
     "device_config.active_profile": {
-      "title": "Profile",
-      "description": "The profile that the board uses. The board holds four profiles. Each profile holds its own fire, timing, trigger, eye, and ramping settings.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Profile"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The profile that the board uses. The board holds four profiles. Each profile holds its own fire, timing, trigger, eye, and ramping settings."
+        }
+      ],
       "scope": "device",
       "type": "enum",
       "options": [
-        { "value": 1, "text": "1", "description": "Profile 1." },
-        { "value": 2, "text": "2", "description": "Profile 2." },
-        { "value": 3, "text": "3", "description": "Profile 3." },
-        { "value": 4, "text": "4", "description": "Profile 4." }
+        {
+          "value": 1,
+          "text": [
+            {
+              "lang": "en",
+              "text": "1"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Profile 1."
+            }
+          ]
+        },
+        {
+          "value": 2,
+          "text": [
+            {
+              "lang": "en",
+              "text": "2"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Profile 2."
+            }
+          ]
+        },
+        {
+          "value": 3,
+          "text": [
+            {
+              "lang": "en",
+              "text": "3"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Profile 3."
+            }
+          ]
+        },
+        {
+          "value": 4,
+          "text": [
+            {
+              "lang": "en",
+              "text": "4"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Profile 4."
+            }
+          ]
+        }
       ],
       "default": 1
     },
     "device_config.language": {
-      "title": "Language",
-      "description": "The language of the text that the board draws: the row names, the titles, the options, and the captions. It does not change the boot text or a profile name, which hold the text that you typed.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Language"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The language of the text that the board draws: the row names, the titles, the options, and the captions. It does not change the boot text or a profile name, which hold the text that you typed."
+        }
+      ],
       "scope": "device",
       "type": "enum",
       "options": [
-        { "value": "LANGUAGE_EN", "text": "EN", "description": "English." },
-        { "value": "LANGUAGE_ES", "text": "ES", "description": "Spanish." },
-        { "value": "LANGUAGE_DE", "text": "DE", "description": "German." },
-        { "value": "LANGUAGE_FR", "text": "FR", "description": "French." }
+        {
+          "value": "LANGUAGE_EN",
+          "text": [
+            {
+              "lang": "en",
+              "text": "EN"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "English."
+            }
+          ]
+        },
+        {
+          "value": "LANGUAGE_ES",
+          "text": [
+            {
+              "lang": "en",
+              "text": "ES"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Spanish."
+            }
+          ]
+        },
+        {
+          "value": "LANGUAGE_DE",
+          "text": [
+            {
+              "lang": "en",
+              "text": "DE"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "German."
+            }
+          ]
+        },
+        {
+          "value": "LANGUAGE_FR",
+          "text": [
+            {
+              "lang": "en",
+              "text": "FR"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "French."
+            }
+          ]
+        }
       ],
       "default": "LANGUAGE_EN"
     },
     "runtime.bluetooth_active": {
-      "title": "Bluetooth",
-      "description": "Turns the Bluetooth radio on or off. The radio is off at each start. The screen shows BT ON or BT OFF, and the status LED is blue while the radio is on. The app connects only while the radio is on.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Bluetooth"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "Turns the Bluetooth radio on or off. The radio is off at each start. The screen shows BT ON or BT OFF, and the status LED is blue while the radio is on. The app connects only while the radio is on."
+        }
+      ],
       "scope": "runtime",
       "type": "toggle",
       "default": false,
-      "on_text": "On",
-      "off_text": "Off",
-      "related": ["topic.bluetooth"]
+      "on_text": [
+        {
+          "lang": "en",
+          "text": "On"
+        }
+      ],
+      "off_text": [
+        {
+          "lang": "en",
+          "text": "Off"
+        }
+      ],
+      "related": [
+        "topic.bluetooth"
+      ]
     },
     "autococker.fire_mode": {
-      "title": "Fire mode",
-      "description": "How the board answers a trigger pull. The board fires at the slower of the cycle time and the BPS cap in each mode that fires by itself.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Fire mode"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "How the board answers a trigger pull. The board fires at the slower of the cycle time and the BPS cap in each mode that fires by itself."
+        }
+      ],
       "scope": "profile",
       "type": "enum",
       "options": [
-        { "value": "AUTOCOCKER_FIRE_MODE_MECHANICAL", "text": "MECHANICAL", "description": "The board works as a mechanical autococker. A trigger pull energizes the sear for the Sear dwell time. The cocking solenoid is on while the trigger is pulled, and off while the trigger is released. The eye does not apply." },
-        { "value": "AUTOCOCKER_FIRE_MODE_SEMI", "text": "SEMI", "description": "One shot for each trigger pull, as fast as you pull the trigger." },
-        { "value": "AUTOCOCKER_FIRE_MODE_TRIGGER_ONLY", "text": "TRIGGER ONLY", "description": "For a pump marker. The board never energizes the cocking solenoid, so the eye does not apply. The sear and the trigger times apply." },
-        { "value": "AUTOCOCKER_FIRE_MODE_FULL_AUTO", "text": "FULL AUTO", "description": "The board fires while the trigger is pulled." },
-        { "value": "AUTOCOCKER_FIRE_MODE_RAMPING_NXL_2026", "text": "NXL 2026", "description": "Ramping under the NXL rules for the 2026 season. The Ramping screen holds the custom settings." }
+        {
+          "value": "AUTOCOCKER_FIRE_MODE_MECHANICAL",
+          "text": [
+            {
+              "lang": "en",
+              "text": "MECHANICAL"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "The board works as a mechanical autococker. A trigger pull energizes the sear for the Sear dwell time. The cocking solenoid is on while the trigger is pulled, and off while the trigger is released. The eye does not apply."
+            }
+          ]
+        },
+        {
+          "value": "AUTOCOCKER_FIRE_MODE_SEMI",
+          "text": [
+            {
+              "lang": "en",
+              "text": "SEMI"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "One shot for each trigger pull, as fast as you pull the trigger."
+            }
+          ]
+        },
+        {
+          "value": "AUTOCOCKER_FIRE_MODE_TRIGGER_ONLY",
+          "text": [
+            {
+              "lang": "en",
+              "text": "TRIGGER ONLY"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "For a pump marker. The board never energizes the cocking solenoid, so the eye does not apply. The sear and the trigger times apply."
+            }
+          ]
+        },
+        {
+          "value": "AUTOCOCKER_FIRE_MODE_FULL_AUTO",
+          "text": [
+            {
+              "lang": "en",
+              "text": "FULL AUTO"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "The board fires while the trigger is pulled."
+            }
+          ]
+        },
+        {
+          "value": "AUTOCOCKER_FIRE_MODE_RAMPING_NXL_2026",
+          "text": [
+            {
+              "lang": "en",
+              "text": "NXL 2026"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "Ramping under the NXL rules for the 2026 season. The Ramping screen holds the custom settings."
+            }
+          ]
+        }
       ],
       "default": "AUTOCOCKER_FIRE_MODE_SEMI",
-      "related": ["profile.fire_rate_cap", "topic.ramping", "topic.firing_cycle"]
+      "related": [
+        "profile.fire_rate_cap",
+        "topic.ramping",
+        "topic.firing_cycle"
+      ]
     },
     "profile.fire_rate_cap": {
-      "title": "BPS cap",
-      "description": "The maximum rate of fire, in balls per second. The board does not fire faster than this value in any fire mode. The default is the NXL 2026 limit.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "BPS cap"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The maximum rate of fire, in balls per second. The board does not fire faster than this value in any fire mode. The default is the NXL 2026 limit."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 10,
@@ -214,11 +1123,23 @@
       "default": 105,
       "unit": "bps",
       "decimals": 1,
-      "related": ["autococker.fire_mode"]
+      "related": [
+        "autococker.fire_mode"
+      ]
     },
     "autococker.sear_solenoid_dwell": {
-      "title": "Sear dwell",
-      "description": "The time that the sear solenoid is energized in one firing cycle. The marker fires in this time.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Sear dwell"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time that the sear solenoid is energized in one firing cycle. The marker fires in this time."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 10,
@@ -227,11 +1148,23 @@
       "default": 1000,
       "unit": "ms",
       "decimals": 1,
-      "related": ["topic.firing_cycle"]
+      "related": [
+        "topic.firing_cycle"
+      ]
     },
     "autococker.cocking_solenoid_delay": {
-      "title": "Cock delay",
-      "description": "The time that the board waits after the sear before it energizes the cocking solenoid. The value 0 is permitted.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Cock delay"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time that the board waits after the sear before it energizes the cocking solenoid. The value 0 is permitted."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 0,
@@ -240,11 +1173,23 @@
       "default": 1000,
       "unit": "ms",
       "decimals": 1,
-      "related": ["topic.firing_cycle"]
+      "related": [
+        "topic.firing_cycle"
+      ]
     },
     "autococker.cocking_solenoid_dwell_open": {
-      "title": "Cock open",
-      "description": "The time that the cocking solenoid is energized to open the breech. With an eye, the solenoid stays energized until the eye sees a ball, and the board ignores this value.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Cock open"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time that the cocking solenoid is energized to open the breech. With an eye, the solenoid stays energized until the eye sees a ball, and the board ignores this value."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 10,
@@ -253,11 +1198,24 @@
       "default": 1000,
       "unit": "ms",
       "decimals": 1,
-      "related": ["autococker.eye_mode", "topic.firing_cycle"]
+      "related": [
+        "autococker.eye_mode",
+        "topic.firing_cycle"
+      ]
     },
     "autococker.cocking_solenoid_dwell_closed": {
-      "title": "Cock close",
-      "description": "The time that the cocking solenoid stays de-energized to close the breech before the next cycle. The value 0 is permitted.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Cock close"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time that the cocking solenoid stays de-energized to close the breech before the next cycle. The value 0 is permitted."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 0,
@@ -266,11 +1224,23 @@
       "default": 1000,
       "unit": "ms",
       "decimals": 1,
-      "related": ["topic.firing_cycle"]
+      "related": [
+        "topic.firing_cycle"
+      ]
     },
     "autococker.cocking_solenoid_timeout": {
-      "title": "Cock timeout",
-      "description": "The longest time that the cocking solenoid waits for the eye before the board closes the breech on timing. It stops a missed feed from holding the coil energized. The value 0 selects the default, so the timeout is never off.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Cock timeout"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The longest time that the cocking solenoid waits for the eye before the board closes the breech on timing. It stops a missed feed from holding the coil energized. The value 0 selects the default, so the timeout is never off."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 0,
@@ -279,11 +1249,23 @@
       "default": 5000,
       "unit": "ms",
       "decimals": 1,
-      "related": ["autococker.eye_mode"]
+      "related": [
+        "autococker.eye_mode"
+      ]
     },
     "autococker.trigger_debounce_on": {
-      "title": "Debounce on",
-      "description": "The time that the trigger must stay pulled before the board starts a firing cycle.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Debounce on"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time that the trigger must stay pulled before the board starts a firing cycle."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 10,
@@ -294,8 +1276,18 @@
       "decimals": 1
     },
     "autococker.trigger_debounce_off": {
-      "title": "Debounce off",
-      "description": "The time that the trigger must stay released before the next pull counts.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Debounce off"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time that the trigger must stay released before the next pull counts."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 10,
@@ -306,21 +1298,87 @@
       "decimals": 1
     },
     "autococker.eye_mode": {
-      "title": "Eye mode",
-      "description": "The type of eye sensor in the breech. The board uses the eye to wait for a ball before it closes the breech. The eye applies only in a fire mode with a cocking phase: SEMI, FULL AUTO, and NXL 2026.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Eye mode"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The type of eye sensor in the breech. The board uses the eye to wait for a ball before it closes the breech. The eye applies only in a fire mode with a cocking phase: SEMI, FULL AUTO, and NXL 2026."
+        }
+      ],
       "scope": "profile",
       "type": "enum",
       "options": [
-        { "value": "EYE_MODE_OFF", "text": "OFF", "description": "The board does not read the eye. The marker fires on timing alone." },
-        { "value": "EYE_MODE_REFLECTIVE", "text": "REFLECTIVE", "description": "One sensor reads the light that a ball reflects." },
-        { "value": "EYE_MODE_BREAK_BEAM", "text": "BREAK BEAM", "description": "A ball breaks a beam between an emitter and a detector." }
+        {
+          "value": "EYE_MODE_OFF",
+          "text": [
+            {
+              "lang": "en",
+              "text": "OFF"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "The board does not read the eye. The marker fires on timing alone."
+            }
+          ]
+        },
+        {
+          "value": "EYE_MODE_REFLECTIVE",
+          "text": [
+            {
+              "lang": "en",
+              "text": "REFLECTIVE"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "One sensor reads the light that a ball reflects."
+            }
+          ]
+        },
+        {
+          "value": "EYE_MODE_BREAK_BEAM",
+          "text": [
+            {
+              "lang": "en",
+              "text": "BREAK BEAM"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "A ball breaks a beam between an emitter and a detector."
+            }
+          ]
+        }
       ],
       "default": "EYE_MODE_OFF",
-      "related": ["autococker.eye_threshold", "autococker.eye_debounce", "topic.eye_override"]
+      "related": [
+        "autococker.eye_threshold",
+        "autococker.eye_debounce",
+        "topic.eye_override"
+      ]
     },
     "autococker.eye_threshold": {
-      "title": "Threshold",
-      "description": "The level, in percent of full scale, below which the eye reports a ball. The value 0 selects the default of 50 percent.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Threshold"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The level, in percent of full scale, below which the eye reports a ball. The value 0 selects the default of 50 percent."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 0,
@@ -328,11 +1386,23 @@
       "step": 1,
       "default": 50,
       "unit": "%",
-      "related": ["autococker.eye_mode"]
+      "related": [
+        "autococker.eye_mode"
+      ]
     },
     "autococker.eye_debounce": {
-      "title": "Debounce",
-      "description": "The time that the eye must see a ball before the board accepts it.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Debounce"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time that the eye must see a ball before the board accepts it."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 0,
@@ -341,11 +1411,23 @@
       "default": 20,
       "unit": "ms",
       "decimals": 1,
-      "related": ["autococker.eye_mode"]
+      "related": [
+        "autococker.eye_mode"
+      ]
     },
     "autococker.ramping_custom_multiplier": {
-      "title": "Multiplier",
-      "description": "The rate of fire in ramping, as a multiple of the trigger pull rate, after the Trigger pulls count is met. For example, 2.5 with 3 pulls in one second gives 7.5 balls per second.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Multiplier"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The rate of fire in ramping, as a multiple of the trigger pull rate, after the Trigger pulls count is met. For example, 2.5 with 3 pulls in one second gives 7.5 balls per second."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 0,
@@ -353,22 +1435,46 @@
       "step": 5,
       "default": 0,
       "decimals": 1,
-      "related": ["topic.ramping"]
+      "related": [
+        "topic.ramping"
+      ]
     },
     "autococker.ramping_custom_trigger_pulls": {
-      "title": "Trigger pulls",
-      "description": "The number of trigger pulls in a one second window that starts ramping for the next second.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Trigger pulls"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The number of trigger pulls in a one second window that starts ramping for the next second."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 0,
       "max": 9999,
       "step": 1,
       "default": 0,
-      "related": ["topic.ramping"]
+      "related": [
+        "topic.ramping"
+      ]
     },
     "autococker.ramping_custom_rof_minimum": {
-      "title": "RoF minimum",
-      "description": "The minimum rate of fire in ramping, whatever the number of trigger pulls in the window.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "RoF minimum"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The minimum rate of fire in ramping, whatever the number of trigger pulls in the window."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 0,
@@ -376,11 +1482,23 @@
       "step": 1,
       "default": 0,
       "unit": "bps",
-      "related": ["topic.ramping"]
+      "related": [
+        "topic.ramping"
+      ]
     },
     "profile.board_auto_off": {
-      "title": "Auto off",
-      "description": "The time after the last trigger pull or button press at which the board turns off. The value 0 keeps the board on, and the editor shows the word Never for it.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Auto off"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time after the last trigger pull or button press at which the board turns off. The value 0 keeps the board on, and the editor shows the word Never for it."
+        }
+      ],
       "scope": "profile",
       "type": "int",
       "min": 0,
@@ -388,12 +1506,29 @@
       "step": 1,
       "default": 0,
       "unit": "min",
-      "zero_text": "Never",
-      "related": ["topic.power_off"]
+      "zero_text": [
+        {
+          "lang": "en",
+          "text": "Never"
+        }
+      ],
+      "related": [
+        "topic.power_off"
+      ]
     },
     "device_config.screen_off_delay": {
-      "title": "Screen off",
-      "description": "The time after the last button press at which the screen goes dark. A shot does not keep the screen on. The first button press after the screen goes dark wakes it and does nothing else. There is no value that keeps the screen on.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Screen off"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The time after the last button press at which the screen goes dark. A shot does not keep the screen on. The first button press after the screen goes dark wakes it and does nothing else. There is no value that keeps the screen on."
+        }
+      ],
       "scope": "device",
       "type": "int",
       "min": 1,
@@ -403,89 +1538,320 @@
       "unit": "s"
     },
     "device_config.screen_brightness": {
-      "title": "Brightness",
-      "description": "How bright the board drives the screen. The screen belongs to the board, so the value is the same in each profile.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Brightness"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "How bright the board drives the screen. The screen belongs to the board, so the value is the same in each profile."
+        }
+      ],
       "scope": "device",
       "type": "enum",
       "options": [
-        { "value": "SCREEN_BRIGHTNESS_LOW", "text": "LOW", "description": "The lowest brightness, and the lowest power." },
-        { "value": "SCREEN_BRIGHTNESS_DEFAULT", "text": "DEFAULT", "description": "The default brightness." },
-        { "value": "SCREEN_BRIGHTNESS_HIGH", "text": "HIGH", "description": "The highest brightness, and the highest power." }
+        {
+          "value": "SCREEN_BRIGHTNESS_LOW",
+          "text": [
+            {
+              "lang": "en",
+              "text": "LOW"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "The lowest brightness, and the lowest power."
+            }
+          ]
+        },
+        {
+          "value": "SCREEN_BRIGHTNESS_DEFAULT",
+          "text": [
+            {
+              "lang": "en",
+              "text": "DEFAULT"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "The default brightness."
+            }
+          ]
+        },
+        {
+          "value": "SCREEN_BRIGHTNESS_HIGH",
+          "text": [
+            {
+              "lang": "en",
+              "text": "HIGH"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "The highest brightness, and the highest power."
+            }
+          ]
+        }
       ],
       "default": "SCREEN_BRIGHTNESS_DEFAULT"
     },
     "runtime.display_window_full": {
-      "title": "Full window",
-      "description": "Shows the menu on the whole screen for this session, and ignores the display window that the app set. Use it when the window is wrong and you cannot see the menu. The next start uses the stored window again.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Full window"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "Shows the menu on the whole screen for this session, and ignores the display window that the app set. Use it when the window is wrong and you cannot see the menu. The next start uses the stored window again."
+        }
+      ],
       "scope": "runtime",
       "type": "toggle",
       "default": false,
-      "on_text": "On",
-      "off_text": "Off"
+      "on_text": [
+        {
+          "lang": "en",
+          "text": "On"
+        }
+      ],
+      "off_text": [
+        {
+          "lang": "en",
+          "text": "Off"
+        }
+      ]
     },
     "device_config.battery_type": {
-      "title": "Battery",
-      "description": "The type of cell on the BATT connector. The board uses it to select the voltage at which it shows the low battery warning and the voltage at which it stops the shots. The voltage alone does not identify the cell, so you set the type.",
+      "title": [
+        {
+          "lang": "en",
+          "text": "Battery"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The type of cell on the BATT connector. The board uses it to select the voltage at which it shows the low battery warning and the voltage at which it stops the shots. The voltage alone does not identify the cell, so you set the type."
+        }
+      ],
       "scope": "device",
       "type": "enum",
       "options": [
-        { "value": "BATTERY_TYPE_9V", "text": "9V", "description": "One 9 V alkaline cell. This is the default." },
-        { "value": "BATTERY_TYPE_2S_LIPO", "text": "2S LiPo", "description": "One 2S LiPo pack, 7.4 V nominal and 8.4 V full." }
+        {
+          "value": "BATTERY_TYPE_9V",
+          "text": [
+            {
+              "lang": "en",
+              "text": "9V"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "One 9 V alkaline cell. This is the default."
+            }
+          ]
+        },
+        {
+          "value": "BATTERY_TYPE_2S_LIPO",
+          "text": [
+            {
+              "lang": "en",
+              "text": "2S LiPo"
+            }
+          ],
+          "description": [
+            {
+              "lang": "en",
+              "text": "One 2S LiPo pack, 7.4 V nominal and 8.4 V full."
+            }
+          ]
+        }
       ],
       "default": "BATTERY_TYPE_9V"
     }
   },
   "predicates": {
     "ramping_off": {
-      "description": "the fire mode is not NXL 2026",
-      "depends_on": ["autococker.fire_mode"]
+      "description": [
+        {
+          "lang": "en",
+          "text": "the fire mode is not NXL 2026"
+        }
+      ],
+      "depends_on": [
+        "autococker.fire_mode"
+      ]
     },
     "no_eye_phase": {
-      "description": "the fire mode has no eye phase: MECHANICAL or TRIGGER ONLY",
-      "depends_on": ["autococker.fire_mode"]
+      "description": [
+        {
+          "lang": "en",
+          "text": "the fire mode has no eye phase: MECHANICAL or TRIGGER ONLY"
+        }
+      ],
+      "depends_on": [
+        "autococker.fire_mode"
+      ]
     },
     "eye_inactive": {
-      "description": "the fire mode has no eye phase, or the Eye mode is OFF",
-      "depends_on": ["autococker.fire_mode", "autococker.eye_mode"]
+      "description": [
+        {
+          "lang": "en",
+          "text": "the fire mode has no eye phase, or the Eye mode is OFF"
+        }
+      ],
+      "depends_on": [
+        "autococker.fire_mode",
+        "autococker.eye_mode"
+      ]
     }
   },
   "topics": {
     "topic.power_off": {
-      "title": "Turn the board off and on",
-      "description": "Hold MENU. The screen shows Powering Off, and then the screen goes dark. To start the board again, hold MENU. A short press wakes the board, and the board goes back to sleep if you release MENU before the hold time.\n\nThe Auto off setting turns the board off by itself after a time with no trigger pull and no button press.",
-      "interactions": ["power_off", "wake"],
-      "related": ["profile.board_auto_off"]
+      "title": [
+        {
+          "lang": "en",
+          "text": "Turn the board off and on"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "Hold MENU. The screen shows Powering Off, and then the screen goes dark. To start the board again, hold MENU. A short press wakes the board, and the board goes back to sleep if you release MENU before the hold time.\n\nThe Auto off setting turns the board off by itself after a time with no trigger pull and no button press."
+        }
+      ],
+      "interactions": [
+        "power_off",
+        "wake"
+      ],
+      "related": [
+        "profile.board_auto_off"
+      ]
     },
     "topic.lockout": {
-      "title": "Lockout",
-      "description": "Lockout is a lock on the settings. It is not a lock on the firing. A locked board fires as a board that is not locked.\n\nPress LOCKOUT to lock the board. The screen shows LOCKED, and the home screen shows the LOCK tag. A locked board does not keep a change from the menu, and it does not keep a change from the app. Press LOCKOUT again to unlock the board. The screen shows UNLOCKED.\n\nThe board keeps the lock through a power cycle. A locked board starts on the locked screen, which shows the shot counter only.",
-      "interactions": ["lockout_toggle"]
+      "title": [
+        {
+          "lang": "en",
+          "text": "Lockout"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "Lockout is a lock on the settings. It is not a lock on the firing. A locked board fires as a board that is not locked.\n\nPress LOCKOUT to lock the board. The screen shows LOCKED, and the home screen shows the LOCK tag. A locked board does not keep a change from the menu, and it does not keep a change from the app. Press LOCKOUT again to unlock the board. The screen shows UNLOCKED.\n\nThe board keeps the lock through a power cycle. A locked board starts on the locked screen, which shows the shot counter only."
+        }
+      ],
+      "interactions": [
+        "lockout_toggle"
+      ]
     },
     "topic.eye_override": {
-      "title": "Eye override",
-      "description": "Hold UP on the home screen to turn the eyes off for this session, for example after an eye fails in a game. The screen shows EYES OFF. Hold UP again to turn them on. The screen shows EYES ON. The stored Eye mode does not change, and the next start uses the stored Eye mode.\n\nThe screen shows NO EYE when the Eye mode is OFF, or when the fire mode has no eye phase.",
-      "interactions": ["eye_override"],
-      "related": ["autococker.eye_mode"]
+      "title": [
+        {
+          "lang": "en",
+          "text": "Eye override"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "Hold UP on the home screen to turn the eyes off for this session, for example after an eye fails in a game. The screen shows EYES OFF. Hold UP again to turn them on. The screen shows EYES ON. The stored Eye mode does not change, and the next start uses the stored Eye mode.\n\nThe screen shows NO EYE when the Eye mode is OFF, or when the fire mode has no eye phase."
+        }
+      ],
+      "interactions": [
+        "eye_override"
+      ],
+      "related": [
+        "autococker.eye_mode"
+      ]
     },
     "topic.bluetooth": {
-      "title": "Bluetooth",
-      "description": "The Bluetooth radio is off at each start. Press MENU on the Bluetooth row of the Menu screen to turn the radio on. The screen shows BT ON, and the status LED goes blue. The board shows the name Snapshot PB to a phone. The screen shows BT FAIL when the radio does not start.",
-      "related": ["runtime.bluetooth_active"]
+      "title": [
+        {
+          "lang": "en",
+          "text": "Bluetooth"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The Bluetooth radio is off at each start. Press MENU on the Bluetooth row of the Menu screen to turn the radio on. The screen shows BT ON, and the status LED goes blue. The board shows the name Snapshot PB to a phone. The screen shows BT FAIL when the radio does not start."
+        }
+      ],
+      "related": [
+        "runtime.bluetooth_active"
+      ]
     },
     "topic.firing_cycle": {
-      "title": "The firing cycle",
-      "description": "The Timing screen sets the times of one firing cycle. All times are in milliseconds.\n\n1. You pull the trigger. The trigger must stay pulled for the Debounce on time.\n\n2. The board energizes the sear solenoid for the Sear dwell time. The marker fires.\n\n3. The board waits for the Cock delay time.\n\n4. The board energizes the cocking solenoid, which opens the breech. With no eye, the solenoid stays energized for the Cock open time. With an eye, the solenoid stays energized until the eye sees a ball, or until the Cock timeout time ends.\n\n5. The board releases the cocking solenoid, and it waits for the Cock close time before the next cycle.\n\nThe BPS cap limits the rate of fire. The board fires at the slower of the cycle time and the BPS cap.",
-      "related": ["autococker.sear_solenoid_dwell", "autococker.cocking_solenoid_delay", "autococker.cocking_solenoid_dwell_open", "autococker.cocking_solenoid_dwell_closed", "autococker.cocking_solenoid_timeout", "profile.fire_rate_cap"]
+      "title": [
+        {
+          "lang": "en",
+          "text": "The firing cycle"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The Timing screen sets the times of one firing cycle. All times are in milliseconds.\n\n1. You pull the trigger. The trigger must stay pulled for the Debounce on time.\n\n2. The board energizes the sear solenoid for the Sear dwell time. The marker fires.\n\n3. The board waits for the Cock delay time.\n\n4. The board energizes the cocking solenoid, which opens the breech. With no eye, the solenoid stays energized for the Cock open time. With an eye, the solenoid stays energized until the eye sees a ball, or until the Cock timeout time ends.\n\n5. The board releases the cocking solenoid, and it waits for the Cock close time before the next cycle.\n\nThe BPS cap limits the rate of fire. The board fires at the slower of the cycle time and the BPS cap."
+        }
+      ],
+      "related": [
+        "autococker.sear_solenoid_dwell",
+        "autococker.cocking_solenoid_delay",
+        "autococker.cocking_solenoid_dwell_open",
+        "autococker.cocking_solenoid_dwell_closed",
+        "autococker.cocking_solenoid_timeout",
+        "profile.fire_rate_cap"
+      ]
     },
     "topic.ramping": {
-      "title": "Ramping",
-      "description": "The NXL 2026 fire mode applies the rules of the NXL 2026 season. The board fires at a maximum of 10.5 balls per second. The board enters the ramp after 3 trigger pulls at an interval of 200 ms or less.\n\nThe Ramping screen holds the custom ramp settings. The Fire screen shows the Ramping row only while the fire mode is NXL 2026.",
-      "related": ["autococker.fire_mode", "autococker.ramping_custom_multiplier", "autococker.ramping_custom_trigger_pulls", "autococker.ramping_custom_rof_minimum"]
+      "title": [
+        {
+          "lang": "en",
+          "text": "Ramping"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The NXL 2026 fire mode applies the rules of the NXL 2026 season. The board fires at a maximum of 10.5 balls per second. The board enters the ramp after 3 trigger pulls at an interval of 200 ms or less.\n\nThe Ramping screen holds the custom ramp settings. The Fire screen shows the Ramping row only while the fire mode is NXL 2026."
+        }
+      ],
+      "related": [
+        "autococker.fire_mode",
+        "autococker.ramping_custom_multiplier",
+        "autococker.ramping_custom_trigger_pulls",
+        "autococker.ramping_custom_rof_minimum"
+      ]
     },
     "topic.captions": {
-      "title": "The captions",
-      "description": "The screen shows a caption for a moment after some actions.\n\nLOCKED and UNLOCKED: the lock changed. LOCK on the home screen: the board is locked.\n\nEYES ON and EYES OFF: the eye override changed. NO EYE: the eye does not apply.\n\nBT ON and BT OFF: the radio changed. BT FAIL: the radio did not start.\n\nSAVE FAIL: the board could not store a setting.\n\nPowering Off: the board turns off.",
-      "related": ["topic.lockout", "topic.eye_override", "topic.bluetooth"]
+      "title": [
+        {
+          "lang": "en",
+          "text": "The captions"
+        }
+      ],
+      "description": [
+        {
+          "lang": "en",
+          "text": "The screen shows a caption for a moment after some actions.\n\nLOCKED and UNLOCKED: the lock changed. LOCK on the home screen: the board is locked.\n\nEYES ON and EYES OFF: the eye override changed. NO EYE: the eye does not apply.\n\nBT ON and BT OFF: the radio changed. BT FAIL: the radio did not start.\n\nSAVE FAIL: the board could not store a setting.\n\nPowering Off: the board turns off."
+        }
+      ],
+      "related": [
+        "topic.lockout",
+        "topic.eye_override",
+        "topic.bluetooth"
+      ]
     }
   }
 }

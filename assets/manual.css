@@ -196,8 +196,13 @@ tr.k-back .kind, tr.k-screen .kind { display: none; }
 .panel > .tabs > .panel { padding: 10px 14px 2px; background: var(--md-surface-container-lowest, var(--md-surface)); }
 .platforms { font-size: 0.9rem; color: var(--md-on-surface-variant); }
 
-/* The menu tree. */
+/* The menu tree. A wide screen shows the graphic. A narrow screen shows the list. */
 figure.tree { padding: 12px; }
+.menu-map { display: none; }
+@media screen and (max-width: 900px) {
+  figure.tree { display: none; }
+  .menu-map { display: block; }
+}
 figure.tree svg { background: transparent; max-height: none; width: 100%; height: auto; }
 .menu-tree .edge { fill: none; stroke: var(--md-outline); stroke-width: 1.5; }
 .menu-tree .edge-label { font-size: 10px; fill: var(--md-on-surface-variant); }

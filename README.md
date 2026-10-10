@@ -167,5 +167,8 @@ an underscore, and it can hold a dash or a dot between them.
 ## License
 
 The source code is licensed under the GNU General Public License, version 3. See
-[`LICENSE`](LICENSE). The Snapshot PB name, logos, and icons are trademarks and are not
-covered by that license. See [`TRADEMARKS.md`](TRADEMARKS.md).
+[`LICENSE`](LICENSE). The schema set under [`schemas/`](schemas/) is licensed under the
+Mozilla Public License, version 2.0, so that another repository can use a schema file with
+no change to its own license. See [`schemas/LICENSE`](schemas/LICENSE) and
+[`schemas/README.md`](schemas/README.md). The Snapshot PB name, logos, and icons are
+trademarks and are not covered by either license. See [`TRADEMARKS.md`](TRADEMARKS.md).

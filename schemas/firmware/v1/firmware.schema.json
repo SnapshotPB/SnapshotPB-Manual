@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://snapshotpb.com/schemas/firmware/v1/firmware.schema.json",
+  "$comment": "SPDX-License-Identifier: MPL-2.0. Copyright 2026 Snapshot PB. This file is licensed under the Mozilla Public License, version 2.0. See the LICENSE file beside the schema set.",
   "title": "Snapshot PB firmware documentation",
   "description": "One document that a firmware release writes to describe itself: its controls, its screens, its settings, and the menu tree that connects them. The generator validates the document against this schema and renders it into the manual. The key patterns and the media item come from the common schema.",
   "type": "object",

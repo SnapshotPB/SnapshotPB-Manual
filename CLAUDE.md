@@ -74,10 +74,11 @@ complete.
 4. **Clean branches and worktrees.** After a branch is merged to `main`, delete the local
    branch and its remote branch, and remove each git worktree that was made for it. Run
    `git worktree prune` after the removal. The worktrees live under
-   `../SnapshotPB-Manual-wt/`. Leave a branch that is not merged, and ask the user
-   about it. Confirm that `git branch` shows `main` alone, or `main` with the
-   branches that are still in work, and that `git worktree list` shows the main tree
-   alone.
+   `../SnapshotPB-Manual-wt/`. Then look at each other local branch. Delete each local
+   branch that is already merged to `main`, with its remote branch and its worktree.
+   Leave a branch that is not merged, and ask the user about it. Confirm that
+   `git branch` shows `main` alone, or `main` with the branches that are still in work,
+   and that `git worktree list` shows the main tree alone.
 
 Trivial changes to `.claude/`, `CLAUDE.md`, `LICENSE`, and `.gitignore` do not need the
 Rust review. They still need items 2, 3, and 4.

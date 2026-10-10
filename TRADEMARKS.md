@@ -17,13 +17,12 @@ license to use these marks.
 The following brand assets are trademarks and are excluded from the GPL grant:
 
 - The name **"Snapshot PB"** and the Snapshot PB word mark.
-- The Snapshot PB logo, `assets/snapshotpb.svg`.
-- The application icon that embodies the mark, `assets/favicon-plain.svg`.
-- Each copy of those two files that the generator embeds in a manual.
+- The Snapshot PB logo: `assets/snapshotpb.svg`.
+- The Snapshot PB icon: `assets/favicon-plain.svg`.
+- Each copy of the logo or the icon that the generator embeds in a manual that it produces.
 
-The functional icons in `assets/manual.css` and in the generated page (the menu, the
-theme and the warning icons) are not brand marks, and they remain under the GPL like the
-rest of the artwork in this repository.
+The style sheet, the scripts, and the other files under `assets/` are not brand marks. They
+remain under the GPL like the rest of this repository.
 
 ## What you may do
 

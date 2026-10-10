@@ -1,0 +1,91 @@
+# The words of the manual for the settings, the options, the captions and the notes of the
+# state machine. A key is a `bind` of the menu tree, an enum symbol of the protocol,
+# `enum.<Name>` for the text above an enum table, `named.<key>` for a caption of
+# menu_lang.yaml, or `note.<text>` for a note of the interaction FSM. A setting with no entry
+# here shows the comment of its protocol field.
+
+[text]
+# Menu
+"device_config.active_profile" = "The profile that the board uses. The board holds four profiles. Each profile holds its own fire, timing, trigger, eye and ramp settings."
+"device_config.language" = "The language of the menu. The language does not change the boot text or a profile name."
+"runtime.bluetooth_active" = "Turns the Bluetooth radio on or off. The radio is off at each start."
+
+# Fire
+"autococker.fire_mode" = "The fire mode. See [Fire modes](#the-fire-modes)."
+"profile.fire_rate_cap" = "The maximum rate of fire, in balls per second. The board does not fire faster than this rate."
+
+# Timing
+"autococker.sear_solenoid_dwell" = "The time that the sear solenoid stays energized in one firing cycle."
+"autococker.cocking_solenoid_delay" = "The time between the trigger pull and the start of the cocking solenoid."
+"autococker.cocking_solenoid_dwell_open" = "The time that the cocking solenoid stays energized to open the breech. With an eye, the eye ends this time."
+"autococker.cocking_solenoid_dwell_closed" = "The time that the cocking solenoid stays released to close the breech before the next cycle."
+"autococker.cocking_solenoid_timeout" = "The maximum time that the cocking solenoid waits for the eye to see a ball. When the time ends, the board closes the breech on the timing. The value 0 selects the default of the firmware."
+
+# Trigger
+"autococker.trigger_debounce_on" = "The time that the trigger must stay pulled before a firing cycle starts."
+"autococker.trigger_debounce_off" = "The time that the trigger must stay released before the board accepts the next pull."
+
+# Eye
+"autococker.eye_mode" = "The type of eye. See [The ball eye](#the-ball-eye)."
+"autococker.eye_threshold" = "The level at which a reflective eye sees a ball, in percent of the full scale. The value 0 selects the default of the firmware."
+"autococker.eye_debounce" = "The time that the eye must see a ball before the board accepts the ball. The value 0 selects the default of the firmware."
+
+# Ramping
+"autococker.ramping_custom_multiplier" = "The factor by which the rate of fire increases when the trigger pulls reach the Trigger pulls value. A multiplier of 2.5 makes 3 pulls per second into 7.5 balls per second. The board counts the pulls in a one-second window."
+"autococker.ramping_custom_trigger_pulls" = "The number of trigger pulls in one second that starts the ramp for the next second."
+"autococker.ramping_custom_rof_minimum" = "The minimum rate of fire in the ramp, in balls per second, with no regard to the trigger pulls."
+
+# Setup
+"profile.board_auto_off" = "The time with no trigger pull and no button press after which the board turns off, in minutes. The value 0 keeps the board on."
+"device_config.screen_off_delay" = "The time after the last button press after which the screen goes dark, in seconds. A shot does not keep the screen on. The first button press after that wakes the screen and does nothing else."
+"device_config.screen_brightness" = "The brightness of the screen. LOW uses the least power."
+"runtime.display_window_full" = "Shows the menu on the whole screen for this session. Use it when the display window is wrong and you cannot see the menu. The next start uses the stored window again."
+"device_config.battery_type" = "The type of battery on BATT. The board uses it to select the voltage at which it shuts down."
+
+# Fire modes
+"enum.AutocockerFireMode" = "Each mode uses the trigger settings to read the trigger."
+"AUTOCOCKER_FIRE_MODE_MECHANICAL" = "The board works as a mechanical autococker. A trigger pull energizes the sear for the Sear dwell time. The cocking solenoid is energized while the trigger is pulled, and it is released when the trigger is released. The eye does not apply."
+"AUTOCOCKER_FIRE_MODE_SEMI" = "The board fires one cycle for each trigger pull. The slower of the cycle time and the BPS cap limits the rate."
+"AUTOCOCKER_FIRE_MODE_TRIGGER_ONLY" = "For a pump marker. The board never energizes the cocking solenoid. The sear and trigger settings apply. The eye does not apply."
+"AUTOCOCKER_FIRE_MODE_FULL_AUTO" = "The board fires cycle after cycle while the trigger is pulled. The slower of the cycle time and the BPS cap limits the rate."
+"AUTOCOCKER_FIRE_MODE_RAMPING_NXL_2026" = "The board applies the ramp rules of the NXL 2026 season. See [Ramping](#ramping)."
+
+# Eye modes
+"enum.EyeMode" = ""
+"EYE_MODE_OFF" = "No eye. The board fires on the timing alone."
+"EYE_MODE_REFLECTIVE" = "A reflective eye. The eye sees the light that a ball reflects."
+"EYE_MODE_BREAK_BEAM" = "A break-beam eye. The eye sees a ball when the ball breaks the beam across the breech."
+
+# Battery types
+"enum.BatteryType" = ""
+"BATTERY_TYPE_9V" = "One 9 V alkaline cell. This is the default."
+"BATTERY_TYPE_2S_LIPO" = "One 2S LiPo pack, 7.4 V nominal and 8.4 V full."
+
+# Captions
+"named.powering_off" = "The board turns off in one second."
+"named.lock" = "The tag under the shot counter while the board is locked."
+"named.locked" = "You pressed LOCKOUT, and the board is locked."
+"named.unlocked" = "You pressed LOCKOUT, and the board is unlocked."
+"named.eyes_on" = "You held UP, and the eye is on for this session."
+"named.eyes_off" = "You held UP, and the eye is off for this session."
+"named.no_eye" = "You held UP, and the profile has no eye phase or no eye."
+"named.bt_on" = "The Bluetooth radio is on."
+"named.bt_off" = "The Bluetooth radio is off."
+"named.bt_fail" = "The Bluetooth radio did not start."
+"named.save_fail" = "The board could not keep the change."
+"named.off_caps" = "The board is off."
+
+# Notes of the interaction FSM
+"note.ignored" = "Nothing"
+"note.toggle eyes runtime override" = "Turns the eye off or on for this session"
+"note.open root menu" = "Opens the Menu screen"
+"note.cursor--" = "Moves the cursor up one row"
+"note.cursor++" = "Moves the cursor down one row"
+"note.push" = "Opens the screen of the row"
+"note.pop" = "Goes back to the screen above"
+"note.exit to home" = "Closes the menu"
+"note.inert" = "Nothing"
+"note.flip + commit" = "Changes the switch and keeps the change"
+"note.scratch step, clamp" = "Changes the value one step, inside the range of the row"
+"note.commit if changed, return" = "Keeps the value and goes back to the list"
+"note.cycle scratch" = "Shows the next option"

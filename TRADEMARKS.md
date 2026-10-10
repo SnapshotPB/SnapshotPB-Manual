@@ -17,19 +17,13 @@ license to use these marks.
 The following brand assets are trademarks and are excluded from the GPL grant:
 
 - The name **"Snapshot PB"** and the Snapshot PB word mark.
-- The Snapshot PB logo:
-  - `art/snapshot-full-logo-256.png`
-  - `core/resources/src/commonMain/composeResources/drawable/snapshot_logo.png`
-- The application and launcher icons that embody the mark, including:
-  - Android — `app/android/src/main/res/mipmap-*/ic_launcher*`
-  - Wear OS — `app/wear/src/main/res/mipmap-*/ic_launcher*`
-  - iOS — `iosApp/iosApp/Assets.xcassets/AppIcon.appiconset/*`
-  - Desktop — `app/desktop/icon/icon.svg`
-  - Zepp OS — `app/zepp/assets/**/icon.png`
+- The Snapshot PB logo, `assets/snapshotpb.svg`.
+- The application icon that embodies the mark, `assets/favicon-plain.svg`.
+- Each copy of those two files that the generator embeds in a manual.
 
-Functional user-interface icons that are not brand marks (for example
-`bluetooth-icon.png`, `camera-icon.png`, `photo-icon.png`) remain under the
-GPL like the rest of the artwork in this repository.
+The functional icons in `assets/manual.css` and in the generated page (the menu, the
+theme and the warning icons) are not brand marks, and they remain under the GPL like the
+rest of the artwork in this repository.
 
 ## What you may do
 
@@ -53,10 +47,10 @@ The GPL requires that you can freely modify and redistribute the code, but you
 must **not** ship it under the Snapshot PB brand. Before publishing a fork or
 derivative:
 
-- Replace the logo and application/launcher icons listed above with your own
-  artwork.
-- Choose a different application name and identity that is not confusingly
-  similar to "Snapshot PB".
+- Replace the logo and the icon listed above with your own artwork, and change the
+  `[brand]` table of each manifest to point at them.
+- Choose a different name and identity that is not confusingly similar to
+  "Snapshot PB".
 
 ## Permission requests
 

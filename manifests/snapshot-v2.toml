@@ -1,0 +1,136 @@
+# The manual of the SnapshotPB v2 board with its firmware.
+#
+# A path `name:rest` resolves against the source root `name` below. A path with no prefix is
+# relative to this file. `~` is the home directory. `--source name=path` on the command line
+# replaces a root.
+
+id = "snapshot-v2"
+title = "SnapshotPB"
+subtitle = "Board and firmware manual"
+output = "../dist/snapshot-v2.html"
+content = "../content/snapshot-v2"
+
+[sources]
+pcb = "~/workspace/SnapshotPB-PCB"
+firmware = "~/workspace/Firmware"
+app = "~/workspace/SnapshotPB"
+
+[brand]
+logo = "../assets/snapshotpb.svg"
+icon = "../assets/favicon-plain.svg"
+theme = "app:core/common/src/commonMain/kotlin/com/snapshotpb/configuration/common/theme/Color.kt"
+
+[board]
+name = "snapshot_v2"
+metrics = "pcb:snapshot_v2/METRICS.json"
+
+[firmware]
+# Paths with no prefix are relative to the firmware root.
+board = "snapshot_v2"
+menu_tree = "app/menu/menu_tree.yaml"
+menu_lang = "app/menu/menu_lang.yaml"
+interaction_fsm = "docs/menu/interaction-fsm.md"
+proto_root = "modules/lib/snapshot_protocol"
+kconfig = ["drivers/fire_control/Kconfig"]
+defines = ["drivers/fire_control/fire_control_util.h", "app/menu/menu_input.h"]
+
+# A `bind` scope of the menu tree and the protocol message that holds the field.
+[firmware.scopes]
+device_config = "DeviceConfig"
+profile = "Profile"
+autococker = "AutocockerConfig"
+device = "Device"
+
+# The input events of the interaction FSM, in words.
+[firmware.events]
+EV_UP = "Press UP"
+EV_DOWN = "Press DOWN"
+EV_ENTER = "Press MENU"
+EV_ENTER_LONG = "Hold MENU"
+EV_UP_LONG = "Hold UP"
+EV_LOCKOUT = "Press LOCKOUT"
+EV_SPLASH_DONE = "The start screen ends"
+
+# The guards of the FSM and the predicates of the menu tree, in words.
+[firmware.guards]
+"item=submenu" = "the cursor is on a row that opens a screen"
+"item=back" = "the cursor is on the Back row"
+"item=int" = "the cursor is on a number row"
+"item=enum" = "the cursor is on a choice row"
+"item=toggle" = "the cursor is on a switch row"
+"depth>1" = "the screen is below the Menu screen"
+"depth=1" = "the screen is the Menu screen"
+"enabled" = "the row applies and the board is not locked"
+"locked" = "the row does not apply, or the board is locked"
+"lockout_enabled" = "the board is locked"
+"not lockout_enabled" = "the board is not locked"
+"no_eye_phase" = "the fire mode has no eye phase (MECHANICAL and TRIGGER ONLY)"
+"eye_inactive" = "the fire mode has no eye phase, or the Eye mode is OFF"
+"ramping_off" = "the fire mode is not NXL 2026"
+
+# The modes of the FSM, in the order of the manual. Each mode of the FSM must be here.
+[[firmware.states]]
+state = "Splash"
+name = "The start screen"
+text = "The board shows the boot text for a moment after it starts."
+
+[[firmware.states]]
+state = "ShotCounter"
+name = "The home screen"
+text = "The home screen shows the shot counter."
+
+[[firmware.states]]
+state = "Browsing"
+name = "A menu screen"
+text = "A menu screen shows a list of rows with a cursor."
+
+[[firmware.states]]
+state = "EditNumeric"
+name = "The number editor"
+text = "The number editor shows the value of a number row."
+
+[[firmware.states]]
+state = "EditEnum"
+name = "The choice editor"
+text = "The choice editor shows one option of a choice row."
+
+[[firmware.states]]
+state = "Locked"
+name = "The locked screen"
+text = "The locked screen shows the shot counter and the LOCK tag."
+
+[[firmware.states]]
+state = "Off"
+name = "Off"
+text = "The screen is dark."
+
+# Where the factory default of a setting comes from: `define:NAME`, `kconfig:NAME`,
+# `enum:SYMBOL` or `literal:TEXT`. A row with no entry here shows no default.
+[defaults]
+"device_config.active_profile" = "literal:1"
+"device_config.language" = "enum:LANGUAGE_EN"
+"device_config.screen_off_delay" = "define:FIRE_CONTROL_SCREEN_OFF_DELAY_DEFAULT_S"
+"device_config.screen_brightness" = "enum:SCREEN_BRIGHTNESS_DEFAULT"
+"device_config.battery_type" = "enum:BATTERY_TYPE_9V"
+"autococker.fire_mode" = "enum:AUTOCOCKER_FIRE_MODE_SEMI"
+"autococker.eye_mode" = "enum:EYE_MODE_OFF"
+"profile.fire_rate_cap" = "define:FIRE_CONTROL_DEFAULT_RATE_CAP_TENTHS_BPS"
+"autococker.sear_solenoid_dwell" = "literal:1000"
+"autococker.cocking_solenoid_delay" = "literal:1000"
+"autococker.cocking_solenoid_dwell_open" = "literal:1000"
+"autococker.cocking_solenoid_dwell_closed" = "literal:1000"
+"autococker.cocking_solenoid_timeout" = "kconfig:FIRE_CONTROL_EYE_COCKING_TIMEOUT_DEFAULT_TENTHS_MS"
+"autococker.trigger_debounce_on" = "kconfig:FIRE_CONTROL_TRIGGER_DEBOUNCE_DEFAULT_TENTHS_MS"
+"autococker.trigger_debounce_off" = "kconfig:FIRE_CONTROL_TRIGGER_DEBOUNCE_DEFAULT_TENTHS_MS"
+"autococker.eye_threshold" = "kconfig:FIRE_CONTROL_EYE_THRESHOLD_DEFAULT_PERCENT"
+"autococker.eye_debounce" = "kconfig:FIRE_CONTROL_EYE_DEBOUNCE_DEFAULT_TENTHS_MS"
+"autococker.ramping_custom_multiplier" = "literal:0"
+"autococker.ramping_custom_trigger_pulls" = "literal:0"
+"autococker.ramping_custom_rof_minimum" = "literal:0"
+"profile.board_auto_off" = "literal:0"
+"runtime.bluetooth_active" = "literal:Off"
+"runtime.display_window_full" = "literal:Off"
+
+# Literal values for `{{value name}}` in the chapters.
+[values]
+"product" = "SnapshotPB"

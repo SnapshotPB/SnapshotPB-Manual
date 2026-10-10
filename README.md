@@ -120,6 +120,21 @@ with the `SOURCES_TOKEN` repository secret. The secret is a fine-grained persona
 token with read access to the contents of `SnapshotPB/SnapshotPB` and
 `SnapshotPB/PCB-Autococker`. The build stops with a clear error when the secret is not set.
 
+Two more workflows run on their own:
+
+- **Check** (`.github/workflows/check.yml`). It runs on a pull request that touches the code
+  of the generator: `src/`, `schemas/`, `assets/`, or the Cargo manifest. It checks the
+  format, runs clippy, and runs the tests. A pull request that changes the content alone
+  does not start it.
+- **Publish to GitHub Pages** (`.github/workflows/pages.yml`). Each push to `main` that
+  changes the manual builds it and publishes it as the Pages site. The manual is
+  `index.html`, and a copy keeps the name of the release asset. The workflow needs the
+  `SOURCES_TOKEN` secret, and the Pages source of the repository must be "GitHub Actions".
+
+Each workflow caches the Cargo registry and the compiled dependencies, keyed on
+`Cargo.lock` and the toolchain. The Pages workflow also caches the two downloaded documents,
+keyed on the manifest.
+
 `scripts/cut_version.py` is the compute core of the first workflow. The same scheme in two
 repositories keeps the numbers of the app and of the manual in step.
 

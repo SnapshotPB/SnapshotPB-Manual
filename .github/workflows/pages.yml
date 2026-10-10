@@ -1,0 +1,144 @@
+# Publish to GitHub Pages. Each push to main that changes the manual builds the manual
+# and publishes it as the Pages site of this repository. The site is one page: the manual
+# is index.html, and a copy keeps the name of the release asset. A manual run from the
+# Actions tab publishes the current main.
+#
+# The build needs the same sources as build-release.yml: the app repository and the PCB
+# repository, which the job clones with the SOURCES_TOKEN secret, and the firmware
+# document and the app document, which gh downloads from their releases with the same
+# secret. See the header of build-release.yml for the token.
+#
+# Three caches cut the build minutes. The Rust cache keeps the registry and the compiled
+# dependencies, keyed on Cargo.lock and the toolchain. The document cache keeps the two
+# downloaded documents, keyed on the manifest, so that a run with the same releases does
+# no download. The source checkouts are shallow.
+#
+# MAINTAINER ACTION: in Settings > Pages, set the source to "GitHub Actions". A private
+# repository needs a plan that includes Pages.
+name: Publish to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'LICENSE'
+      - '.claude/**'
+      - '.gitignore'
+      - 'scripts/**'
+      - '.github/workflows/check.yml'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/build-release.yml'
+  workflow_dispatch:
+
+# One publish at a time. A publish that runs completes, so that the site never holds a
+# half-deployed version.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  MANIFEST: manifests/autococker-rev-b.toml
+  ASSET: snapshotpb-autococker-rev-b.html
+  # The directory where the generator caches the downloaded documents.
+  SNAPSHOTPB_MANUAL_CACHE: ${{ github.workspace }}/.document-cache
+
+jobs:
+  # ---------------------------------------------------------------------------------
+  # Build the manual from main and the two source repositories.
+  # ---------------------------------------------------------------------------------
+  build:
+    name: Build the manual
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that the SOURCES_TOKEN secret exists
+        env:
+          HAS_TOKEN: ${{ secrets.SOURCES_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::error::The SOURCES_TOKEN secret is not set. See the header of build-release.yml."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Checkout the app repository
+        uses: actions/checkout@v7
+        with:
+          repository: SnapshotPB/SnapshotPB
+          token: ${{ secrets.SOURCES_TOKEN }}
+          path: sources/app
+          persist-credentials: false
+
+      - name: Checkout the PCB repository
+        uses: actions/checkout@v7
+        with:
+          repository: SnapshotPB/PCB-Autococker
+          token: ${{ secrets.SOURCES_TOKEN }}
+          path: sources/pcb
+          persist-credentials: false
+
+      - name: Show the toolchain
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Cache the registry and the dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: release
+
+      - name: Cache the downloaded documents
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.SNAPSHOTPB_MANUAL_CACHE }}
+          # The manifest names the release and the asset of each document, so a change
+          # to a release changes the key.
+          key: documents-${{ hashFiles('manifests/autococker-rev-b.toml') }}
+
+      - name: Build the generator
+        run: cargo build --release --locked
+
+      - name: Build the manual
+        env:
+          # gh reads the two documents from the private firmware and app releases.
+          GH_TOKEN: ${{ secrets.SOURCES_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p site
+          ./target/release/snapshotpb-manual build "$MANIFEST" \
+            --out "site/index.html" \
+            --source app=sources/app \
+            --source pcb=sources/pcb
+          cp site/index.html "site/$ASSET"
+          ls -la site/
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/
+
+  # ---------------------------------------------------------------------------------
+  # Deploy the site. Only this job gets the Pages scopes.
+  # ---------------------------------------------------------------------------------
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write      # deploy the site
+      id-token: write   # prove the identity of the run to Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v5

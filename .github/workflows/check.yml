@@ -1,0 +1,59 @@
+# Check. It runs on a pull request that touches the code of the generator, and it proves
+# that the code formats, passes clippy, and builds, and that the tests pass. A pull request
+# that changes the content, the manifests, or the documentation alone does not start it.
+# The schema set and the assets count as code, because the generator embeds them with
+# include_str!.
+#
+# The job compiles third-party crates, so the token stays read-only. The cache action
+# keeps the registry and the compiled dependencies between runs, keyed on Cargo.lock and
+# the toolchain, so that a run compiles the crates of this repository alone.
+name: Check
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'schemas/**'
+      - 'assets/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/check.yml'
+
+# A new push to the same pull request replaces the run that is in progress.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Format, clippy, test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Show the toolchain
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Cache the registry and the dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          # The release workflows and the pages workflow build the release profile. This
+          # workflow builds the dev profile, so it keeps its own cache.
+          shared-key: check
+
+      - name: Check the format
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Run the tests
+        run: cargo test --locked

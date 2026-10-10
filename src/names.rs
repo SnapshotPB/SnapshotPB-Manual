@@ -6,6 +6,7 @@
 //! document, and to each label of an inline SVG.
 
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 
 use anyhow::{bail, Context, Result};
 use regex::{Captures, Regex};
@@ -15,13 +16,17 @@ use crate::util::esc;
 /// The readable names of the designators of one manifest, with the patterns that apply them.
 pub struct Names {
     map: BTreeMap<String, String>,
-    /// A code span of the page, and the `<pre>` before it when the span is a code block.
-    re_code: Regex,
-    /// The text of a label in an inline SVG.
-    re_label: Regex,
     /// Each designator as a whole word, for the text of a label.
     re_word: Option<Regex>,
 }
+
+/// A code span of the page, and the `<pre>` before it when the span is a code block. The
+/// pattern is a constant, so it compiles once and cannot fail.
+static RE_CODE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(<pre>)?<code>([^<]+)</code>").expect("a constant pattern"));
+/// The text of a label in an inline SVG.
+static RE_LABEL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(<(?:text|tspan)\b[^>]*>)([^<]*)").expect("a constant pattern"));
 
 impl Names {
     /// The names of a manifest, ready to apply.
@@ -37,9 +42,6 @@ impl Names {
                 bail!("the name key `{key}` is not a designator: it must start and end with a letter, a digit or an underscore, and hold only letters, digits, `_`, `-` and `.`");
             }
         }
-        let re_code = Regex::new(r"(<pre>)?<code>([^<]+)</code>").context("the code pattern")?;
-        let re_label =
-            Regex::new(r"(<(?:text|tspan)\b[^>]*>)([^<]*)").context("the label pattern")?;
         let re_word = if map.is_empty() {
             None
         } else {
@@ -53,8 +55,6 @@ impl Names {
         };
         Ok(Names {
             map: map.clone(),
-            re_code,
-            re_label,
             re_word,
         })
     }
@@ -68,7 +68,7 @@ impl Names {
             Some(re) => re,
             None => return html.to_string(),
         };
-        let html = self.re_code.replace_all(html, |cap: &Captures| {
+        let html = RE_CODE.replace_all(html, |cap: &Captures| {
             if cap.get(1).is_some() {
                 return cap[0].to_string();
             }
@@ -81,7 +81,7 @@ impl Names {
                 None => cap[0].to_string(),
             }
         });
-        self.re_label
+        RE_LABEL
             .replace_all(&html, |cap: &Captures| {
                 let text = re_word.replace_all(&cap[2], |w: &Captures| match self.map.get(&w[0]) {
                     Some(name) => esc(name),
@@ -113,7 +113,7 @@ mod tests {
             ("TRIG1".to_string(), "Trigger".to_string()),
             ("USB-C".to_string(), "USB port".to_string()),
         ]))
-        .unwrap()
+        .expect("the designators are valid")
     }
 
     #[test]
@@ -155,7 +155,7 @@ mod tests {
             "J1".to_string(),
             "A <b> name".to_string(),
         )]))
-        .unwrap();
+        .expect("the designators are valid");
         assert_eq!(n.apply("<text>J1</text>"), "<text>A &lt;b&gt; name</text>");
         assert_eq!(
             names().apply("<text>the USB-C port</text>"),
@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn no_names_leave_the_page_as_it_is() {
-        let n = Names::new(&BTreeMap::new()).unwrap();
+        let n = Names::new(&BTreeMap::new()).expect("the designators are valid");
         assert_eq!(n.apply("<code>J11</code>"), "<code>J11</code>");
     }
 }

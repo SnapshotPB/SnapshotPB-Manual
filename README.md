@@ -20,6 +20,12 @@ has two parts:
 - **Application schemas** describe an application revision: its screens, its
   settings, and the firmware features that it exposes.
 
+## Documentation
+
+- [`docs/firmware-schema.md`](docs/firmware-schema.md) describes the firmware schema:
+  the controls, the screens, the settings, the menu tree, and the shared keys.
+- [`schemas/firmware/v1/`](schemas/firmware/v1/) holds the schema and an example document.
+
 ## Versioning
 
 Each schema carries a version. The version of a firmware schema is the firmware

@@ -1,0 +1,596 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snapshotpb.com/schemas/firmware/v1/firmware.schema.json",
+  "title": "Snapshot PB firmware documentation",
+  "description": "One document that a firmware release writes to describe itself: its controls, its screens, its settings, and the menu tree that connects them. The generator validates the document against this schema and renders it into the manual.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "firmware",
+    "controls",
+    "interactions",
+    "home",
+    "root",
+    "screens",
+    "settings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "description": "The version of this schema that the document follows. The major number is the folder name under schemas/firmware/.",
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "firmware": {
+      "$ref": "#/$defs/firmware"
+    },
+    "controls": {
+      "description": "The physical inputs of the board, keyed by control key. The manual draws them and names them in each procedure.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/$defs/local_key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/control"
+      }
+    },
+    "interactions": {
+      "description": "How the menu works: one entry for each thing a user can do, keyed by interaction key. Each entry names the control and the event that does it.",
+      "type": "object",
+      "required": [
+        "open_menu",
+        "cursor_up",
+        "cursor_down",
+        "select",
+        "back"
+      ],
+      "propertyNames": {
+        "$ref": "#/$defs/local_key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/interaction"
+      }
+    },
+    "home": {
+      "$ref": "#/$defs/home"
+    },
+    "root": {
+      "description": "The key of the screen that opens from the home screen. The menu tree starts here.",
+      "$ref": "#/$defs/local_key"
+    },
+    "screens": {
+      "description": "The menu screens, keyed by screen key. The order of the items on a screen is the order on the panel. Each screen except the root must be the target of exactly one submenu item, so the screens form a tree.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/$defs/local_key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/screen"
+      }
+    },
+    "settings": {
+      "description": "The settings that the screens edit, keyed by shared key. The application documentation uses the same key for the same setting, so the manual can show both side by side.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/shared_key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/setting"
+      }
+    },
+    "predicates": {
+      "description": "The conditions that hide or disable a menu item, keyed by predicate key. A setting or an item names a predicate; this map says what the predicate means.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/local_key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/predicate"
+      }
+    },
+    "topics": {
+      "description": "Documentation that is not a setting, keyed by shared key: the lockout, the power-off gesture, the eye override. The application documentation can carry the same topic keys.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/shared_key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/topic"
+      }
+    }
+  },
+  "$defs": {
+    "local_key": {
+      "description": "A key that is local to this document: lower case, digits, and underscores.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "shared_key": {
+      "description": "A key that the firmware and the application documentation share. For a setting, it is the field path in the protocol model: <scope>.<field>, for example autococker.eye_mode. For a topic, the scope is the word topic.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+    },
+    "version": {
+      "description": "A version: MAJOR.MINOR.PATCH, with an optional suffix such as -dev.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.]+)?$"
+    },
+    "text": {
+      "description": "Prose for the manual, in English, in ASD-STE100 Simplified Technical English. Markdown inline formatting is permitted.",
+      "type": "string",
+      "minLength": 1
+    },
+    "firmware": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "board_models"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "description": "The firmware version that this document describes. The document is versioned by this value.",
+          "$ref": "#/$defs/version"
+        },
+        "protocol_version": {
+          "description": "The version of the SnapshotPB protocol that the firmware speaks. The application documentation states the same field, so the generator can pair a firmware document with an application document.",
+          "$ref": "#/$defs/version"
+        },
+        "board_models": {
+          "description": "The BoardModel enum symbols from the protocol that this firmware runs on.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          }
+        },
+        "summary": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "events"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "The name that the manual prints for the control, for example ENTER.",
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "events": {
+          "description": "The events that the control can send, keyed by event key: short, long, or another name the firmware defines.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "$ref": "#/$defs/local_key"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "description"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "description": {
+                "$ref": "#/$defs/text"
+              },
+              "hold_ms": {
+                "description": "For a long press: the hold time in milliseconds.",
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "interaction": {
+      "type": "object",
+      "required": [
+        "control",
+        "event",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "control": {
+          "description": "The key of the control in the controls map.",
+          "$ref": "#/$defs/local_key"
+        },
+        "event": {
+          "description": "The key of the event on that control.",
+          "$ref": "#/$defs/local_key"
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "applies_to": {
+          "description": "Where the interaction works. Empty means everywhere that takes input.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "home",
+              "screen",
+              "edit_int",
+              "edit_enum",
+              "locked"
+            ]
+          }
+        }
+      }
+    },
+    "home": {
+      "description": "The screen that the board shows when no menu is open.",
+      "type": "object",
+      "required": [
+        "title",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "indicators": {
+          "description": "The marks on the home screen, keyed by local key, with what each one means.",
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/local_key"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      }
+    },
+    "screen": {
+      "type": "object",
+      "required": [
+        "title",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "description": "The title that the panel draws for the screen.",
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "items": {
+          "description": "The rows of the screen, in panel order. The last row must be a back item.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/item"
+          }
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": [
+        "type",
+        "render"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "setting",
+            "submenu",
+            "back"
+          ]
+        },
+        "render": {
+          "description": "The text that the panel draws for the row.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "hidden_when": {
+          "description": "The key of a predicate. While it holds, the panel does not show the row.",
+          "$ref": "#/$defs/local_key"
+        },
+        "disabled_when": {
+          "description": "The key of a predicate. While it holds, the panel shows the row but the row does nothing.",
+          "$ref": "#/$defs/local_key"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "setting"
+            },
+            "key": {
+              "description": "The shared key of the setting in the settings map.",
+              "$ref": "#/$defs/shared_key"
+            }
+          },
+          "required": [
+            "key"
+          ]
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "submenu"
+            },
+            "ref": {
+              "description": "The key of the screen that the row opens.",
+              "$ref": "#/$defs/local_key"
+            }
+          },
+          "required": [
+            "ref"
+          ]
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "back"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "hidden_when"
+                ]
+              },
+              {
+                "required": [
+                  "disabled_when"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "setting": {
+      "type": "object",
+      "required": [
+        "title",
+        "description",
+        "scope",
+        "type"
+      ],
+      "properties": {
+        "title": {
+          "description": "The name of the setting in the manual.",
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "description": "What the setting does, and what the user sees when it changes.",
+          "$ref": "#/$defs/text"
+        },
+        "scope": {
+          "description": "What the value belongs to. device: one value for the board. profile: one value for each profile. runtime: not stored, reset at each boot.",
+          "type": "string",
+          "enum": [
+            "device",
+            "profile",
+            "runtime"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "int",
+            "enum",
+            "toggle"
+          ]
+        },
+        "related": {
+          "description": "Shared keys of settings or topics that the reader must also know.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/shared_key"
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "int"
+            },
+            "min": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "integer"
+            },
+            "step": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "default": {
+              "type": "integer"
+            },
+            "unit": {
+              "description": "The unit that the panel draws after the number, for example ms.",
+              "type": "string"
+            },
+            "decimals": {
+              "description": "The number of decimal places that the panel draws. The stored value is the drawn value times ten to this power.",
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "zero_text": {
+              "description": "The word that the panel draws for the value 0, in the place of the number.",
+              "type": "string"
+            },
+            "title": true,
+            "description": true,
+            "scope": true,
+            "related": true
+          },
+          "required": [
+            "min",
+            "max",
+            "step"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "enum"
+            },
+            "options": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "object",
+                "required": [
+                  "value",
+                  "text",
+                  "description"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "description": "The protocol enum symbol, or the number, that the option stores.",
+                    "type": [
+                      "string",
+                      "integer"
+                    ]
+                  },
+                  "text": {
+                    "description": "The text that the panel draws for the option.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "$ref": "#/$defs/text"
+                  }
+                }
+              }
+            },
+            "default": {
+              "type": [
+                "string",
+                "integer"
+              ]
+            },
+            "title": true,
+            "description": true,
+            "scope": true,
+            "related": true
+          },
+          "required": [
+            "options"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "toggle"
+            },
+            "default": {
+              "type": "boolean"
+            },
+            "on_text": {
+              "type": "string"
+            },
+            "off_text": {
+              "type": "string"
+            },
+            "title": true,
+            "description": true,
+            "scope": true,
+            "related": true
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "predicate": {
+      "type": "object",
+      "required": [
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "description": "When the predicate holds, in words the reader can check on the board.",
+          "$ref": "#/$defs/text"
+        },
+        "depends_on": {
+          "description": "The shared keys of the settings that decide the predicate.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/shared_key"
+          }
+        }
+      }
+    },
+    "topic": {
+      "type": "object",
+      "required": [
+        "title",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "interactions": {
+          "description": "The keys of the interactions that the topic uses.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/local_key"
+          }
+        },
+        "related": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/shared_key"
+          }
+        }
+      }
+    }
+  }
+}

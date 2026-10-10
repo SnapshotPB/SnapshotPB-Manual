@@ -1,0 +1,217 @@
+{
+  "schema_version": "1.0.0",
+  "firmware": {
+    "name": "Snapshot PB autococker firmware",
+    "version": "26.29.0",
+    "protocol_version": "1.0.0",
+    "board_models": ["BOARD_MODEL_AUTOCOCKER"],
+    "summary": "The firmware of the Snapshot PB autococker board. This example covers the root screen, the Fire screen, the Ramping screen, and the Eye screen."
+  },
+  "controls": {
+    "enter": {
+      "name": "ENTER",
+      "description": "The centre button. It selects a row, commits a value, and opens the menu.",
+      "events": {
+        "short": { "description": "A press and a release in less than the hold time." },
+        "long": { "description": "A press that lasts the hold time or longer.", "hold_ms": 1500 }
+      }
+    },
+    "up": {
+      "name": "UP",
+      "description": "The top button. It moves the cursor up and increases a value.",
+      "events": {
+        "short": { "description": "A press and a release in less than the hold time." },
+        "long": { "description": "A press that lasts the hold time or longer.", "hold_ms": 1500 }
+      }
+    },
+    "down": {
+      "name": "DOWN",
+      "description": "The bottom button. It moves the cursor down and decreases a value.",
+      "events": {
+        "short": { "description": "A press." }
+      }
+    },
+    "lockout": {
+      "name": "LOCKOUT",
+      "description": "The lockout button. It locks and unlocks the settings.",
+      "events": {
+        "short": { "description": "A press." }
+      }
+    }
+  },
+  "interactions": {
+    "open_menu": { "control": "enter", "event": "short", "description": "Opens the root menu from the home screen.", "applies_to": ["home"] },
+    "cursor_up": { "control": "up", "event": "short", "description": "Moves the cursor one row up. On the first row, it stays.", "applies_to": ["screen"] },
+    "cursor_down": { "control": "down", "event": "short", "description": "Moves the cursor one row down. On the last row, it stays.", "applies_to": ["screen"] },
+    "select": { "control": "enter", "event": "short", "description": "Opens the row under the cursor. A submenu row opens its screen. A setting row opens its editor. A toggle row changes its value at once.", "applies_to": ["screen"] },
+    "back": { "control": "enter", "event": "short", "description": "On the Back row, returns to the parent screen. On the root screen, returns to the home screen.", "applies_to": ["screen"] },
+    "value_up": { "control": "up", "event": "short", "description": "In an editor, increases the value by one step, or moves to the next option. The value stops at the maximum.", "applies_to": ["edit_int", "edit_enum"] },
+    "value_down": { "control": "down", "event": "short", "description": "In an editor, decreases the value by one step, or moves to the previous option. The value stops at the minimum.", "applies_to": ["edit_int", "edit_enum"] },
+    "commit": { "control": "enter", "event": "short", "description": "In an editor, stores the value and returns to the screen. An editor has no cancel.", "applies_to": ["edit_int", "edit_enum"] },
+    "power_off": { "control": "enter", "event": "long", "description": "Turns the board off from each screen that takes input." },
+    "eye_override": { "control": "up", "event": "long", "description": "Turns the eyes off or on for this session. The stored eye mode does not change.", "applies_to": ["home"] },
+    "lockout_toggle": { "control": "lockout", "event": "short", "description": "Locks or unlocks the settings. While locked, the board shows the shot counter only." }
+  },
+  "home": {
+    "title": "Shot counter",
+    "description": "The screen that the board shows after the boot caption. It shows the shot count and the state marks. The menu opens from this screen.",
+    "indicators": {
+      "bluetooth": "The Bluetooth mark shows while the Bluetooth radio is on.",
+      "eyes": "The eye mark shows the eye state: on, off, or overridden for this session."
+    }
+  },
+  "root": "root",
+  "screens": {
+    "root": {
+      "title": "Menu",
+      "description": "The first screen of the menu. The two rows at the top select how the whole board looks. The submenu rows below them hold the settings of one subject each.",
+      "items": [
+        { "type": "setting", "render": "Profile", "key": "device_config.active_profile" },
+        { "type": "submenu", "render": "Fire", "ref": "fire_menu" },
+        { "type": "submenu", "render": "Eye", "ref": "eye_menu" },
+        { "type": "setting", "render": "Bluetooth", "key": "runtime.bluetooth_active" },
+        { "type": "back", "render": "Back" }
+      ]
+    },
+    "fire_menu": {
+      "title": "Fire",
+      "items": [
+        { "type": "setting", "render": "Mode", "key": "autococker.fire_mode" },
+        { "type": "setting", "render": "BPS cap", "key": "profile.fire_rate_cap" },
+        { "type": "submenu", "render": "Ramping", "ref": "ramp_menu", "hidden_when": "ramping_off" },
+        { "type": "back", "render": "Back" }
+      ]
+    },
+    "ramp_menu": {
+      "title": "Ramping",
+      "items": [
+        { "type": "setting", "render": "Multiplier", "key": "autococker.ramping_custom_multiplier", "disabled_when": "ramping_off" },
+        { "type": "back", "render": "Back" }
+      ]
+    },
+    "eye_menu": {
+      "title": "Eye",
+      "items": [
+        { "type": "setting", "render": "Eye mode", "key": "autococker.eye_mode", "disabled_when": "no_eye_phase" },
+        { "type": "setting", "render": "Threshold", "key": "autococker.eye_threshold", "disabled_when": "eye_inactive" },
+        { "type": "back", "render": "Back" }
+      ]
+    }
+  },
+  "settings": {
+    "device_config.active_profile": {
+      "title": "Profile",
+      "description": "The profile that the board uses. The board holds four profiles. Each profile holds its own fire, timing, trigger, and eye settings.",
+      "scope": "device",
+      "type": "enum",
+      "options": [
+        { "value": 1, "text": "1", "description": "Profile 1." },
+        { "value": 2, "text": "2", "description": "Profile 2." },
+        { "value": 3, "text": "3", "description": "Profile 3." },
+        { "value": 4, "text": "4", "description": "Profile 4." }
+      ],
+      "default": 1
+    },
+    "runtime.bluetooth_active": {
+      "title": "Bluetooth",
+      "description": "Turns the Bluetooth radio on or off. The board starts with the radio off at each boot. The application connects only while the radio is on.",
+      "scope": "runtime",
+      "type": "toggle",
+      "default": false,
+      "on_text": "On",
+      "off_text": "Off"
+    },
+    "autococker.fire_mode": {
+      "title": "Fire mode",
+      "description": "How the board answers a trigger pull.",
+      "scope": "profile",
+      "type": "enum",
+      "options": [
+        { "value": "AUTOCOCKER_FIRE_MODE_MECHANICAL", "text": "MECHANICAL", "description": "The board does not fire the solenoids. The marker fires by its mechanical linkage only." },
+        { "value": "AUTOCOCKER_FIRE_MODE_SEMI", "text": "SEMI", "description": "One shot for each trigger pull." },
+        { "value": "AUTOCOCKER_FIRE_MODE_RAMPING_NXL_2026", "text": "NXL 2026", "description": "Ramping under the NXL 2026 rules. The Ramping screen holds its settings." }
+      ],
+      "default": "AUTOCOCKER_FIRE_MODE_SEMI",
+      "related": ["profile.fire_rate_cap", "autococker.ramping_custom_multiplier"]
+    },
+    "profile.fire_rate_cap": {
+      "title": "BPS cap",
+      "description": "The maximum rate of fire, in balls per second. The board does not fire faster than this value in any fire mode.",
+      "scope": "profile",
+      "type": "int",
+      "min": 10,
+      "max": 1000,
+      "step": 1,
+      "default": 105,
+      "unit": "bps",
+      "decimals": 1
+    },
+    "autococker.ramping_custom_multiplier": {
+      "title": "Ramping multiplier",
+      "description": "The number of shots that the board adds for each trigger pull while ramping is active.",
+      "scope": "profile",
+      "type": "int",
+      "min": 0,
+      "max": 99999,
+      "step": 5,
+      "decimals": 1,
+      "related": ["autococker.fire_mode"]
+    },
+    "autococker.eye_mode": {
+      "title": "Eye mode",
+      "description": "The type of eye sensor in the breech. The board uses the eye to wait for a ball before it fires.",
+      "scope": "profile",
+      "type": "enum",
+      "options": [
+        { "value": "EYE_MODE_OFF", "text": "OFF", "description": "The board does not read the eye." },
+        { "value": "EYE_MODE_REFLECTIVE", "text": "REFLECTIVE", "description": "One sensor reads the light that a ball reflects." },
+        { "value": "EYE_MODE_BREAK_BEAM", "text": "BREAK BEAM", "description": "A ball breaks a beam between an emitter and a detector." }
+      ],
+      "default": "EYE_MODE_OFF",
+      "related": ["autococker.eye_threshold", "topic.eye_override"]
+    },
+    "autococker.eye_threshold": {
+      "title": "Eye threshold",
+      "description": "The level, in percent, above which the eye reports a ball.",
+      "scope": "profile",
+      "type": "int",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "related": ["autococker.eye_mode"]
+    }
+  },
+  "predicates": {
+    "ramping_off": {
+      "description": "The fire mode is not a ramping mode.",
+      "depends_on": ["autococker.fire_mode"]
+    },
+    "no_eye_phase": {
+      "description": "The fire mode has no phase that waits for the eye.",
+      "depends_on": ["autococker.fire_mode"]
+    },
+    "eye_inactive": {
+      "description": "The fire mode has no eye phase, or the eye mode is OFF.",
+      "depends_on": ["autococker.fire_mode", "autococker.eye_mode"]
+    }
+  },
+  "topics": {
+    "topic.power_off": {
+      "title": "Turn the board off",
+      "description": "Hold ENTER for the hold time. The board turns off. Press a button to turn the board on.",
+      "interactions": ["power_off"]
+    },
+    "topic.lockout": {
+      "title": "Lockout",
+      "description": "Press LOCKOUT to lock the settings. The board shows the shot counter and ignores UP, DOWN, and ENTER. Press LOCKOUT again to unlock.",
+      "interactions": ["lockout_toggle"]
+    },
+    "topic.eye_override": {
+      "title": "Eye override",
+      "description": "Hold UP on the home screen to turn the eyes off for this session, for example after an eye fails in a game. Hold UP again to turn them on. The stored eye mode does not change, and the next boot uses the stored eye mode.",
+      "interactions": ["eye_override"],
+      "related": ["autococker.eye_mode"]
+    }
+  }
+}

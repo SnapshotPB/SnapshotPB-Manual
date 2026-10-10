@@ -2,7 +2,8 @@
 
 This document describes the JSON Schema that an application release uses to describe
 itself. The schema is in [`schemas/app/v2/app.schema.json`](../schemas/app/v2/app.schema.json).
-The document for the current app is in [`app/snapshotpb/`](../app/snapshotpb/).
+The app repository writes the document at each release with `scripts/manual_app_document.py`
+and attaches it to the release. The manifest of a manual names that release.
 
 ## Goal
 

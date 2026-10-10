@@ -49,9 +49,31 @@ The generator reads version 2 alone.
 
 Each document carries two versions. The `schema_version` names the schema that the document
 follows. The `firmware.version` or the `app.version` is the release that the document
-describes, and it versions the document. A document is stored by that version:
-`firmware/<model>/<version>.json` and `app/<name>/<version>.json`. A manual is built for one
-firmware version and one app version, which its manifest names.
+describes, and it versions the document. A manual is built for one firmware release and
+one app release, which its manifest names.
+
+## Where the documents come from
+
+The firmware repository and the app repository each hold a generator that writes their
+document from their sources, and their release workflows attach the document to each
+release. This repository stores no document. The manifest names the release and the asset:
+
+```toml
+[firmware]
+release = "SnapshotPB/Firmware@v2026.41.1"
+asset = "snapshot_reva-2026.41.1-manual-document.json"
+sha256 = "579d44d6…"   # optional: the build refuses an asset with another digest
+```
+
+The build reads the release through the `gh` command, downloads the asset into the cache
+directory, and verifies its SHA-256 against the digest that GitHub holds for the asset,
+and against `sha256` when the manifest pins one. A cached asset that verifies is used
+with no download. The repositories are private, so `gh` must be signed in, or `GH_TOKEN`
+must hold a token with read access to their contents. The cache is
+`$SNAPSHOTPB_MANUAL_CACHE`, or `~/.cache/snapshotpb-manual`.
+
+A `document = "<path>"` member in the place of `release` and `asset` names a file, for a
+document that is not released yet.
 
 ## Build a manual
 
@@ -65,8 +87,8 @@ The build writes `dist/snapshotpb-autococker-rev-b.html`. `--out <file>` writes 
 
 ```sh
 ./target/release/snapshotpb-manual check manifests/autococker-rev-b.toml
-./target/release/snapshotpb-manual validate firmware firmware/autococker/26.29.0.json
-./target/release/snapshotpb-manual validate app app/snapshotpb/26.40.1.json
+./target/release/snapshotpb-manual validate firmware ~/.cache/snapshotpb-manual/SnapshotPB/Firmware/v2026.41.1/snapshot_reva-2026.41.1-manual-document.json
+./target/release/snapshotpb-manual validate app ~/Downloads/snapshotpb-app-26.41.2-manual-document.json
 ```
 
 `check` renders the manual and writes nothing. `validate` checks a document against its
@@ -111,9 +133,7 @@ python3 -m unittest discover -s scripts/tests      # test the compute core
 | Path | What it holds |
 |---|---|
 | `schemas/` | The schema set, with an example firmware document under `firmware/v2/examples/` |
-| `firmware/<model>/<version>.json` | One firmware document for each firmware release, under the board model it runs on |
-| `app/<name>/<version>.json` | One application document for each app release |
-| `manifests/<id>.toml` | One manifest for each manual: the documents, the sources, and the brand |
+| `manifests/<id>.toml` | One manifest for each manual: the releases of the documents, the sources, and the brand |
 | `content/<id>/*.md` | The chapters of a manual, in file order. A chapter is Markdown with directives. |
 | `assets/` | The logo, the icon, the stylesheet and the script. The generator embeds them. |
 | `src/` | The generator, in Rust |
@@ -160,14 +180,14 @@ an underscore, and it can hold a dash or a dot between them.
 
 ## Add a firmware release or an app release
 
-1. Write the firmware document as `firmware/<board>/<version>.json`. The firmware repository
-   holds the menu tree, so its generator is the right place to write the document from.
-2. Write the app document as `app/<name>/<version>.json`, with the same shared keys.
-3. Run `validate` on each document.
-4. Copy `manifests/autococker-rev-b.toml` to `manifests/<id>.toml`, name the documents, and
-   change the sources and the board.
-5. Copy `content/autococker-rev-b/` to `content/<id>/`, and change the chapters.
-6. Build, and read the manual in a browser in both colour schemes.
+1. Cut the release in the firmware repository or in the app repository. Its release
+   workflow writes the document and attaches it to the release.
+2. In the manifest, name the new release and its asset, and pin the digest of the asset
+   from the release page or from `gh api repos/<owner>/<repository>/releases/tags/<tag>`.
+3. For a new manual, copy `manifests/autococker-rev-b.toml` to `manifests/<id>.toml` and
+   change the sources and the board, and copy `content/autococker-rev-b/` to
+   `content/<id>/` and change the chapters.
+4. Build, and read the manual in a browser in both colour schemes.
 
 ## Documentation
 

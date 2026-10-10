@@ -95,11 +95,16 @@ pub fn git_describe(dir: &Path) -> String {
     }
 }
 
-/// The short hash of a file, for the provenance table.
+/// The SHA-256 of the bytes as 64 hex digits.
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    let digest = sha2::Sha256::digest(bytes);
+    digest.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// The short hash of a file, for the provenance table: the first eight hex digits.
 pub fn sha256_short(bytes: &[u8]) -> String {
-    use sha2::{Digest, Sha256};
-    let digest = Sha256::digest(bytes);
-    digest.iter().take(4).map(|b| format!("{b:02x}")).collect()
+    sha256_hex(bytes).chars().take(8).collect()
 }
 
 /// Today, as an ISO date in UTC, with no dependency on a date crate.

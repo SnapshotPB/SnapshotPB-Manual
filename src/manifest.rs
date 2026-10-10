@@ -26,9 +26,12 @@ pub struct Manifest {
     pub sources: BTreeMap<String, String>,
     pub brand: Brand,
     pub board: Board,
-    pub firmware: Firmware,
+    /// The firmware document, which follows `schemas/firmware/v2`.
+    pub firmware: DocumentSource,
+    /// The application document, which follows `schemas/app/v2`. Absent for a manual of
+    /// the board alone.
     #[serde(default)]
-    pub app: Option<App>,
+    pub app: Option<DocumentSource>,
     /// The language of the manual, as a language tag such as `en` or `de`. A text that a
     /// document does not have in this language falls back to English.
     #[serde(default = "default_language")]
@@ -62,18 +65,52 @@ pub struct Board {
     pub metrics: String,
 }
 
+/// Where a document comes from: a file, or an asset of a GitHub release. A source names
+/// one of the two.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Firmware {
-    /// The firmware document, which follows `schemas/firmware/v2`.
-    pub document: String,
+pub struct DocumentSource {
+    /// The path of the document. A `name:` prefix selects a source root.
+    pub document: Option<String>,
+    /// The release that holds the document, as `owner/repository@tag`.
+    pub release: Option<String>,
+    /// The name of the asset of the release.
+    pub asset: Option<String>,
+    /// The SHA-256 of the asset, as 64 hex digits, when the manifest pins it. The asset is
+    /// verified against the digest of the release in each case.
+    pub sha256: Option<String>,
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct App {
-    /// The application document, which follows `schemas/app/v2`.
-    pub document: String,
+impl DocumentSource {
+    /// The rule that the schema of the manifest cannot state: a file or a release, not both
+    /// and not neither.
+    fn check(&self, owner: &str) -> Result<()> {
+        match (&self.document, &self.release, &self.asset) {
+            (Some(_), None, None) => {
+                if self.sha256.is_some() {
+                    bail!("[{owner}] pins a sha256 for a document file; the pin is for an asset of a release");
+                }
+                Ok(())
+            }
+            (None, Some(_), Some(_)) => {
+                if let Some(pin) = &self.sha256 {
+                    if pin.len() != 64 || !pin.chars().all(|c| c.is_ascii_hexdigit()) {
+                        bail!("[{owner}] sha256 is not 64 hex digits");
+                    }
+                }
+                Ok(())
+            }
+            (None, Some(_), None) | (None, None, Some(_)) => {
+                bail!("[{owner}] needs both `release` and `asset`")
+            }
+            (None, None, None) => {
+                bail!("[{owner}] needs a `document`, or a `release` with an `asset`")
+            }
+            (Some(_), _, _) => {
+                bail!("[{owner}] names a `document` and a `release` or an `asset`; name a `document`, or a `release` with an `asset`")
+            }
+        }
+    }
 }
 
 /// A manifest with its directory and the source roots that the command line changed.
@@ -90,6 +127,14 @@ impl Loaded {
         let text = read_text(path)?;
         let manifest: Manifest =
             toml::from_str(&text).with_context(|| format!("manifest {}", path.display()))?;
+        manifest
+            .firmware
+            .check("firmware")
+            .with_context(|| format!("manifest {}", path.display()))?;
+        if let Some(app) = &manifest.app {
+            app.check("app")
+                .with_context(|| format!("manifest {}", path.display()))?;
+        }
         let dir = path
             .parent()
             .map(Path::to_path_buf)
@@ -129,8 +174,11 @@ impl Loaded {
                     name: String::new(),
                     metrics: String::new(),
                 },
-                firmware: Firmware {
-                    document: String::new(),
+                firmware: DocumentSource {
+                    document: Some(String::new()),
+                    release: None,
+                    asset: None,
+                    sha256: None,
                 },
                 app: None,
                 values: BTreeMap::new(),
@@ -168,5 +216,46 @@ impl Loaded {
 
     pub fn sources(&self) -> &BTreeMap<String, PathBuf> {
         &self.sources
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn source(
+        document: Option<&str>,
+        release: Option<&str>,
+        asset: Option<&str>,
+        sha256: Option<&str>,
+    ) -> DocumentSource {
+        DocumentSource {
+            document: document.map(String::from),
+            release: release.map(String::from),
+            asset: asset.map(String::from),
+            sha256: sha256.map(String::from),
+        }
+    }
+
+    #[test]
+    fn a_source_is_a_file_or_a_release_with_an_asset() {
+        let hex = "3cef1d571052db1ef70914ea03e09758e858f68684f7f9822f2dda8debd1c68f";
+        assert!(source(Some("a.json"), None, None, None)
+            .check("firmware")
+            .is_ok());
+        assert!(source(None, Some("o/r@v1"), Some("a.json"), None)
+            .check("firmware")
+            .is_ok());
+        assert!(source(None, Some("o/r@v1"), Some("a.json"), Some(hex))
+            .check("firmware")
+            .is_ok());
+        let err = |s: DocumentSource| s.check("app").unwrap_err().to_string();
+        assert!(err(source(None, Some("o/r@v1"), None, None)).contains("both"));
+        assert!(err(source(None, None, Some("a.json"), None)).contains("both"));
+        assert!(err(source(None, None, None, None)).contains("needs a"));
+        assert!(err(source(Some("a.json"), Some("o/r@v1"), None, None)).contains("name a"));
+        assert!(err(source(Some("a.json"), None, Some("a.json"), None)).contains("name a"));
+        assert!(err(source(Some("a.json"), None, None, Some(hex))).contains("pins"));
+        assert!(err(source(None, Some("o/r@v1"), Some("a.json"), Some("abc"))).contains("64 hex"));
     }
 }

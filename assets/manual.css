@@ -1,6 +1,9 @@
 /* The page. The colour tokens (--md-*) come from the colour scheme of the app. */
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+/* The top bar is 60px high and stays on the screen. A scroll to a link target, a focus, or
+   a find stops 76px from the top, so the target does not go under the bar. The padding
+   applies to each target: a heading, a setting, a topic, and the top of the page. */
+html { scroll-behavior: smooth; scroll-padding-top: 76px; -webkit-text-size-adjust: 100%; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .side { transition: none; } }
 body {
   margin: 0;
@@ -68,7 +71,7 @@ article { max-width: 860px; }
 .hero-sub { margin: 4px 0 0; font-size: 1.05rem; color: var(--md-on-surface-variant); }
 
 /* The text. */
-h2, h3, h4 { line-height: 1.25; scroll-margin-top: 76px; color: var(--md-on-background); }
+h2, h3, h4 { line-height: 1.25; color: var(--md-on-background); }
 h2 { font-size: 1.75rem; margin: 2.4em 0 0.6em; padding-bottom: 0.3em; border-bottom: 1px solid var(--md-outline-variant); }
 article > h2:first-child, .hero + h2 { margin-top: 0.4em; }
 h3 { font-size: 1.25rem; margin: 1.8em 0 0.5em; }

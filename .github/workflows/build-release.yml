@@ -1,0 +1,193 @@
+# Build Release. The second half of the two-workflow chain. release.yml cuts a tag and then
+# dispatches this workflow against that tag. This workflow gets the version from the tag,
+# builds the manual, and publishes the manual as an asset of a GitHub Release. The name
+# of the Release is the version, and the tag of the Release is the tag.
+#
+# The `push: tags` trigger is a safety net only, for a tag that someone pushed with a
+# personal access token. The normal path is the workflow_dispatch from release.yml. A tag
+# that GITHUB_TOKEN pushed does not fire `push`, so the normal path never builds two times.
+#
+# The manifest names two source repositories: the app repository, for the theme colours,
+# and the PCB repository, for the board metrics and the pictures. Both repositories are
+# private, so the build job clones them with the SOURCES_TOKEN secret.
+# MAINTAINER ACTION: make a fine-grained personal access token with read access to the
+# contents of SnapshotPB/SnapshotPB and SnapshotPB/PCB-Autococker, and store it as the
+# repository secret SOURCES_TOKEN (Settings > Secrets and variables > Actions).
+name: Build Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (e.g. v26.41.1). Defaults to the ref this run was dispatched against."
+        required: false
+        default: ""
+  push:
+    tags:
+      - 'v*'   # safety net; see the header. A tag that GITHUB_TOKEN pushed does not reach here.
+
+# Do not cancel a publish that runs, and do not run two publishes for one tag.
+concurrency:
+  group: build-release-${{ github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+# The workflow token is read-only. Only the release job gets contents: write. The build
+# job compiles third-party crates, so it must not be able to push a branch or a tag, or
+# edit a Release.
+permissions:
+  contents: read
+
+env:
+  MANIFEST: manifests/autococker-rev-b.toml
+  # The asset keeps one name in each Release, so that the link
+  # releases/latest/download/<asset> always gives the latest manual.
+  ASSET: snapshotpb-autococker-rev-b.html
+
+jobs:
+  # ---------------------------------------------------------------------------------
+  # Resolve the tag and the version one time, and make sure that the tag is on main.
+  # ---------------------------------------------------------------------------------
+  preflight:
+    name: Preflight (resolve version)
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.resolve.outputs.ref }}
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          # This job runs only shell from this workflow. The token is read-only, and the
+          # next step uses the credentials to fetch main.
+
+      - name: Refuse a tag that is not on main
+        # release.yml cuts a tag only from main, but a tag pushed by hand, or a manual run
+        # of this workflow, can name any commit. Build and publish only reviewed content.
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor HEAD FETCH_HEAD; then
+            echo "::error::Refusing to build: $(git rev-parse HEAD) is not on main."
+            exit 1
+          fi
+
+      - name: Resolve version from tag
+        id: resolve
+        # The ref arrives through env, never interpolated into the script body. A
+        # workflow_dispatch input is text that an attacker can control, and `${{ }}` inside
+        # `run:` is substituted before bash sees it.
+        env:
+          REF: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          # The whole string is anchored, so that a branch name, an unrelated v* tag, or a
+          # multi-line input cannot pass.
+          if [[ ! "$REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Refusing to build '$REF': not a v<year>.<week>.<count> release tag."
+            exit 1
+          fi
+          VERSION="${REF#v}"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building $REF -> version $VERSION"
+
+      - name: Check that the SOURCES_TOKEN secret exists
+        env:
+          HAS_TOKEN: ${{ secrets.SOURCES_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::error::The SOURCES_TOKEN secret is not set. See the header of this workflow."
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------------
+  # Build the manual from the tag and the two source repositories.
+  # ---------------------------------------------------------------------------------
+  build:
+    name: Build the manual
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
+          persist-credentials: false
+
+      - name: Checkout the app repository
+        uses: actions/checkout@v7
+        with:
+          repository: SnapshotPB/SnapshotPB
+          token: ${{ secrets.SOURCES_TOKEN }}
+          path: sources/app
+          persist-credentials: false
+
+      - name: Checkout the PCB repository
+        uses: actions/checkout@v7
+        with:
+          repository: SnapshotPB/PCB-Autococker
+          token: ${{ secrets.SOURCES_TOKEN }}
+          path: sources/pcb
+          persist-credentials: false
+
+      - name: Show the toolchain
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Build the generator
+        run: cargo build --release --locked
+
+      - name: Build the manual
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          ./target/release/snapshotpb-manual build "$MANIFEST" \
+            --out "release-assets/$ASSET" \
+            --source app=sources/app \
+            --source pcb=sources/pcb
+          ls -la release-assets/
+
+      - name: Upload the manual
+        uses: actions/upload-artifact@v7
+        with:
+          name: manual
+          path: release-assets/
+          if-no-files-found: error
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------------
+  # Publish the manual as an asset of the GitHub Release for the tag.
+  # ---------------------------------------------------------------------------------
+  create-release:
+    name: Create GitHub Release
+    needs: [preflight, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the Release and upload the asset
+    steps:
+      - name: Download the manual
+        uses: actions/download-artifact@v8
+        with:
+          name: manual
+          path: release-assets
+
+      - name: List the release assets
+        run: ls -la release-assets/
+
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ needs.preflight.outputs.ref }}
+          name: ${{ needs.preflight.outputs.version }}
+          # Notes from the commits since the previous tag, so that a Release always says
+          # what changed.
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: release-assets/*

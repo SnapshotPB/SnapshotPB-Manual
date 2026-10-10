@@ -59,6 +59,39 @@ The build writes `dist/snapshotpb-autococker-rev-b.html`. `--out <file>` writes 
 schema and against the rules that the schema cannot state, such as the shape of the menu
 tree. A fault stops the command with the path of the fault in the document.
 
+## Release a manual
+
+A release is a GitHub Release with the manual as its asset. The version is calendar-derived,
+and the git tag is the single source of truth. The scheme is the same as the SnapshotPB app:
+`<2-digit ISO week-year>.<ISO week>.<count this week>`, for example `26.41.1`. The tag adds
+a `v`: `v26.41.1`.
+
+Two workflows make a release:
+
+1. **Release (cut tag)** (`.github/workflows/release.yml`). An operator runs it from the
+   Actions tab. It computes the next version from the tags that exist, pushes the annotated
+   tag, and dispatches the build workflow against the tag. It refuses a commit that is not
+   on `main`.
+2. **Build Release** (`.github/workflows/build-release.yml`). It gets the version from the
+   tag, builds the generator, builds the manual, and publishes the manual as an asset of a
+   GitHub Release. The name of the Release is the version, and its tag is the tag. The asset
+   is always `snapshotpb-autococker-rev-b.html`, so the link
+   `releases/latest/download/snapshotpb-autococker-rev-b.html` gives the latest manual.
+
+The manifest names two source repositories: the app, for the theme, and the PCB, for the
+board metrics and the pictures. The build workflow clones the default branch of each one
+with the `SOURCES_TOKEN` repository secret. The secret is a fine-grained personal access
+token with read access to the contents of `SnapshotPB/SnapshotPB` and
+`SnapshotPB/PCB-Autococker`. The build stops with a clear error when the secret is not set.
+
+`scripts/cut_version.py` is the compute core of the first workflow. The same scheme in two
+repositories keeps the numbers of the app and of the manual in step.
+
+```sh
+python3 scripts/cut_version.py --dry-run           # show the next version and tag
+python3 -m unittest discover -s scripts/tests      # test the compute core
+```
+
 ## The layout of the repository
 
 | Path | What it holds |
@@ -71,6 +104,8 @@ tree. A fault stops the command with the path of the fault in the document.
 | `assets/` | The logo, the icon, the stylesheet and the script. The generator embeds them. |
 | `src/` | The generator, in Rust |
 | `docs/` | The design of the schema set |
+| `scripts/` | The version script of the release workflow, with its tests |
+| `.github/workflows/` | The two release workflows |
 
 ## Write a chapter
 

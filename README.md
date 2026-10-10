@@ -1,0 +1,1 @@
+# SnapshotPB Manual Generator

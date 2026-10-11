@@ -119,6 +119,7 @@ it shows in its `media` list, in the order the manual shows them.
 |---|---|
 | `kind` | What the file is. The known kinds are `image`, `model`, `video`, and `document`. The field is open: a kind that the generator does not know is still valid, and the generator embeds the file with a link and the caption. |
 | `src` | Where the file is. A plain path is relative to the document file. A path with a `<source>:` prefix, for example `pcb:renders/board.glb`, is relative to that source root of the manual. The manifest of the manual names the source roots, so the board repository can provide a model that the firmware document shows. |
+| `src_dark` | The file that the manual shows in place of `src` when the page uses the dark theme, in the same form as `src`. Only an `image` has one. |
 | `caption` | The caption under the item, and its accessible name. |
 | `media_type` | The IANA media type. The generator infers it from the file extension when it is absent. |
 | `alt` | A text alternative, when the caption is not enough. |
@@ -128,6 +129,15 @@ The generator shows an `image` inline, a `video` with the controls of the browse
 other kind as an embedded file with a link. An interactive viewer for a `model` is a later step.
 The manual is one file with no link to the internet, so a viewer must be small enough to travel
 with the page.
+
+An `image` can have a second file for the dark theme in `src_dark`. The page holds both files,
+and the stylesheet shows the one that the theme selects: the theme button of the page first,
+then the setting of the system. A picture with a transparent background, a white line drawing,
+or a screenshot of the app in its dark theme is clearer with its own dark file. An SVG that
+uses `currentColor` or the CSS custom properties of the theme follows the theme by itself and
+does not need one. The stated `media_type` applies to both files. When it is absent, each file
+has the type that its own extension implies. The page inlines both SVG files, so give each
+`id` in the dark file a name that the light file does not use.
 
 The common definitions, the media item and the key patterns, are in
 [`schemas/common/v2/media.schema.json`](../schemas/common/v2/media.schema.json). The firmware

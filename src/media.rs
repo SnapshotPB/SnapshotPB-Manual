@@ -78,6 +78,9 @@ fn extension(path: &Path) -> String {
 pub struct Media {
     pub kind: String,
     pub src: String,
+    /// The file for the dark theme, for an image. The page holds both files and shows the
+    /// one that the theme selects.
+    pub src_dark: Option<String>,
     pub caption: String,
     pub media_type: Option<String>,
     pub alt: Option<String>,
@@ -88,12 +91,15 @@ impl Media {
     /// The file of the item. A plain path is relative to the document; a `source:` prefix
     /// selects a source root of the manifest.
     pub fn path(&self, loaded: &Loaded, document_dir: &Path) -> Result<PathBuf> {
-        if let Some((prefix, _)) = self.src.split_once(':') {
-            if !prefix.is_empty() && !prefix.contains('/') && !prefix.contains('\\') {
-                return loaded.resolve(&self.src);
-            }
-        }
-        Ok(document_dir.join(&self.src))
+        resolve(&self.src, loaded, document_dir)
+    }
+
+    /// The file for the dark theme, when the item has one, in the same form as `src`.
+    fn path_dark(&self, loaded: &Loaded, document_dir: &Path) -> Result<Option<PathBuf>> {
+        self.src_dark
+            .as_deref()
+            .map(|src| resolve(src, loaded, document_dir))
+            .transpose()
     }
 
     /// The media type: the stated one, or the one that the extension implies.
@@ -106,21 +112,31 @@ impl Media {
 
     /// The figure for the item.
     pub fn html(&self, loaded: &Loaded, document_dir: &Path) -> Result<String> {
+        if self.src_dark.is_some() && self.kind != "image" {
+            bail!(
+                "the media item `{}` has a `src_dark`, and only an image has one",
+                self.src
+            );
+        }
         let path = self.path(loaded, document_dir)?;
         let media_type = self.media_type(&path);
         let alt = self.alt.as_deref().unwrap_or(&self.caption);
         let body = match self.kind.as_str() {
-            "image" => {
-                if media_type == "image/svg+xml" {
-                    inline_svg(&path, alt)?
-                } else {
-                    let data = base64::engine::general_purpose::STANDARD.encode(read_embed(&path)?);
+            "image" => match self.path_dark(loaded, document_dir)? {
+                // One file: the picture as it is.
+                None => picture(&path, &media_type, alt, None)?,
+                // Two files: both travel with the page, and the stylesheet shows the one
+                // that the theme selects. The dark file has the stated media type too, or
+                // the type its own extension implies.
+                Some(dark) => {
+                    let dark_type = self.media_type(&dark);
                     format!(
-                        "<img src=\"data:{media_type};base64,{data}\" alt=\"{}\" loading=\"lazy\">",
-                        esc(alt)
+                        "{}{}",
+                        picture(&path, &media_type, alt, Some("theme-light"))?,
+                        picture(&dark, &dark_type, alt, Some("theme-dark"))?
                     )
                 }
-            }
+            },
             "video" => {
                 let data = base64::engine::general_purpose::STANDARD.encode(read_embed(&path)?);
                 format!(
@@ -155,6 +171,35 @@ impl Media {
     }
 }
 
+/// A picture for the page: an SVG inline, and each other image as data. The class, when
+/// there is one, goes on the root element, so the stylesheet can show or hide the picture.
+fn picture(path: &Path, media_type: &str, alt: &str, class: Option<&str>) -> Result<String> {
+    let class_attr = match class {
+        Some(c) => format!(" class=\"{c}\""),
+        None => String::new(),
+    };
+    if media_type == "image/svg+xml" {
+        let svg = inline_svg(path, alt)?;
+        return Ok(svg.replacen("<svg", &format!("<svg{class_attr}"), 1));
+    }
+    let data = base64::engine::general_purpose::STANDARD.encode(read_embed(path)?);
+    Ok(format!(
+        "<img{class_attr} src=\"data:{media_type};base64,{data}\" alt=\"{}\" loading=\"lazy\">",
+        esc(alt)
+    ))
+}
+
+/// The file that a `src` names. A plain path is relative to the document; a `source:` prefix
+/// selects a source root of the manifest.
+fn resolve(src: &str, loaded: &Loaded, document_dir: &Path) -> Result<PathBuf> {
+    if let Some((prefix, _)) = src.split_once(':') {
+        if !prefix.is_empty() && !prefix.contains('/') && !prefix.contains('\\') {
+            return loaded.resolve(src);
+        }
+    }
+    Ok(document_dir.join(src))
+}
+
 /// An SVG file as inline markup: no XML declaration, no comment, and an accessible name.
 pub fn inline_svg(path: &Path, alt: &str) -> Result<String> {
     let text = read_text(path)?;
@@ -180,25 +225,31 @@ pub fn inline_svg(path: &Path, alt: &str) -> Result<String> {
     Ok(text.replacen("<svg", &format!("<svg{label}"), 1))
 }
 
-/// Embeds an image file by its path, for the `{{image}}` directive of a chapter.
-pub fn image_file(path: &Path, alt: &str) -> Result<String> {
+/// Embeds an image file by its path, for the `{{image}}` directive of a chapter. With a
+/// second file for the dark theme, both pictures go in, and the stylesheet shows the one
+/// that the theme selects.
+pub fn image_file(path: &Path, dark: Option<&Path>, alt: &str) -> Result<String> {
+    let Some(dark) = dark else {
+        return embed_image(path, alt, None);
+    };
+    Ok(format!(
+        "{}{}",
+        embed_image(path, alt, Some("theme-light"))?,
+        embed_image(dark, alt, Some("theme-dark"))?
+    ))
+}
+
+/// One image file by its path, with the type that its extension implies.
+fn embed_image(path: &Path, alt: &str, class: Option<&str>) -> Result<String> {
     let ext = extension(path);
     let mime = media_type_of(&ext);
-    if ext == "svg" {
-        return inline_svg(path, alt);
-    }
     if !mime.starts_with("image/") {
         bail!(
             "{}: `{ext}` is not an image type that the manual embeds",
             path.display()
         );
     }
-    let data = base64::engine::general_purpose::STANDARD
-        .encode(read_embed(path).with_context(|| format!("the image {}", path.display()))?);
-    Ok(format!(
-        "<img src=\"data:{mime};base64,{data}\" alt=\"{}\" loading=\"lazy\">",
-        esc(alt)
-    ))
+    picture(path, mime, alt, class).with_context(|| format!("the image {}", path.display()))
 }
 
 #[cfg(test)]
@@ -210,6 +261,7 @@ mod tests {
         let m = Media {
             kind: "model".into(),
             src: "x.glb".into(),
+            src_dark: None,
             caption: "c".into(),
             media_type: None,
             alt: None,
@@ -227,6 +279,7 @@ mod tests {
         let m = Media {
             kind: "image".into(),
             src: "img/a:b.png".into(),
+            src_dark: None,
             caption: "c".into(),
             media_type: None,
             alt: None,
@@ -246,7 +299,7 @@ mod tests {
         let p = dir.join("big.png");
         let f = std::fs::File::create(&p).unwrap();
         f.set_len(MAX_EMBED_BYTES + 1).unwrap();
-        let err = format!("{:#}", image_file(&p, "x").unwrap_err());
+        let err = format!("{:#}", image_file(&p, None, "x").unwrap_err());
         std::fs::remove_dir_all(&dir).unwrap();
         assert!(err.contains("at most"), "{err}");
     }
@@ -256,6 +309,7 @@ mod tests {
         let m = Media {
             kind: "model".into(),
             src: "x.bin".into(),
+            src_dark: None,
             caption: "c".into(),
             media_type: Some("model/custom".into()),
             alt: None,
@@ -275,7 +329,7 @@ mod tests {
             "version https://git-lfs.github.com/spec/v1\noid sha256:0000\nsize 131\n",
         )
         .expect("a pointer file");
-        let err = image_file(&path, "a render").map(|_| ());
+        let err = image_file(&path, None, "a render").map(|_| ());
         std::fs::remove_dir_all(&dir).expect("the temporary directory goes");
         let msg = format!("{:#}", err.expect_err("a pointer is refused"));
         assert!(msg.contains("Git LFS pointer"), "{msg}");
@@ -287,5 +341,79 @@ mod tests {
         std::fs::remove_dir_all(&dir).expect("the temporary directory goes");
         let msg = format!("{:#}", err.expect_err("a pointer is refused"));
         assert!(msg.contains("Git LFS pointer"), "{msg}");
+    }
+
+    #[test]
+    fn an_image_with_a_dark_file_holds_both_pictures() {
+        let dir =
+            std::env::temp_dir().join(format!("snapshotpb-manual-dark-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("a temporary directory");
+        std::fs::write(
+            dir.join("a.svg"),
+            "<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+        )
+        .expect("the light file");
+        std::fs::write(dir.join("a-dark.png"), b"\x89PNG\r\n").expect("the dark file");
+        let m = Media {
+            kind: "image".into(),
+            src: "a.svg".into(),
+            src_dark: Some("a-dark.png".into()),
+            caption: "c".into(),
+            media_type: None,
+            alt: None,
+            params: None,
+        };
+        let loaded = crate::manifest::Loaded::empty(Path::new("/m"));
+        let html = m.html(&loaded, &dir);
+        std::fs::remove_dir_all(&dir).expect("the temporary directory goes");
+        let html = html.expect("the figure");
+        assert!(html.contains("<svg class=\"theme-light\""), "{html}");
+        assert!(
+            html.contains("<img class=\"theme-dark\" src=\"data:image/png;base64,"),
+            "{html}"
+        );
+    }
+
+    #[test]
+    fn an_image_file_with_a_dark_file_holds_both_pictures() {
+        let dir = std::env::temp_dir().join(format!(
+            "snapshotpb-manual-dark-file-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).expect("a temporary directory");
+        std::fs::write(
+            dir.join("a.svg"),
+            "<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+        )
+        .expect("the light file");
+        std::fs::write(
+            dir.join("a-dark.svg"),
+            "<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+        )
+        .expect("the dark file");
+        let html = image_file(&dir.join("a.svg"), Some(&dir.join("a-dark.svg")), "c");
+        let err = image_file(&dir.join("a.svg"), Some(&dir.join("a.txt")), "c").map(|_| ());
+        std::fs::remove_dir_all(&dir).expect("the temporary directory goes");
+        let html = html.expect("the figure");
+        assert!(html.contains("<svg class=\"theme-light\""), "{html}");
+        assert!(html.contains("<svg class=\"theme-dark\""), "{html}");
+        let msg = format!("{:#}", err.expect_err("a text file is refused"));
+        assert!(msg.contains("not an image type"), "{msg}");
+    }
+
+    #[test]
+    fn a_dark_file_on_another_kind_is_refused() {
+        let m = Media {
+            kind: "video".into(),
+            src: "a.mp4".into(),
+            src_dark: Some("a-dark.mp4".into()),
+            caption: "c".into(),
+            media_type: None,
+            alt: None,
+            params: None,
+        };
+        let loaded = crate::manifest::Loaded::empty(Path::new("/m"));
+        let err = format!("{:#}", m.html(&loaded, Path::new("/d")).unwrap_err());
+        assert!(err.contains("only an image"), "{err}");
     }
 }

@@ -1,6 +1,6 @@
 //! The page: one HTML file with every style, script and picture inside it.
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use base64::Engine;
 
 use crate::gen::Ctx;
@@ -66,22 +66,34 @@ fn titles(title: &str, subtitle: &str) -> Titles {
 }
 
 /// The logo of the manual and the emblem of the board family, as inline SVG with the
-/// class `hero-logo` on each. The index of the site shows the same pair.
+/// class `hero-logo` on each. The index of the site shows the same pair. With an emblem for
+/// the dark theme, both emblems go in, and the stylesheet shows the one that the theme
+/// selects.
 pub fn hero_logos(loaded: &Loaded) -> Result<String> {
     let m = &loaded.manifest;
-    let hero = |spec: &str, alt: &str| -> Result<String> {
+    let hero = |spec: &str, alt: &str, class: &str| -> Result<String> {
         Ok(
             inline_svg(&loaded.resolve(spec)?, &format!("{} {alt}", m.title))?.replacen(
                 "<svg",
-                "<svg class=\"hero-logo\"",
+                &format!("<svg class=\"{class}\""),
                 1,
             ),
         )
     };
-    let mut logos = hero(&m.brand.logo, "logo")?;
-    if let Some(emblem) = &m.brand.emblem {
-        logos.push('\n');
-        logos.push_str(&hero(emblem, "emblem")?);
+    let mut logos = hero(&m.brand.logo, "logo", "hero-logo")?;
+    match (&m.brand.emblem, &m.brand.emblem_dark) {
+        (Some(emblem), None) => {
+            logos.push('\n');
+            logos.push_str(&hero(emblem, "emblem", "hero-logo")?);
+        }
+        (Some(emblem), Some(dark)) => {
+            logos.push('\n');
+            logos.push_str(&hero(emblem, "emblem", "hero-logo theme-light")?);
+            logos.push('\n');
+            logos.push_str(&hero(dark, "emblem", "hero-logo theme-dark")?);
+        }
+        (None, Some(_)) => bail!("the manifest names `emblem_dark` and no `emblem`"),
+        (None, None) => {}
     }
     Ok(logos)
 }
@@ -190,6 +202,39 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_dark_emblem_goes_in_beside_the_light_one() {
+        let dir =
+            std::env::temp_dir().join(format!("snapshotpb-manual-emblem-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("a temporary directory");
+        for name in ["l.svg", "e.svg", "d.svg"] {
+            std::fs::write(
+                dir.join(name),
+                "<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+            )
+            .expect("an SVG file");
+        }
+        let mut loaded = Loaded::empty(&dir);
+        loaded.manifest.brand.logo = dir.join("l.svg").display().to_string();
+        loaded.manifest.brand.emblem = Some(dir.join("e.svg").display().to_string());
+        let one = hero_logos(&loaded);
+        loaded.manifest.brand.emblem_dark = Some(dir.join("d.svg").display().to_string());
+        let two = hero_logos(&loaded);
+        loaded.manifest.brand.emblem = None;
+        let none = hero_logos(&loaded);
+        std::fs::remove_dir_all(&dir).expect("the temporary directory goes");
+        let one = one.expect("the pair");
+        assert_eq!(one.matches("<svg class=\"hero-logo\"").count(), 2, "{one}");
+        let two = two.expect("the three");
+        assert!(
+            two.contains("<svg class=\"hero-logo theme-light\""),
+            "{two}"
+        );
+        assert!(two.contains("<svg class=\"hero-logo theme-dark\""), "{two}");
+        let err = format!("{:#}", none.expect_err("a dark emblem alone is refused"));
+        assert!(err.contains("no `emblem`"), "{err}");
+    }
 
     #[test]
     fn one_rule_per_target() {

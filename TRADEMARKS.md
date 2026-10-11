@@ -21,7 +21,8 @@ The following brand assets are trademarks and are excluded from the GPL grant:
 - The name **"Snapshot PB"** and the Snapshot PB word mark.
 - The Snapshot PB logo: `assets/snapshotpb.svg`.
 - The Snapshot PB icon: `assets/favicon-plain.svg`.
-- The Autococker Division emblem: `assets/autococker-division.svg`.
+- The Autococker Division emblem: `assets/autococker-division.svg`, and its version for
+  the dark theme: `assets/autococker-division-dark.svg`.
 - Each copy of the logo, the emblem, or the icon that the generator embeds in a manual that
   it produces.
 

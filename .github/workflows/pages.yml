@@ -84,6 +84,8 @@ jobs:
           repository: SnapshotPB/PCB-Autococker
           token: ${{ secrets.SOURCES_TOKEN }}
           path: sources/pcb
+          # The board renders are Git LFS files. A checkout without LFS gets a pointer.
+          lfs: true
           persist-credentials: false
 
       - name: Show the toolchain

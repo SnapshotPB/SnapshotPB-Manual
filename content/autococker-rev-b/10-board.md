@@ -19,7 +19,7 @@ The {{value product}} Autococker {{value board.name}} board controls the firing 
 | `TRIG` | A 4-pin header | The trigger board, which is an optical board or a switch board |
 | `J4` | The USB-C receptacle | Data and programming. USB-C does not give power to the board. |
 
-{{image pcb:docs/images/quick-start/buttons-back.svg | The three buttons at the back of the grip frame}}
+{{image ../content/autococker-rev-b/images/buttons-back.svg | The three buttons at the back of the grip frame}}
 
 ## The status LED
 

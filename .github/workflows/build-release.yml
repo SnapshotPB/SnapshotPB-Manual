@@ -123,7 +123,7 @@ jobs:
       - name: Checkout the app repository
         uses: actions/checkout@v7
         with:
-          repository: SnapshotPB/SnapshotPB
+          repository: SnapshotPB/Configuration-App
           token: ${{ secrets.SOURCES_TOKEN }}
           path: sources/app
           persist-credentials: false

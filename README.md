@@ -132,9 +132,10 @@ Two workflows make a release:
 
 The manifest names two source repositories: the app, for the theme, and the PCB, for the
 board metrics and the pictures. The build workflow clones the default branch of each one
-with the `SOURCES_TOKEN` repository secret. The secret is a fine-grained personal access
-token with read access to the contents of `SnapshotPB/Configuration-App` and
-`SnapshotPB/PCB-Autococker`. The build stops with a clear error when the secret is not set.
+with the `SOURCES_TOKEN` repository secret. The same secret lets `gh` download the two
+documents from their releases. The secret is a fine-grained personal access token with read
+access to the contents of `SnapshotPB/Configuration-App`, `SnapshotPB/PCB-Autococker`, and
+`SnapshotPB/Firmware`. The build stops with a clear error when the secret is not set.
 
 Two more workflows run on their own:
 

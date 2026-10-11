@@ -6,6 +6,8 @@
 //! or the nearest fallback. The model then holds the words of one language, and the rest of
 //! the generator does not know about languages.
 
+use std::collections::BTreeSet;
+
 use anyhow::{bail, Result};
 use serde_json::{Map, Value};
 
@@ -51,6 +53,39 @@ fn walk(value: Value, lang: &str, path: &str) -> Result<Value> {
             Ok(Value::Array(out))
         }
         other => Ok(other),
+    }
+}
+
+/// Each language tag that the localized texts of a document name, in sorted order. The
+/// site builds one manual for each of them.
+pub fn languages(value: &Value) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    collect(value, "", &mut out);
+    out
+}
+
+/// The same walk as `walk`, with the same `params` exclusion. A change to one goes to the
+/// other.
+fn collect(value: &Value, path: &str, out: &mut BTreeSet<String>) {
+    match value {
+        Value::Object(map) => {
+            for (k, v) in map {
+                if k == "params" && is_media_item(path) {
+                    continue;
+                }
+                collect(v, &format!("{path}/{k}"), out);
+            }
+        }
+        Value::Array(items) => {
+            if let Some(texts) = as_localized(items) {
+                out.extend(texts.iter().map(|(l, _)| l.to_string()));
+                return;
+            }
+            for (i, v) in items.iter().enumerate() {
+                collect(v, &format!("{path}/{i}"), out);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -194,5 +229,14 @@ mod tests {
         let no_en = json!({"s": {"t": [{"lang": "de", "text": "a"}]}});
         let err = localize(no_en, "de").unwrap_err().to_string();
         assert!(err.contains("/s/t") && err.contains("English"), "{err}");
+    }
+
+    #[test]
+    fn the_languages_are_each_tag_of_each_localized_text() {
+        let langs = languages(&doc());
+        assert_eq!(
+            langs.into_iter().collect::<Vec<_>>(),
+            vec!["de", "en", "es-MX"]
+        );
     }
 }

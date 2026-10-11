@@ -4,6 +4,7 @@ use anyhow::Result;
 use base64::Engine;
 
 use crate::gen::Ctx;
+use crate::manifest::Loaded;
 use crate::markdown::{toc_html, Body};
 use crate::media::inline_svg;
 use crate::names::Names;
@@ -64,14 +65,13 @@ fn titles(title: &str, subtitle: &str) -> Titles {
     }
 }
 
-pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
-    let m = &ctx.loaded.manifest;
-    // The full logo heads the manual, with the emblem of the board family beside it when the
-    // manifest names one. The small icon marks the top bar, where the full logo would be too
-    // small to read, and it is the icon of the browser tab.
+/// The logo of the manual and the emblem of the board family, as inline SVG with the
+/// class `hero-logo` on each. The index of the site shows the same pair.
+pub fn hero_logos(loaded: &Loaded) -> Result<String> {
+    let m = &loaded.manifest;
     let hero = |spec: &str, alt: &str| -> Result<String> {
         Ok(
-            inline_svg(&ctx.loaded.resolve(spec)?, &format!("{} {alt}", m.title))?.replacen(
+            inline_svg(&loaded.resolve(spec)?, &format!("{} {alt}", m.title))?.replacen(
                 "<svg",
                 "<svg class=\"hero-logo\"",
                 1,
@@ -83,6 +83,15 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
         logos.push('\n');
         logos.push_str(&hero(emblem, "emblem")?);
     }
+    Ok(logos)
+}
+
+pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
+    let m = &ctx.loaded.manifest;
+    // The full logo heads the manual, with the emblem of the board family beside it when the
+    // manifest names one. The small icon marks the top bar, where the full logo would be too
+    // small to read, and it is the icon of the browser tab.
+    let logos = hero_logos(ctx.loaded)?;
     let icon_path = ctx.loaded.resolve(&m.brand.icon)?;
     let mark = inline_svg(&icon_path, &format!("{} mark", m.title))?.replacen(
         "<svg",

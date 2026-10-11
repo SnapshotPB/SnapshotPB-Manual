@@ -28,7 +28,23 @@ fn read_embed(path: &Path) -> Result<Vec<u8>> {
             path.display()
         );
     }
-    read_bytes(path)
+    let bytes = read_bytes(path)?;
+    if is_lfs_pointer(&bytes) {
+        bail!("{}", lfs_pointer_words(path));
+    }
+    Ok(bytes)
+}
+
+/// True for the text that Git LFS leaves in place of a file in a checkout without LFS.
+fn is_lfs_pointer(bytes: &[u8]) -> bool {
+    bytes.starts_with(b"version https://git-lfs.github.com/spec/")
+}
+
+fn lfs_pointer_words(path: &Path) -> String {
+    format!(
+        "{} is a Git LFS pointer, not the file. Fetch the LFS files of the checkout, for example with `git lfs pull`.",
+        path.display()
+    )
 }
 
 /// The media type that a file extension implies.
@@ -142,6 +158,9 @@ impl Media {
 /// An SVG file as inline markup: no XML declaration, no comment, and an accessible name.
 pub fn inline_svg(path: &Path, alt: &str) -> Result<String> {
     let text = read_text(path)?;
+    if is_lfs_pointer(text.as_bytes()) {
+        bail!("{}", lfs_pointer_words(path));
+    }
     // The pattern is a constant, so it compiles once and cannot fail.
     static RE_DECL: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"(?s)<\?xml.*?\?>|<!--.*?-->|<!DOCTYPE[^>]*>").expect("a constant pattern")
@@ -243,5 +262,30 @@ mod tests {
             params: None,
         };
         assert_eq!(m.media_type(Path::new("x.bin")), "model/custom");
+    }
+
+    #[test]
+    fn an_lfs_pointer_is_refused() {
+        let dir =
+            std::env::temp_dir().join(format!("snapshotpb-manual-lfs-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("a temporary directory");
+        let path = dir.join("render.png");
+        std::fs::write(
+            &path,
+            "version https://git-lfs.github.com/spec/v1\noid sha256:0000\nsize 131\n",
+        )
+        .expect("a pointer file");
+        let err = image_file(&path, "a render").map(|_| ());
+        std::fs::remove_dir_all(&dir).expect("the temporary directory goes");
+        let msg = format!("{:#}", err.expect_err("a pointer is refused"));
+        assert!(msg.contains("Git LFS pointer"), "{msg}");
+        assert!(!is_lfs_pointer(b"\x89PNG\r\n"));
+        let svg = dir.join("drawing.svg");
+        std::fs::create_dir_all(&dir).expect("a temporary directory");
+        std::fs::write(&svg, "version https://git-lfs.github.com/spec/v1\n").expect("a pointer");
+        let err = inline_svg(&svg, "a drawing").map(|_| ());
+        std::fs::remove_dir_all(&dir).expect("the temporary directory goes");
+        let msg = format!("{:#}", err.expect_err("a pointer is refused"));
+        assert!(msg.contains("Git LFS pointer"), "{msg}");
     }
 }

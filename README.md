@@ -132,7 +132,8 @@ Two workflows make a release:
    `releases/latest/download/snapshotpb-autococker-rev-b.html` gives the latest manual.
 
 The manifest names two source repositories: the app, for the theme, and the PCB, for the
-board metrics and the pictures. The build workflow clones the default branch of each one
+board metrics and the board renders. The renders are Git LFS files, so the workflows check
+the PCB repository out with LFS. The build workflow clones the default branch of each one
 with the `SOURCES_TOKEN` repository secret. The same secret lets `gh` download the two
 documents from their releases. The secret is a fine-grained personal access token with read
 access to the contents of `SnapshotPB/Configuration-App`, `SnapshotPB/PCB-Autococker`, and
@@ -168,6 +169,7 @@ python3 -m unittest discover -s scripts/tests      # test the compute core
 | `schemas/` | The schema set, with an example firmware document under `firmware/v2/examples/` |
 | `manifests/<id>.toml` | One manifest for each manual: the releases of the documents, the sources, and the brand |
 | `content/<id>/*.md` | The chapters of a manual, in file order. A chapter is Markdown with directives. |
+| `content/<id>/images/` | The drawings of the chapters, which no source repository holds. A chapter names one as `../content/<id>/images/<file>`. |
 | `assets/` | The logo, the icon, the stylesheet and the script. The generator embeds them. |
 | `src/` | The generator, in Rust |
 | `docs/` | The design of the schema set |

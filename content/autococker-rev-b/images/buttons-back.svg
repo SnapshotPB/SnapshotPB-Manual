@@ -1,0 +1,23 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='35.99mm' height='52.0mm' viewBox='0 0 35.99 52.0' font-family='Helvetica, Arial, sans-serif' font-size='2.6' fill='none' stroke='#000' stroke-width='0.35' stroke-linejoin='round' stroke-linecap='round'>
+<rect x='0' y='0' width='35.99' height='52.0' fill='#fff' stroke='none'/>
+<path d='M6.280,4.000 L6.280,11.164 A4.995,4.995 0 0 0 6.280,19.550 L6.280,21.664 A4.995,4.995 0 0 0 6.280,30.050 L6.280,32.123 A4.995,4.995 0 0 0 6.280,40.509 L6.280,48.000 L11.710,48.000 L11.710,40.509 A4.995,4.995 0 0 0 11.710,32.123 L11.710,30.050 A4.995,4.995 0 0 0 11.710,21.664 L11.710,19.550 A4.995,4.995 0 0 0 11.710,11.164 L11.710,4.000' fill='#f2f2f2' stroke-width='0.35'/>
+<path d='M5.280,4.000 l1.4,-0.8 l1.0,1.6 l1.0,-1.6 l1.0,1.6 l1.4,-0.8' fill='#fff' stroke-width='0.35' stroke='#fff'/>
+<path d='M5.280,4.000 l1.4,-0.8 l1.0,1.6 l1.0,-1.6 l1.0,1.6 l1.4,-0.8' fill='none' stroke-width='0.35'/>
+<path d='M5.280,48.000 l1.4,-0.8 l1.0,1.6 l1.0,-1.6 l1.0,1.6 l1.4,-0.8' fill='#fff' stroke-width='0.35' stroke='#fff'/>
+<path d='M5.280,48.000 l1.4,-0.8 l1.0,1.6 l1.0,-1.6 l1.0,1.6 l1.4,-0.8' fill='none' stroke-width='0.35'/>
+<circle cx='8.995' cy='15.357' r='1.587' fill='#fff' stroke-width='0.35'/>
+<circle cx='8.995' cy='15.357' r='1.25' fill='#fff' stroke-width='0.18'/>
+<line x1='10.583' y1='15.357' x2='17.990' y2='15.357' stroke-width='0.18'/>
+<circle cx='10.583' cy='15.357' r='0.35' fill='#000' stroke='none'/>
+<text x='18.790' y='16.267' text-anchor='start' font-size='2.6' font-weight='normal' fill='#000' stroke='none'>UP</text>
+<circle cx='8.995' cy='25.857' r='1.587' fill='#fff' stroke-width='0.35'/>
+<circle cx='8.995' cy='25.857' r='1.25' fill='#fff' stroke-width='0.18'/>
+<line x1='10.583' y1='25.857' x2='17.990' y2='25.857' stroke-width='0.18'/>
+<circle cx='10.583' cy='25.857' r='0.35' fill='#000' stroke='none'/>
+<text x='18.790' y='26.767' text-anchor='start' font-size='2.6' font-weight='normal' fill='#000' stroke='none'>MENU</text>
+<circle cx='8.995' cy='36.316' r='1.587' fill='#fff' stroke-width='0.35'/>
+<circle cx='8.995' cy='36.316' r='1.25' fill='#fff' stroke-width='0.18'/>
+<line x1='10.583' y1='36.316' x2='17.990' y2='36.316' stroke-width='0.18'/>
+<circle cx='10.583' cy='36.316' r='0.35' fill='#000' stroke='none'/>
+<text x='18.790' y='37.226' text-anchor='start' font-size='2.6' font-weight='normal' fill='#000' stroke='none'>DOWN</text>
+</svg>

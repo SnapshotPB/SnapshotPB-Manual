@@ -764,20 +764,32 @@ impl<'a> Ctx<'a> {
     // ----- images -----
 
     fn image(&self, args: &str) -> Result<String> {
-        let (spec, alt) = match args.split_once('|') {
-            Some((s, a)) => (s.trim(), a.trim()),
-            None => (args.trim(), ""),
-        };
-        if alt.is_empty() {
-            bail!("{{{{image {spec}}}}} needs a caption after `|`");
-        }
+        let (spec, dark, alt) = image_args(args)?;
         let path = self.loaded.resolve(spec)?;
-        let body = media::image_file(&path, alt)?;
+        let dark = dark.map(|d| self.loaded.resolve(d)).transpose()?;
+        let body = media::image_file(&path, dark.as_deref(), alt)?;
         Ok(format!(
             "<figure>{body}<figcaption>{}</figcaption></figure>\n",
             esc(alt)
         ))
     }
+}
+
+/// The parts of `{{image <path> [<dark path>] | <caption>}}`: the picture, the picture for
+/// the dark theme when there is one, and the caption. A path holds no space.
+fn image_args(args: &str) -> Result<(&str, Option<&str>, &str)> {
+    let (spec, alt) = match args.split_once('|') {
+        Some((s, a)) => (s.trim(), a.trim()),
+        None => (args.trim(), ""),
+    };
+    if alt.is_empty() {
+        bail!("{{{{image {spec}}}}} needs a caption after `|`");
+    }
+    let mut paths = spec.split_whitespace();
+    let (Some(path), dark, None) = (paths.next(), paths.next(), paths.next()) else {
+        bail!("{{{{image {spec}}}}} takes one path, or a path and a dark path, before `|`");
+    };
+    Ok((path, dark, alt))
 }
 
 /// Where the path of a setting goes: after the title on the same line, or as a block of
@@ -952,6 +964,21 @@ mod tests {
         assert_eq!(fmt_num(1000, 1, "ms").unwrap(), "100.0&nbsp;ms");
         assert_eq!(fmt_num(i64::MIN, 1, "").unwrap(), "-922337203685477580.8");
         assert!(fmt_num(1, 20, "").is_err());
+    }
+
+    #[test]
+    fn an_image_directive_takes_a_dark_path() {
+        assert_eq!(
+            image_args("pcb:a.svg | The board").unwrap(),
+            ("pcb:a.svg", None, "The board")
+        );
+        assert_eq!(
+            image_args(" pcb:a.svg  pcb:a-dark.svg | The board ").unwrap(),
+            ("pcb:a.svg", Some("pcb:a-dark.svg"), "The board")
+        );
+        assert!(image_args("pcb:a.svg").is_err());
+        assert!(image_args("a b c | x").is_err());
+        assert!(image_args(" | x").is_err());
     }
 
     #[test]

@@ -906,8 +906,8 @@
   "media": {
     "buttons": {
       "kind": "image",
-      "src": "pcb:docs/images/quick-start/buttons-back.svg",
-      "src_dark": "pcb:docs/images/quick-start/buttons-back-dark.svg",
+      "src": "images/buttons-back.svg",
+      "src_dark": "images/buttons-back-dark.svg",
       "caption": [
         {
           "lang": "en",

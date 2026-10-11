@@ -225,25 +225,31 @@ pub fn inline_svg(path: &Path, alt: &str) -> Result<String> {
     Ok(text.replacen("<svg", &format!("<svg{label}"), 1))
 }
 
-/// Embeds an image file by its path, for the `{{image}}` directive of a chapter.
-pub fn image_file(path: &Path, alt: &str) -> Result<String> {
+/// Embeds an image file by its path, for the `{{image}}` directive of a chapter. With a
+/// second file for the dark theme, both pictures go in, and the stylesheet shows the one
+/// that the theme selects.
+pub fn image_file(path: &Path, dark: Option<&Path>, alt: &str) -> Result<String> {
+    let Some(dark) = dark else {
+        return embed_image(path, alt, None);
+    };
+    Ok(format!(
+        "{}{}",
+        embed_image(path, alt, Some("theme-light"))?,
+        embed_image(dark, alt, Some("theme-dark"))?
+    ))
+}
+
+/// One image file by its path, with the type that its extension implies.
+fn embed_image(path: &Path, alt: &str, class: Option<&str>) -> Result<String> {
     let ext = extension(path);
     let mime = media_type_of(&ext);
-    if ext == "svg" {
-        return inline_svg(path, alt);
-    }
     if !mime.starts_with("image/") {
         bail!(
             "{}: `{ext}` is not an image type that the manual embeds",
             path.display()
         );
     }
-    let data = base64::engine::general_purpose::STANDARD
-        .encode(read_embed(path).with_context(|| format!("the image {}", path.display()))?);
-    Ok(format!(
-        "<img src=\"data:{mime};base64,{data}\" alt=\"{}\" loading=\"lazy\">",
-        esc(alt)
-    ))
+    picture(path, mime, alt, class).with_context(|| format!("the image {}", path.display()))
 }
 
 #[cfg(test)]
@@ -293,7 +299,7 @@ mod tests {
         let p = dir.join("big.png");
         let f = std::fs::File::create(&p).unwrap();
         f.set_len(MAX_EMBED_BYTES + 1).unwrap();
-        let err = format!("{:#}", image_file(&p, "x").unwrap_err());
+        let err = format!("{:#}", image_file(&p, None, "x").unwrap_err());
         std::fs::remove_dir_all(&dir).unwrap();
         assert!(err.contains("at most"), "{err}");
     }
@@ -323,7 +329,7 @@ mod tests {
             "version https://git-lfs.github.com/spec/v1\noid sha256:0000\nsize 131\n",
         )
         .expect("a pointer file");
-        let err = image_file(&path, "a render").map(|_| ());
+        let err = image_file(&path, None, "a render").map(|_| ());
         std::fs::remove_dir_all(&dir).expect("the temporary directory goes");
         let msg = format!("{:#}", err.expect_err("a pointer is refused"));
         assert!(msg.contains("Git LFS pointer"), "{msg}");
@@ -366,6 +372,33 @@ mod tests {
             html.contains("<img class=\"theme-dark\" src=\"data:image/png;base64,"),
             "{html}"
         );
+    }
+
+    #[test]
+    fn an_image_file_with_a_dark_file_holds_both_pictures() {
+        let dir = std::env::temp_dir().join(format!(
+            "snapshotpb-manual-dark-file-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).expect("a temporary directory");
+        std::fs::write(
+            dir.join("a.svg"),
+            "<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+        )
+        .expect("the light file");
+        std::fs::write(
+            dir.join("a-dark.svg"),
+            "<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+        )
+        .expect("the dark file");
+        let html = image_file(&dir.join("a.svg"), Some(&dir.join("a-dark.svg")), "c");
+        let err = image_file(&dir.join("a.svg"), Some(&dir.join("a.txt")), "c").map(|_| ());
+        std::fs::remove_dir_all(&dir).expect("the temporary directory goes");
+        let html = html.expect("the figure");
+        assert!(html.contains("<svg class=\"theme-light\""), "{html}");
+        assert!(html.contains("<svg class=\"theme-dark\""), "{html}");
+        let msg = format!("{:#}", err.expect_err("a text file is refused"));
+        assert!(msg.contains("not an image type"), "{msg}");
     }
 
     #[test]

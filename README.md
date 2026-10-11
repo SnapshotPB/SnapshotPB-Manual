@@ -194,7 +194,7 @@ block. A line that holds one directive puts a generated block there:
 | `{{media <key>}}` | One media item of the firmware document |
 | `{{board}}` | The board figures |
 | `{{provenance}}` | Each source with its version |
-| `{{image <path> \| <caption>}}` | A picture from a source root. An SVG goes inline, and a PNG or a JPEG goes in as data. |
+| `{{image <path> [<dark path>] \| <caption>}}` | A picture from a source root. An SVG goes inline, and a PNG or a JPEG goes in as data. A second path names the picture for the dark theme. A path holds no space. |
 
 `{{value <name>}}` in a line prints a value: `firmware.version`, `firmware.summary`,
 `app.version`, `app.summary`, `board.md5`, `board.name`, `manual.date`, `manual.language`,

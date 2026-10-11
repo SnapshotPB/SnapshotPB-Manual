@@ -217,16 +217,8 @@ figure.tree svg { display: block; margin: 0 auto; padding: 0; background: transp
 /* Media that the documents provide. */
 figure.media video { max-width: 100%; max-height: 70vh; border-radius: 6px; }
 /* An image with a dark file holds both pictures, in a media item or in an image directive.
-   The theme shows one of them, with the same rules as the colour tokens: the page
-   attribute first, then the system. */
-figure .theme-dark { display: none; }
+   The theme rules at the end of this sheet show one of them. */
 figure svg.theme-dark { background: transparent; }
-:root[data-theme="dark"] figure .theme-light { display: none; }
-:root[data-theme="dark"] figure .theme-dark { display: inline; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) figure .theme-light { display: none; }
-  :root:not([data-theme="light"]) figure .theme-dark { display: inline; }
-}
 .media-file { margin: 0; }
 .media-file .kind { display: inline; margin-left: 6px; }
 
@@ -240,4 +232,17 @@ figure svg.theme-dark { background: transparent; }
   .tabs > .panel { display: block !important; border-radius: 8px; margin-bottom: 8px; }
   .panel-name { display: block; margin: 0 0 6px; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--md-on-surface-variant); }
   .menu-tree a.node rect { fill: #fff; stroke: #000; }
+}
+
+/* An element with the class theme-light or theme-dark is one of a pair: the page shows
+   the one that the theme selects, with the same rules as the colour tokens, the page
+   attribute first, then the system. Each rule hides alone, so the element keeps its own
+   display value. */
+:root[data-theme="light"] .theme-dark { display: none; }
+:root[data-theme="dark"] .theme-light { display: none; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .theme-dark { display: none; }
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-light { display: none; }
 }

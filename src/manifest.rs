@@ -55,6 +55,10 @@ pub struct Brand {
     /// The emblem of the board family. It sits beside the logo at the head of the manual.
     #[serde(default)]
     pub emblem: Option<String>,
+    /// The emblem for the dark theme. The page holds both emblems and shows the one that
+    /// the theme selects.
+    #[serde(default)]
+    pub emblem_dark: Option<String>,
     pub icon: String,
     /// The Kotlin file that holds the colour scheme of the app.
     pub theme: String,
@@ -173,6 +177,7 @@ impl Loaded {
                 brand: Brand {
                     logo: String::new(),
                     emblem: None,
+                    emblem_dark: None,
                     icon: String::new(),
                     theme: String::new(),
                 },

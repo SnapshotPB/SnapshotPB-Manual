@@ -48,7 +48,8 @@ const USAGE: &str = "usage:
   The documents come from the releases that the manifest names, through the gh command.
   gh must be signed in, or GH_TOKEN must hold a token with read access to the releases.
   The downloaded assets live under $SNAPSHOTPB_MANUAL_CACHE, or ~/.cache/snapshotpb-manual.
-  --source  replaces a source root of the manifest, for example --source firmware=~/fw";
+  --source  replaces a source root of the manifest, for example --source firmware=~/fw.
+            The path is relative to the current directory.";
 
 fn main() {
     if let Err(e) = run() {

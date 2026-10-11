@@ -83,7 +83,8 @@ cargo build --release
 ```
 
 The build writes `dist/snapshotpb-autococker-rev-b.html`. `--out <file>` writes to a different file, and
-`--source <name>=<path>` replaces a source root of the manifest.
+`--source <name>=<path>` replaces a source root of the manifest. The path is relative to the
+current directory, not to the manifest.
 
 The `site` command writes the site of GitHub Pages: one manual for each manifest and each
 language that its documents hold, and an index page where the reader picks a board and a

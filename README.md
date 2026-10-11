@@ -83,7 +83,23 @@ cargo build --release
 ```
 
 The build writes `dist/snapshotpb-autococker-rev-b.html`. `--out <file>` writes to a different file, and
-`--source <name>=<path>` replaces a source root of the manifest. The other commands:
+`--source <name>=<path>` replaces a source root of the manifest.
+
+The `site` command writes the site of GitHub Pages: one manual for each manifest and each
+language that its documents hold, and an index page where the reader picks a board and a
+language.
+
+```sh
+./target/release/snapshotpb-manual site manifests/autococker-rev-b.toml --out site
+```
+
+It writes `site/<id>/<lang>/index.html` for each language, where `<id>` is the id of the
+manifest. The page `site/<id>/index.html` opens the language of the manifest, and
+`site/index.html` is the index. The languages are each tag that a localized text of the
+firmware document or the app document names, and the language of the manifest. The chapters
+under `content/` are English in each language until a chapter set exists for that language.
+
+The other commands:
 
 ```sh
 ./target/release/snapshotpb-manual check manifests/autococker-rev-b.toml
@@ -127,9 +143,9 @@ Two more workflows run on their own:
   format, runs clippy, and runs the tests. A pull request that changes the content alone
   does not start it.
 - **Publish to GitHub Pages** (`.github/workflows/pages.yml`). Each push to `main` that
-  changes the manual builds it and publishes it as the Pages site. The manual is
-  `index.html`, and a copy keeps the name of the release asset. The workflow needs the
-  `SOURCES_TOKEN` secret, and the Pages source of the repository must be "GitHub Actions".
+  changes the manual builds the site with the `site` command and publishes it as the Pages
+  site. The workflow needs the `SOURCES_TOKEN` secret, and the Pages source of the
+  repository must be "GitHub Actions".
 
 Each workflow caches the Cargo registry and the compiled dependencies, keyed on
 `Cargo.lock` and the toolchain. The Pages workflow also caches the two downloaded documents,

@@ -1,7 +1,8 @@
-# Publish to GitHub Pages. Each push to main that changes the manual builds the manual
-# and publishes it as the Pages site of this repository. The site is one page: the manual
-# is index.html, and a copy keeps the name of the release asset. A manual run from the
-# Actions tab publishes the current main.
+# Publish to GitHub Pages. Each push to main that changes the manual builds the site and
+# publishes it as the Pages site of this repository. The site holds one manual for each
+# board and each language, at <board>/<lang>/index.html, and an index page where the
+# reader picks a board and a language. A manual run from the Actions tab publishes the
+# current main.
 #
 # The build needs the same sources as build-release.yml: the app repository and the PCB
 # repository, which the job clones with the SOURCES_TOKEN secret, and the firmware
@@ -42,8 +43,8 @@ permissions:
   contents: read
 
 env:
-  MANIFEST: manifests/autococker-rev-b.toml
-  ASSET: snapshotpb-autococker-rev-b.html
+  # Each manifest of the site. A new board adds its manifest here.
+  MANIFESTS: manifests/autococker-rev-b.toml
   # The directory where the generator caches the downloaded documents.
   SNAPSHOTPB_MANUAL_CACHE: ${{ github.workspace }}/.document-cache
 
@@ -99,26 +100,25 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ env.SNAPSHOTPB_MANUAL_CACHE }}
-          # The manifest names the release and the asset of each document, so a change
+          # The manifests name the release and the asset of each document, so a change
           # to a release changes the key.
-          key: documents-${{ hashFiles('manifests/autococker-rev-b.toml') }}
+          key: documents-${{ hashFiles('manifests/*.toml') }}
 
       - name: Build the generator
         run: cargo build --release --locked
 
-      - name: Build the manual
+      - name: Build the site
         env:
           # gh reads the two documents from the private firmware and app releases.
           GH_TOKEN: ${{ secrets.SOURCES_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p site
-          ./target/release/snapshotpb-manual build "$MANIFEST" \
-            --out "site/index.html" \
+          # shellcheck disable=SC2086  # MANIFESTS holds one path or more, split on spaces.
+          ./target/release/snapshotpb-manual site $MANIFESTS \
+            --out site \
             --source app=sources/app \
             --source pcb=sources/pcb
-          cp site/index.html "site/$ASSET"
-          ls -la site/
+          find site -type f | sort
 
       - name: Upload the site
         uses: actions/upload-pages-artifact@v5

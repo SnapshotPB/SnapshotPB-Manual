@@ -13,6 +13,7 @@ mod names;
 mod release;
 mod render;
 mod schema;
+mod site;
 mod theme;
 mod tree;
 mod util;
@@ -32,10 +33,14 @@ use crate::util::{git_describe, read_bytes, read_text, sha256_short, today_utc};
 const USAGE: &str = "usage:
   snapshotpb-manual build <manifest.toml> [--out <file.html>] [--lang <code>] [--source <name>=<path>]...
   snapshotpb-manual check <manifest.toml> [--lang <code>] [--source <name>=<path>]...
+  snapshotpb-manual site <manifest.toml>... --out <dir> [--source <name>=<path>]...
   snapshotpb-manual validate <firmware|app> <document.json>...
 
   build     reads every document and source that the manifest names and writes the manual.
   check     reads every document and source and renders the manual, and writes nothing.
+  site      writes one manual for each manifest and each language that its documents hold.
+            A manual is at <dir>/<id>/<lang>/index.html. The index page at <dir>/index.html
+            lets the reader pick a board and a language.
   validate  checks each document against its schema and its rules, and writes nothing.
   --lang    the language of the manual, for example de. It replaces the language of the manifest.
             A text that a document does not have in that language falls back to English.
@@ -61,11 +66,11 @@ fn run() -> Result<()> {
     if command == "validate" {
         return validate(&args[1..]);
     }
-    let manifest_path = PathBuf::from(&args[1]);
+    let mut manifests: Vec<PathBuf> = Vec::new();
     let mut out: Option<PathBuf> = None;
     let mut lang: Option<String> = None;
     let mut overrides: Vec<(String, String)> = Vec::new();
-    let mut i = 2;
+    let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
             "--out" => {
@@ -82,21 +87,134 @@ fn run() -> Result<()> {
                 let (n, p) = spec.split_once('=').context("--source needs name=path")?;
                 overrides.push((n.to_string(), p.to_string()));
             }
-            other => bail!("unknown argument `{other}`\n{USAGE}"),
+            other if other.starts_with("--") => bail!("unknown argument `{other}`\n{USAGE}"),
+            path => manifests.push(PathBuf::from(path)),
         }
         i += 1;
     }
     match command {
-        "build" => build(
-            &manifest_path,
-            out.as_deref(),
-            lang.as_deref(),
-            &overrides,
-            true,
-        ),
-        "check" => build(&manifest_path, None, lang.as_deref(), &overrides, false),
+        "build" | "check" => {
+            let [manifest_path] = manifests.as_slice() else {
+                bail!("{command} needs one manifest\n{USAGE}");
+            };
+            if command == "build" {
+                build(
+                    manifest_path,
+                    out.as_deref(),
+                    lang.as_deref(),
+                    &overrides,
+                    true,
+                )
+            } else {
+                build(manifest_path, None, lang.as_deref(), &overrides, false)
+            }
+        }
+        "site" => {
+            if manifests.is_empty() {
+                bail!("site needs one manifest or more\n{USAGE}");
+            }
+            if lang.is_some() {
+                bail!("site builds each language, and takes no --lang");
+            }
+            let out = out.context("site needs --out <dir>")?;
+            site(&manifests, &out, &overrides)
+        }
         other => bail!("unknown command `{other}`\n{USAGE}"),
     }
+}
+
+/// The site: each manifest in each of its languages, and the index page.
+fn site(manifests: &[PathBuf], out: &Path, overrides: &[(String, String)]) -> Result<()> {
+    let mut boards = Vec::new();
+    let mut theme: Option<Theme> = None;
+    for path in manifests {
+        let loaded = Loaded::load(path, overrides)?;
+        let m = &loaded.manifest;
+        // The id is a directory name and a URL segment, so it holds plain characters alone.
+        if m.id.is_empty()
+            || !m
+                .id
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+        {
+            bail!(
+                "{}: the id `{}` must hold lower case letters, digits, and hyphens alone",
+                path.display(),
+                m.id
+            );
+        }
+        if theme.is_none() {
+            theme = Some(
+                Theme::parse(&loaded.resolve(&m.brand.theme)?)
+                    .context("the colour scheme of the app")?,
+            );
+        }
+        // Each language reads the documents again through the cache. The work is small,
+        // and it keeps `manual` the same for the build command and for the site.
+        let languages = languages_of(&loaded)?;
+        for lang in &languages {
+            let built =
+                manual(&loaded, lang).with_context(|| format!("the manual {} in {lang}", m.id))?;
+            let page = out.join(&m.id).join(lang).join("index.html");
+            write_file(&page, &built.html)?;
+            println!("{} ({})", page.display(), built.summary);
+        }
+        write_file(
+            &out.join(&m.id).join("index.html"),
+            &site::redirect(&format!("{}/", m.language)),
+        )?;
+        boards.push(site::Board {
+            id: m.id.clone(),
+            title: m.title.clone(),
+            logos: render::hero_logos(&loaded)?,
+            default_lang: m.language.clone(),
+            languages,
+        });
+    }
+    let theme = theme.context("the site needs one manifest")?;
+    let index = out.join("index.html");
+    write_file(&index, &site::index(&boards, &theme))?;
+    let n = boards.len();
+    println!(
+        "{} ({n} {})",
+        index.display(),
+        if n == 1 { "board" } else { "boards" }
+    );
+    Ok(())
+}
+
+/// Each language that the documents of a manifest hold, and the language of the manifest,
+/// in sorted order.
+fn languages_of(loaded: &Loaded) -> Result<Vec<String>> {
+    let m = &loaded.manifest;
+    let mut langs = std::collections::BTreeSet::new();
+    langs.insert(m.language.clone());
+    let mut add = |source: &manifest::DocumentSource, what: &str| -> Result<()> {
+        let located = release::locate(loaded, source).context(what.to_string())?;
+        let value: Value = serde_json::from_str(&read_text(&located.path)?)
+            .with_context(|| format!("{} is not JSON", located.path.display()))?;
+        langs.extend(localize::languages(&value));
+        Ok(())
+    };
+    add(&m.firmware, "the firmware document")?;
+    if let Some(a) = &m.app {
+        add(a, "the application document")?;
+    }
+    Ok(langs.into_iter().collect())
+}
+
+fn write_file(path: &Path, text: &str) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("cannot create {}", parent.display()))?;
+    }
+    std::fs::write(path, text).with_context(|| format!("cannot write {}", path.display()))
+}
+
+/// One manual, as the page and the words of its summary line.
+struct Built {
+    html: String,
+    summary: String,
 }
 
 fn validate(args: &[String]) -> Result<()> {
@@ -152,13 +270,31 @@ fn build(
     let loaded = Loaded::load(manifest_path, overrides)?;
     let m = &loaded.manifest;
     let lang = lang.unwrap_or(&m.language).to_string();
+    let built = manual(&loaded, &lang)?;
+    let out_path = match out {
+        Some(p) => p.to_path_buf(),
+        None => loaded.resolve(&m.output)?,
+    };
+    if write {
+        write_file(&out_path, &built.html)?;
+        println!("{} ({})", out_path.display(), built.summary);
+    } else {
+        println!("ok: {}", built.summary);
+    }
+    Ok(())
+}
+
+/// The manual of one manifest in one language.
+fn manual(loaded: &Loaded, lang: &str) -> Result<Built> {
+    let m = &loaded.manifest;
+    let lang = lang.to_string();
     if !localize::is_language_tag(&lang) {
         bail!("the language `{lang}` is not a language tag such as en, de, or es-MX");
     }
 
     let theme =
         Theme::parse(&loaded.resolve(&m.brand.theme)?).context("the colour scheme of the app")?;
-    let fw_source = release::locate(&loaded, &m.firmware).context("the firmware document")?;
+    let fw_source = release::locate(loaded, &m.firmware).context("the firmware document")?;
     let fw_path = fw_source.path.clone();
     let fw = firmware::Document::load(&fw_path, &lang).context("the firmware document")?;
     let fw_dir = fw_path
@@ -167,7 +303,7 @@ fn build(
         .unwrap_or_else(|| PathBuf::from("."));
     let (app_doc, app_source) = match &m.app {
         Some(a) => {
-            let source = release::locate(&loaded, a).context("the application document")?;
+            let source = release::locate(loaded, a).context("the application document")?;
             (
                 Some(app::Document::load(&source.path, &lang).context("the application document")?),
                 Some(source),
@@ -299,7 +435,7 @@ fn build(
 
     let ctx = Ctx {
         lang,
-        loaded: &loaded,
+        loaded,
         fw: &fw,
         fw_dir: &fw_dir,
         app: app_doc.as_ref(),
@@ -312,11 +448,6 @@ fn build(
     let content_dir = loaded.resolve(&m.content)?;
     let body = markdown::render_dir(&content_dir, &ctx).context("the chapters")?;
     let html = render::page(&ctx, &theme, &body)?;
-
-    let out_path = match out {
-        Some(p) => p.to_path_buf(),
-        None => loaded.resolve(&m.output)?,
-    };
     let summary = format!(
         "{} bytes, {} screens, {} settings, {} contents entries, firmware {}{}",
         html.len(),
@@ -329,18 +460,7 @@ fn build(
             .map(|a| format!(", app {}", a.app.version))
             .unwrap_or_default()
     );
-    if write {
-        if let Some(parent) = out_path.parent() {
-            std::fs::create_dir_all(parent)
-                .with_context(|| format!("cannot create {}", parent.display()))?;
-        }
-        std::fs::write(&out_path, &html)
-            .with_context(|| format!("cannot write {}", out_path.display()))?;
-        println!("{} ({summary})", out_path.display());
-    } else {
-        println!("ok: {summary}");
-    }
-    Ok(())
+    Ok(Built { html, summary })
 }
 
 /// The `const` of `schema_version` in a schema of the set.

@@ -8,7 +8,7 @@ CAUTION: Touch a grounded metal object before you touch the board. Static electr
 
 The trigger board is an optical board or a switch board. Only one trigger board fits at a time. The board goes onto the `TRIG` header, and one screw holds it.
 
-{{image ../content/autococker-rev-b/images/trigger-board-install.svg | The trigger board above the main board, before the installation}}
+{{image pcb:docs/images/quick-start/trigger-board-install.svg | The trigger board above the main board, before the installation}}
 
 1. Put the spacer on hole `H3` of the main board.
 2. Hold the trigger board above the main board, with the `J11` socket above the `TRIG1` header.
@@ -16,7 +16,7 @@ The trigger board is an optical board or a switch board. Only one trigger board 
 4. Put the M2.5 x 16 screw through hole `H4` of the trigger board and through the spacer.
 5. Tighten the screw.
 
-{{image ../content/autococker-rev-b/images/trigger-board-seated.svg | The trigger board in place}}
+{{image pcb:docs/images/quick-start/trigger-board-seated.svg | The trigger board in place}}
 
 ## Connect the solenoids
 

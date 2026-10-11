@@ -17,6 +17,9 @@
         "lang": "en",
         "text": "The firmware of the Snapshot PB autococker board. This example covers the root screen, the Fire screen, the Ramping screen, and the Eye screen."
       }
+    ],
+    "media": [
+      "buttons"
     ]
   },
   "controls": {
@@ -897,6 +900,19 @@
       ],
       "related": [
         "autococker.eye_mode"
+      ]
+    }
+  },
+  "media": {
+    "buttons": {
+      "kind": "image",
+      "src": "pcb:docs/images/quick-start/buttons-back.svg",
+      "src_dark": "pcb:docs/images/quick-start/buttons-back-dark.svg",
+      "caption": [
+        {
+          "lang": "en",
+          "text": "The three buttons at the back of the grip frame."
+        }
       ]
     }
   }

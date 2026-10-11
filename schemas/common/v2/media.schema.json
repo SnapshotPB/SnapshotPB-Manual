@@ -104,6 +104,12 @@
           "minLength": 1,
           "pattern": "^([a-z][a-z0-9_]*:)?[^\\s]+$"
         },
+        "src_dark": {
+          "description": "The file that the manual shows in place of src when the page uses the dark theme, in the same form as src. Only an image has one. A picture with a transparent background, a white line drawing, or a screenshot of the app in its dark theme is clearer with its own dark file. An SVG that uses currentColor or the CSS custom properties of the theme follows the theme by itself and does not need one.",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^([a-z][a-z0-9_]*:)?[^\\s]+$"
+        },
         "caption": {
           "description": "The caption under the item, and the accessible name of the item.",
           "$ref": "#/$defs/text"
@@ -120,6 +126,20 @@
         "params": {
           "description": "Parameters for the kind, which the kind defines. For a model: a camera position, or the part to highlight. The schema does not constrain them, so a kind can grow without a schema change.",
           "type": "object"
+        }
+      },
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "image"
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "src_dark"
+          ]
         }
       }
     }

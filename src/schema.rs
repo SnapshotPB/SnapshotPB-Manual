@@ -140,4 +140,17 @@ mod tests {
         doc["media"]["board"]["kind"] = Value::from("Not A Kind");
         assert!(validate(Kind::Firmware, &doc, "the example").is_err());
     }
+
+    #[test]
+    fn only_an_image_has_a_dark_file() {
+        let mut doc: Value = serde_json::from_str(include_str!(
+            "../schemas/firmware/v2/examples/autococker-26.29.0.json"
+        ))
+        .unwrap();
+        assert_eq!(doc["media"]["buttons"]["kind"], "image");
+        assert!(doc["media"]["buttons"]["src_dark"].is_string());
+        doc["media"]["buttons"]["kind"] = Value::from("video");
+        let err = validate(Kind::Firmware, &doc, "the example").unwrap_err();
+        assert!(format!("{err:#}").contains("src_dark"), "{err:#}");
+    }
 }

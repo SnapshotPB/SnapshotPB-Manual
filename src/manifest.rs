@@ -146,8 +146,10 @@ impl Loaded {
         for (name, spec) in &manifest.sources {
             sources.insert(name.clone(), Self::plain(&dir, spec));
         }
+        // A path on the command line is relative to the current directory, as the user
+        // typed it. A path in the manifest is relative to the manifest.
         for (name, spec) in overrides {
-            sources.insert(name.clone(), Self::plain(&dir, spec));
+            sources.insert(name.clone(), expand_tilde(spec));
         }
         Ok(Loaded {
             manifest,
@@ -261,5 +263,39 @@ mod tests {
         assert!(err(source(Some("a.json"), None, Some("a.json"), None)).contains("name a"));
         assert!(err(source(Some("a.json"), None, None, Some(hex))).contains("pins"));
         assert!(err(source(None, Some("o/r@v1"), Some("a.json"), Some("abc"))).contains("64 hex"));
+    }
+
+    #[test]
+    fn a_source_override_is_relative_to_the_current_directory() {
+        let dir =
+            std::env::temp_dir().join(format!("snapshotpb-manual-override-{}", std::process::id()));
+        let manifests = dir.join("manifests");
+        std::fs::create_dir_all(&manifests).expect("a temporary directory");
+        let path = manifests.join("m.toml");
+        std::fs::write(
+            &path,
+            r#"id = "m"
+title = "M"
+output = "m.html"
+content = "c"
+[sources]
+pcb = "../pcb"
+[brand]
+logo = "l.svg"
+icon = "i.svg"
+theme = "t.kt"
+[board]
+name = "B"
+metrics = "m.json"
+[firmware]
+document = "f.json"
+"#,
+        )
+        .expect("a manifest");
+        let loaded = Loaded::load(&path, &[("app".to_string(), "sources/app".to_string())]);
+        std::fs::remove_dir_all(&dir).expect("the temporary directory goes");
+        let loaded = loaded.expect("the manifest loads");
+        assert_eq!(loaded.sources()["app"], PathBuf::from("sources/app"));
+        assert_eq!(loaded.sources()["pcb"], manifests.join("../pcb"));
     }
 }

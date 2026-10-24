@@ -22,6 +22,7 @@ app = "~/workspace/SnapshotPB"
 logo = "../assets/snapshotpb.svg"
 emblem = "../assets/autococker-division.svg"
 emblem_dark = "../assets/autococker-division-dark.svg"
+division = "Autococker Division"
 icon = "../assets/favicon-plain.svg"
 theme = "app:core/common/src/commonMain/kotlin/com/snapshotpb/configuration/common/theme/Color.kt"
 

@@ -2,6 +2,7 @@
 //! document, the application document, and the sources that a manifest names.
 
 mod app;
+mod assembly;
 mod board;
 mod firmware;
 mod gen;
@@ -24,8 +25,9 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Context, Result};
 use serde_json::Value;
 
+use crate::assembly::AssemblyInfo;
 use crate::board::BoardInfo;
-use crate::gen::Ctx;
+use crate::gen::{Ctx, Product};
 use crate::manifest::Loaded;
 use crate::theme::Theme;
 use crate::util::{git_describe, read_bytes, read_text, sha256_short, today_utc};
@@ -196,7 +198,7 @@ fn site(manifests: &[PathBuf], out: &Path, overrides: &[(String, String)]) -> Re
     println!(
         "{} ({n} {})",
         index.display(),
-        if n == 1 { "board" } else { "boards" }
+        if n == 1 { "manual" } else { "manuals" }
     );
     Ok(())
 }
@@ -214,7 +216,9 @@ fn languages_of(loaded: &Loaded) -> Result<Vec<String>> {
         langs.extend(localize::languages(&value));
         Ok(())
     };
-    add(&m.firmware, "the firmware document")?;
+    if let Some(f) = &m.firmware {
+        add(f, "the firmware document")?;
+    }
     if let Some(a) = &m.app {
         add(a, "the application document")?;
     }
@@ -312,11 +316,20 @@ fn manual(loaded: &Loaded, lang: &str) -> Result<Built> {
 
     let theme =
         Theme::parse(&loaded.resolve(&m.brand.theme)?).context("the colour scheme of the app")?;
-    let fw_source = release::locate(loaded, &m.firmware).context("the firmware document")?;
-    let fw_path = fw_source.path.clone();
-    let fw = firmware::Document::load(&fw_path, &lang).context("the firmware document")?;
-    let fw_dir = fw_path
-        .parent()
+    let fw_source = m
+        .firmware
+        .as_ref()
+        .map(|f| release::locate(loaded, f))
+        .transpose()
+        .context("the firmware document")?;
+    let fw = fw_source
+        .as_ref()
+        .map(|s| firmware::Document::load(&s.path, &lang))
+        .transpose()
+        .context("the firmware document")?;
+    let fw_dir = fw_source
+        .as_ref()
+        .and_then(|s| s.path.parent())
         .map(Path::to_path_buf)
         .unwrap_or_else(|| PathBuf::from("."));
     let (app_doc, app_source) = match &m.app {
@@ -335,7 +348,8 @@ fn manual(loaded: &Loaded, lang: &str) -> Result<Built> {
         .and_then(|p| p.parent())
         .map(Path::to_path_buf)
         .unwrap_or_else(|| PathBuf::from("."));
-    if let Some(a) = &app_doc {
+    // The manifest check makes sure that an app document comes with a firmware document.
+    if let (Some(a), Some(fw)) = (&app_doc, &fw) {
         a.check_against(|k| fw.settings.contains_key(k))
             .context("the application document")?;
         if let (Some(fp), Some(ap)) = (&fw.firmware.protocol_version, &a.app.protocol_version) {
@@ -346,27 +360,60 @@ fn manual(loaded: &Loaded, lang: &str) -> Result<Built> {
             }
         }
     }
-    let board = BoardInfo::load(&loaded.resolve(&m.board.metrics)?).context("the board metrics")?;
-    let placed = fw.walk()?;
+    let board = m
+        .board
+        .as_ref()
+        .map(|b| -> Result<BoardInfo> {
+            BoardInfo::load(&loaded.resolve(&b.metrics)?).context("the board metrics")
+        })
+        .transpose()?;
+    let assembly = m
+        .assembly
+        .as_ref()
+        .map(|a| -> Result<AssemblyInfo> {
+            AssemblyInfo::load(&loaded.resolve(&a.metrics)?).context("the assembly metrics")
+        })
+        .transpose()?;
+    let placed = match &fw {
+        Some(fw) => fw.walk()?,
+        None => Vec::new(),
+    };
 
     // The values that the content can print.
     let mut values: BTreeMap<String, String> = BTreeMap::new();
     values.insert("id".into(), m.id.clone());
     values.insert("title".into(), m.title.clone());
     values.insert("subtitle".into(), m.subtitle.clone());
-    values.insert("board.name".into(), m.board.name.clone());
-    values.insert("board.md5".into(), board.md5_short().to_string());
-    values.insert("board.kicad".into(), board.kicad.clone());
-    values.insert("board.measured_on".into(), board.measured_on.clone());
-    values.insert("board.width_mm".into(), format!("{:.2}", board.width_mm));
-    values.insert("board.height_mm".into(), format!("{:.2}", board.height_mm));
-    values.insert("firmware.name".into(), fw.firmware.name.clone());
-    values.insert("firmware.version".into(), fw.firmware.version.clone());
-    if let Some(s) = &fw.firmware.summary {
-        values.insert("firmware.summary".into(), s.clone());
+    if let (Some(b), Some(board)) = (&m.board, &board) {
+        values.insert("board.name".into(), b.name.clone());
+        values.insert("board.md5".into(), board.md5_short().to_string());
+        values.insert("board.kicad".into(), board.kicad.clone());
+        values.insert("board.measured_on".into(), board.measured_on.clone());
+        values.insert("board.width_mm".into(), format!("{:.2}", board.width_mm));
+        values.insert("board.height_mm".into(), format!("{:.2}", board.height_mm));
     }
-    if let Some(p) = &fw.firmware.protocol_version {
-        values.insert("firmware.protocol_version".into(), p.clone());
+    if let (Some(a), Some(assembly)) = (&m.assembly, &assembly) {
+        values.insert("assembly.name".into(), a.name.clone());
+        values.insert("assembly.md5".into(), assembly.md5_short().to_string());
+        values.insert("assembly.measured_on".into(), assembly.measured_on.clone());
+        values.insert(
+            "assembly.length_mm".into(),
+            format!("{:.2}", assembly.length_mm),
+        );
+        values.insert(
+            "assembly.diameter_mm".into(),
+            format!("{:.2}", assembly.diameter_mm),
+        );
+    }
+    if let Some(fw) = &fw {
+        values.insert("firmware.name".into(), fw.firmware.name.clone());
+        values.insert("firmware.version".into(), fw.firmware.version.clone());
+        if let Some(s) = &fw.firmware.summary {
+            values.insert("firmware.summary".into(), s.clone());
+        }
+        if let Some(p) = &fw.firmware.protocol_version {
+            values.insert("firmware.protocol_version".into(), p.clone());
+        }
     }
     if let Some(a) = &app_doc {
         values.insert("app.name".into(), a.app.name.clone());
@@ -385,16 +432,18 @@ fn manual(loaded: &Loaded, lang: &str) -> Result<Built> {
     }
 
     let mut provenance: Vec<(String, String, String)> = Vec::new();
-    provenance.push((
-        "Firmware document".into(),
-        fw_source.place.clone(),
-        format!(
-            "{} {}, sha256 {}",
-            fw.firmware.name,
-            fw.firmware.version,
-            sha256_short(&read_bytes(&fw_path)?)
-        ),
-    ));
+    if let (Some(fw), Some(s)) = (&fw, &fw_source) {
+        provenance.push((
+            "Firmware document".into(),
+            s.place.clone(),
+            format!(
+                "{} {}, sha256 {}",
+                fw.firmware.name,
+                fw.firmware.version,
+                sha256_short(&read_bytes(&s.path)?)
+            ),
+        ));
+    }
     if let (Some(a), Some(s)) = (&app_doc, &app_source) {
         let p = &s.path;
         provenance.push((
@@ -408,20 +457,22 @@ fn manual(loaded: &Loaded, lang: &str) -> Result<Built> {
             ),
         ));
     }
-    provenance.push((
-        "Schema set".into(),
-        "schemas/".into(),
-        format!(
-            "firmware {} (document {}), app {}{}",
-            schema_version(schema::FIRMWARE),
-            fw.schema_version,
-            schema_version(schema::APP),
-            app_doc
-                .as_ref()
-                .map(|a| format!(" (document {})", a.schema_version))
-                .unwrap_or_default()
-        ),
-    ));
+    if let Some(fw) = &fw {
+        provenance.push((
+            "Schema set".into(),
+            "schemas/".into(),
+            format!(
+                "firmware {} (document {}), app {}{}",
+                schema_version(schema::FIRMWARE),
+                fw.schema_version,
+                schema_version(schema::APP),
+                app_doc
+                    .as_ref()
+                    .map(|a| format!(" (document {})", a.schema_version))
+                    .unwrap_or_default()
+            ),
+        ));
+    }
     for (name, root) in loaded.sources() {
         provenance.push((
             format!("{name} checkout"),
@@ -429,17 +480,31 @@ fn manual(loaded: &Loaded, lang: &str) -> Result<Built> {
             git_describe(root),
         ));
     }
-    provenance.push((
-        "Board".into(),
-        board.file.clone(),
-        format!(
-            "md5 {} at commit {}, KiCad {}, measured on {}",
-            board.md5_short(),
-            board.measured_at,
-            board.kicad,
-            board.measured_on
-        ),
-    ));
+    if let Some(board) = &board {
+        provenance.push((
+            "Board".into(),
+            board.file.clone(),
+            format!(
+                "md5 {} at commit {}, KiCad {}, measured on {}",
+                board.md5_short(),
+                board.measured_at,
+                board.kicad,
+                board.measured_on
+            ),
+        ));
+    }
+    if let Some(assembly) = &assembly {
+        provenance.push((
+            "Assembly".into(),
+            assembly.file.clone(),
+            format!(
+                "md5 {} at commit {}, measured on {}",
+                assembly.md5_short(),
+                assembly.measured_at,
+                assembly.measured_on
+            ),
+        ));
+    }
     provenance.push((
         "Colour scheme".into(),
         m.brand.theme.clone(),
@@ -454,14 +519,26 @@ fn manual(loaded: &Loaded, lang: &str) -> Result<Built> {
         format!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")),
     ));
 
+    // The manifest check makes sure that the manifest names a board or an assembly.
+    let product = match (&m.board, &board, &m.assembly, &assembly) {
+        (Some(b), Some(info), None, None) => Product::Board {
+            info,
+            name: &b.name,
+        },
+        (None, None, Some(a), Some(info)) => Product::Assembly {
+            info,
+            name: &a.name,
+        },
+        _ => bail!("the manifest must name a [board] or an [assembly]"),
+    };
     let ctx = Ctx {
         lang,
         loaded,
-        fw: &fw,
+        fw: fw.as_ref(),
         fw_dir: &fw_dir,
         app: app_doc.as_ref(),
         app_dir: &app_dir,
-        board: &board,
+        product,
         placed,
         values,
         provenance,
@@ -469,18 +546,24 @@ fn manual(loaded: &Loaded, lang: &str) -> Result<Built> {
     let content_dir = loaded.resolve(&m.content)?;
     let body = markdown::render_dir(&content_dir, &ctx).context("the chapters")?;
     let html = render::page(&ctx, &theme, &body)?;
-    let summary = format!(
-        "{} bytes, {} screens, {} settings, {} contents entries, firmware {}{}",
-        html.len(),
-        fw.screens.len(),
-        fw.settings.len(),
-        body.toc.len(),
-        fw.firmware.version,
-        app_doc
-            .as_ref()
-            .map(|a| format!(", app {}", a.app.version))
-            .unwrap_or_default()
-    );
+    let mut summary = format!("{} bytes", html.len());
+    if let Some(fw) = &fw {
+        summary.push_str(&format!(
+            ", {} screens, {} settings",
+            fw.screens.len(),
+            fw.settings.len()
+        ));
+    }
+    summary.push_str(&format!(", {} contents entries", body.toc.len()));
+    if let Some(fw) = &fw {
+        summary.push_str(&format!(", firmware {}", fw.firmware.version));
+    }
+    if let Some(a) = &app_doc {
+        summary.push_str(&format!(", app {}", a.app.version));
+    }
+    if let Some(a) = &assembly {
+        summary.push_str(&format!(", assembly {}", a.md5_short()));
+    }
     Ok(Built { html, summary })
 }
 

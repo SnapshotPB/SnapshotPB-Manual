@@ -14,7 +14,7 @@ WARNING: A paintball marker can cause serious injury. Wear eye protection that i
 
 SnapshotPB LLC gives this manual "as is", with no warranty of any type, express or implied.
 
-SnapshotPB LLC can change its products, its firmware, its app, and this manual at any time, with no notice. Use the manual that agrees with the version of your firmware and of your app.
+SnapshotPB LLC can change its products and this manual at any time, with no notice. Use the manual that agrees with your product and with its version.
 
 The installation of a SnapshotPB product can cancel the warranty of the manufacturer of your marker.
 

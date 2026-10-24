@@ -1,6 +1,6 @@
-//! The site: one manual for each board and each language, and the index page where the
-//! reader picks a language for a board. The site command of main.rs writes the pages at
-//! `<out>/<board>/<lang>/index.html`, and the index at `<out>/index.html`.
+//! The site: one manual for each manifest and each language, and the index page where the
+//! reader picks a manual and a language. The site command of main.rs writes the pages at
+//! `<out>/<id>/<lang>/index.html`, and the index at `<out>/index.html`.
 
 use crate::manifest::Social;
 use crate::render::{preview_meta, theme_color_meta, Preview};
@@ -9,9 +9,9 @@ use crate::util::esc;
 
 const CSS: &str = include_str!("../assets/index.css");
 const TITLE: &str = "SnapshotPB manuals";
-const DESCRIPTION: &str = "The manual of each SnapshotPB board, in each language.";
+const DESCRIPTION: &str = "The manual of each SnapshotPB product, in each language.";
 
-/// One board on the index page.
+/// One manual on the index page. A manual is for a board or for an assembly.
 pub struct Board {
     /// The id of the manifest. It names the directory of the board.
     pub id: String,
@@ -83,7 +83,7 @@ pub fn index(boards: &[Board], theme: &Theme, social: Option<&Social>) -> String
 <body>
 <main>
   <h1>{TITLE}</h1>
-  <p class="lead">Select a board and a language.</p>
+  <p class="lead">Select a manual and a language.</p>
 {cards}</main>
 </body>
 </html>

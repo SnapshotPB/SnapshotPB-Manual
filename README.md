@@ -10,6 +10,10 @@ document against a defined schema set. It then renders the documents into one HT
 that covers the board, the firmware, and the app together. Each run with the same inputs
 gives the same manual.
 
+The generator also builds an assembly manual, for a mechanical product with no firmware. The
+manual of the Featherweight ICS hammer is an assembly manual. Its manifest has an
+`[assembly]` table, and it names no firmware document and no app document.
+
 The manual is one file. Every style, script and picture is inside the file, so the manual
 works from any folder, with no connection, and after a download. The page follows the light
 and the dark colour scheme of the SnapshotPB app, and a button on the page changes the scheme.
@@ -87,11 +91,11 @@ The build writes `dist/snapshotpb-autococker-rev-b.html`. `--out <file>` writes 
 current directory, not to the manifest.
 
 The `site` command writes the site of GitHub Pages: one manual for each manifest and each
-language that its documents hold, and an index page where the reader picks a board and a
+language that its documents hold, and an index page where the reader picks a manual and a
 language.
 
 ```sh
-./target/release/snapshotpb-manual site manifests/autococker-rev-b.toml --out site
+./target/release/snapshotpb-manual site manifests/autococker-rev-b.toml manifests/featherweight-ics.toml --out site
 ```
 
 It writes `site/<id>/<lang>/index.html` for each language, where `<id>` is the id of the
@@ -197,12 +201,15 @@ block. A line that holds one directive puts a generated block there:
 | `{{topics}}` | Every topic of the firmware document |
 | `{{targets}}` | The platforms of the app |
 | `{{media <key>}}` | One media item of the firmware document |
-| `{{board}}` | The board figures |
+| `{{board}}` | The board figures. A board manual only. |
+| `{{assembly}}` | The figures of the assembly: the length, the diameter, the bore, and the number of parts. An assembly manual only. |
 | `{{provenance}}` | Each source with its version |
 | `{{image <path> [<dark path>] \| <caption>}}` | A picture from a source root. An SVG goes inline, and a PNG or a JPEG goes in as data. A second path names the picture for the dark theme. A path holds no space. |
 
 `{{value <name>}}` in a line prints a value: `firmware.version`, `firmware.summary`,
-`app.version`, `app.summary`, `board.md5`, `board.name`, `manual.date`, `manual.year`, `manual.language`,
+`app.version`, `app.summary`, `board.md5`, `board.name`, `assembly.name`, `assembly.md5`,
+`assembly.measured_on`, `assembly.length_mm`, `assembly.diameter_mm`, `manual.date`,
+`manual.year`, `manual.language`,
 `control.<key>.name`, `control.<key>.hold_ms`, or a key of the `[values]` table of the
 manifest.
 
@@ -244,6 +251,27 @@ its address on the site. A manifest with no `[social]` table makes pages with no
    change the sources and the board, and copy `content/autococker-rev-b/` to
    `content/<id>/` and change the chapters.
 4. Build, and read the manual in a browser in both colour schemes.
+
+## Board manuals and assembly manuals
+
+A manifest names a board or an assembly:
+
+- A board manual has a `[board]` table and a `[firmware]` table, and it can have an `[app]`
+  table. The Autococker manual is a board manual.
+- An assembly manual has an `[assembly]` table with `name` and `metrics`. It has no
+  `[firmware]` table and no `[app]` table. The metrics file is the `METRICS.json` of the
+  assembly, with `meta.assembly_md5` and the `envelope` of the assembly.
+
+A directive that needs the firmware document, such as `{{menu}}` or `{{controls}}`, stops the
+build of an assembly manual with an error.
+
+The chapters of an assembly manual can live in the repository of the product. The
+Featherweight ICS manifest reads its chapters, its images, and its metrics through the source
+root `hammer`, which is a checkout of `SnapshotPB/Feather-Weight-ICS`:
+
+```sh
+./target/release/snapshotpb-manual build manifests/featherweight-ics.toml --source hammer=../SnapshotPB-Hammer
+```
 
 ## Documentation
 

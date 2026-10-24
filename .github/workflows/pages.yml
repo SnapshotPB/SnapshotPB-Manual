@@ -7,7 +7,13 @@
 # The build needs the same sources as build-release.yml: the app repository and the PCB
 # repository, which the job clones with the SOURCES_TOKEN secret, and the firmware
 # document and the app document, which gh downloads from their releases with the same
-# secret. See the header of build-release.yml for the token.
+# secret. See the header of build-release.yml for the token. The manual of the
+# Featherweight ICS also needs the hammer repository, SnapshotPB/Feather-Weight-ICS, which
+# holds its chapters, its images, and its metrics. The token needs read access to the
+# contents of that repository too.
+#
+# A push to the hammer repository does not start this workflow. To publish a change to
+# the chapters of the hammer manual, run this workflow from the Actions tab.
 #
 # Three caches cut the build minutes. The Rust cache keeps the registry and the compiled
 # dependencies, keyed on Cargo.lock and the toolchain. The document cache keeps the two
@@ -44,7 +50,7 @@ permissions:
 
 env:
   # Each manifest of the site. A new board adds its manifest here.
-  MANIFESTS: manifests/autococker-rev-b.toml
+  MANIFESTS: manifests/autococker-rev-b.toml manifests/featherweight-ics.toml
   # The directory where the generator caches the downloaded documents.
   SNAPSHOTPB_MANUAL_CACHE: ${{ github.workspace }}/.document-cache
 
@@ -88,6 +94,14 @@ jobs:
           lfs: true
           persist-credentials: false
 
+      - name: Checkout the hammer repository
+        uses: actions/checkout@v7
+        with:
+          repository: SnapshotPB/Feather-Weight-ICS
+          token: ${{ secrets.SOURCES_TOKEN }}
+          path: sources/hammer
+          persist-credentials: false
+
       - name: Show the toolchain
         run: |
           rustc --version
@@ -119,7 +133,8 @@ jobs:
           ./target/release/snapshotpb-manual site $MANIFESTS \
             --out site \
             --source app=sources/app \
-            --source pcb=sources/pcb
+            --source pcb=sources/pcb \
+            --source hammer=sources/hammer
           find site -type f | sort
 
       - name: Upload the site

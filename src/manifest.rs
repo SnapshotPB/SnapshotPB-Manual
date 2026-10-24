@@ -25,9 +25,15 @@ pub struct Manifest {
     #[serde(default)]
     pub sources: BTreeMap<String, String>,
     pub brand: Brand,
-    pub board: Board,
-    /// The firmware document, which follows `schemas/firmware/v2`.
-    pub firmware: DocumentSource,
+    /// The board of a board manual. A manifest names a board or an assembly.
+    #[serde(default)]
+    pub board: Option<Board>,
+    /// The mechanical assembly of an assembly manual, which has no firmware and no app.
+    #[serde(default)]
+    pub assembly: Option<Assembly>,
+    /// The firmware document, which follows `schemas/firmware/v2`. A board manual needs it.
+    #[serde(default)]
+    pub firmware: Option<DocumentSource>,
     /// The application document, which follows `schemas/app/v2`. Absent for a manual of
     /// the board alone.
     #[serde(default)]
@@ -73,6 +79,42 @@ pub struct Board {
     pub name: String,
     /// The `METRICS.json` of the board.
     pub metrics: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Assembly {
+    pub name: String,
+    /// The `METRICS.json` of the assembly.
+    pub metrics: String,
+}
+
+impl Manifest {
+    /// The rules of the product tables that serde cannot state. A board manual has
+    /// `[board]` and `[firmware]`, and it can have `[app]`. An assembly manual has
+    /// `[assembly]` with no firmware and no app.
+    fn check_product(&self) -> Result<()> {
+        match (&self.board, &self.assembly) {
+            (Some(_), Some(_)) => bail!("the manifest names a [board] and an [assembly]; name one"),
+            (None, None) => bail!("the manifest needs a [board] or an [assembly]"),
+            (Some(_), None) => {
+                let Some(firmware) = &self.firmware else {
+                    bail!("a manifest with a [board] needs a [firmware] document");
+                };
+                firmware.check("firmware")?;
+                if let Some(app) = &self.app {
+                    app.check("app")?;
+                }
+                Ok(())
+            }
+            (None, Some(_)) => {
+                if self.firmware.is_some() || self.app.is_some() {
+                    bail!("a manifest with an [assembly] has no [firmware] and no [app]");
+                }
+                Ok(())
+            }
+        }
+    }
 }
 
 /// The link preview: the text and the picture that a chat app or a social site shows for a
@@ -190,13 +232,8 @@ impl Loaded {
         let manifest: Manifest =
             toml::from_str(&text).with_context(|| format!("manifest {}", path.display()))?;
         manifest
-            .firmware
-            .check("firmware")
+            .check_product()
             .with_context(|| format!("manifest {}", path.display()))?;
-        if let Some(app) = &manifest.app {
-            app.check("app")
-                .with_context(|| format!("manifest {}", path.display()))?;
-        }
         if let Some(social) = &manifest.social {
             social
                 .check()
@@ -241,16 +278,17 @@ impl Loaded {
                     icon: String::new(),
                     theme: String::new(),
                 },
-                board: Board {
+                board: Some(Board {
                     name: String::new(),
                     metrics: String::new(),
-                },
-                firmware: DocumentSource {
+                }),
+                assembly: None,
+                firmware: Some(DocumentSource {
                     document: Some(String::new()),
                     release: None,
                     asset: None,
                     sha256: None,
-                },
+                }),
                 app: None,
                 values: BTreeMap::new(),
                 names: BTreeMap::new(),
@@ -431,5 +469,38 @@ document = "f.json"
             "{MINIMAL}[social]\nsite_url = \"https://example.com/\"\ndescription = \"A\"\nimage = \"https://example.com/s.png\"\ntitle = \"T\"\n"
         );
         assert!(toml::from_str::<Manifest>(&unknown).is_err());
+    }
+
+    const BASE: &str = r#"id = "m"
+title = "M"
+output = "m.html"
+content = "c"
+[brand]
+logo = "l.svg"
+icon = "i.svg"
+theme = "t.kt"
+"#;
+
+    fn product_check(tables: &str) -> Result<()> {
+        let m: Manifest = toml::from_str(&format!("{BASE}{tables}")).expect("the manifest parses");
+        m.check_product()
+    }
+
+    #[test]
+    fn a_manifest_names_a_board_with_firmware_or_an_assembly_alone() {
+        let board = "[board]\nname = \"B\"\nmetrics = \"m.json\"\n";
+        let assembly = "[assembly]\nname = \"A\"\nmetrics = \"m.json\"\n";
+        let firmware = "[firmware]\ndocument = \"f.json\"\n";
+        let app = "[app]\ndocument = \"a.json\"\n";
+        assert!(product_check(&format!("{board}{firmware}")).is_ok());
+        assert!(product_check(&format!("{board}{firmware}{app}")).is_ok());
+        assert!(product_check(assembly).is_ok());
+        let err = |t: String| product_check(&t).unwrap_err().to_string();
+        assert!(err(board.to_string()).contains("needs a [firmware]"));
+        assert!(err(format!("{assembly}{firmware}")).contains("no [firmware]"));
+        assert!(err(format!("{assembly}{app}")).contains("no [app]"));
+        assert!(err(format!("{board}{assembly}{firmware}")).contains("name one"));
+        assert!(err(firmware.to_string()).contains("needs a [board] or an [assembly]"));
+        assert!(err(format!("{board}[firmware]\nrelease = \"o/r@v1\"\n")).contains("both"));
     }
 }

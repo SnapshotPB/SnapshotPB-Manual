@@ -1,9 +1,11 @@
 //! The page: one HTML file with every style, script and picture inside it.
 
+use std::collections::BTreeMap;
+
 use anyhow::{bail, Result};
 use base64::Engine;
 
-use crate::gen::Ctx;
+use crate::gen::{Ctx, Product};
 use crate::manifest::{Loaded, Manifest};
 use crate::markdown::{legal_entry, toc_html, Body};
 use crate::media::inline_svg;
@@ -184,6 +186,36 @@ fn legal_link(body: &Body) -> Result<String> {
     ))
 }
 
+/// The words that name the product and its versions: plain escaped text for the meta
+/// description, and HTML for the foot.
+fn product_words(product: &Product, values: &BTreeMap<String, String>) -> (String, String) {
+    match *product {
+        Product::Board { info, name } => {
+            let name = esc(name);
+            let md5 = esc(info.md5_short());
+            let version = esc(values.get("firmware.version").map_or("", String::as_str));
+            let app = values
+                .get("app.version")
+                .map(|v| format!(", app <code>{}</code>", esc(v)))
+                .unwrap_or_default();
+            (
+                format!("the {name} board at {md5} and the firmware {version}"),
+                format!(
+                    "The {name} board at <code>{md5}</code>, firmware <code>{version}</code>{app}"
+                ),
+            )
+        }
+        Product::Assembly { info, name } => {
+            let name = esc(name);
+            let md5 = esc(info.md5_short());
+            (
+                format!("the {name} assembly at {md5}"),
+                format!("The {name} assembly at <code>{md5}</code>"),
+            )
+        }
+    }
+}
+
 pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let m = &ctx.loaded.manifest;
     // The full logo heads the manual, with the emblem of the board family beside it when the
@@ -197,16 +229,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
         1,
     );
     let icon = base64::engine::general_purpose::STANDARD.encode(read_bytes(&icon_path)?);
-    let version = ctx
-        .values
-        .get("firmware.version")
-        .cloned()
-        .unwrap_or_default();
-    let app_version = ctx
-        .values
-        .get("app.version")
-        .map(|v| format!(", app <code>{}</code>", esc(v)))
-        .unwrap_or_default();
+    let (about, about_foot) = product_words(&ctx.product, &ctx.values);
     let date = ctx.values.get("manual.date").cloned().unwrap_or_default();
     let year = ctx.values.get("manual.year").cloned().unwrap_or_default();
     let legal = legal_link(body)?;
@@ -227,8 +250,6 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let tabs_css = tabs_css(&ctx.targets());
     let content = Names::new(&m.names)?.apply(&body.html);
     let lang = esc(&ctx.lang);
-    let board = esc(&m.board.name);
-    let md5 = esc(ctx.board.md5_short());
     let generator = env!("CARGO_PKG_NAME");
     let gen_version = env!("CARGO_PKG_VERSION");
     Ok(format!(
@@ -238,7 +259,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{tab}</title>
-<meta name="description" content="{description}: the {board} board at {md5} and the firmware {version_attr}.">
+<meta name="description" content="{description}: {about}.">
 <meta name="generator" content="{generator} {gen_version}">
 {preview}{theme_color}<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,{icon}">
 <style>
@@ -276,7 +297,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     </article>
     <footer class="foot">
       <p>Copyright &copy; {year} SnapshotPB LLC.{legal}</p>
-      <p>{foot}. The {board} board at <code>{md5}</code>, firmware <code>{version}</code>{app_version}. Generated on {date} by <code>{generator} {gen_version}</code>.</p>
+      <p>{foot}. {about_foot}. Generated on {date} by <code>{generator} {gen_version}</code>.</p>
     </footer>
   </main>
 </div>
@@ -286,8 +307,6 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
 </body>
 </html>
 "##,
-        version_attr = esc(&version),
-        version = esc(&version),
         date = esc(&date),
         year = esc(&year),
     ))
@@ -450,5 +469,58 @@ mod tests {
             toc: Vec::new(),
         };
         assert!(legal_link(&empty).is_err());
+    }
+
+    #[test]
+    fn the_page_names_the_board_or_the_assembly() {
+        let assembly = crate::assembly::AssemblyInfo {
+            file: "a.stl".into(),
+            md5: "18c4d7663073e4a8".into(),
+            measured_on: String::new(),
+            measured_at: String::new(),
+            length_mm: 0.0,
+            length_in: 0.0,
+            diameter_mm: 0.0,
+            diameter_in: 0.0,
+            bore_in: None,
+            parts: 1,
+        };
+        let product = Product::Assembly {
+            info: &assembly,
+            name: "Feather & Co",
+        };
+        let (about, foot) = product_words(&product, &BTreeMap::new());
+        assert_eq!(about, "the Feather &amp; Co assembly at 18c4d766");
+        assert_eq!(
+            foot,
+            "The Feather &amp; Co assembly at <code>18c4d766</code>"
+        );
+        let board = crate::board::BoardInfo {
+            file: String::new(),
+            md5: "9ef1c31a00000000".into(),
+            kicad: String::new(),
+            measured_on: String::new(),
+            measured_at: String::new(),
+            width_mm: 0.0,
+            height_mm: 0.0,
+            counts: Vec::new(),
+        };
+        let product = Product::Board {
+            info: &board,
+            name: "Rev B",
+        };
+        let values = BTreeMap::from([
+            ("firmware.version".to_string(), "26.41.1".to_string()),
+            ("app.version".to_string(), "26.42.1".to_string()),
+        ]);
+        let (about, foot) = product_words(&product, &values);
+        assert_eq!(
+            about,
+            "the Rev B board at 9ef1c31a and the firmware 26.41.1"
+        );
+        assert_eq!(
+            foot,
+            "The Rev B board at <code>9ef1c31a</code>, firmware <code>26.41.1</code>, app <code>26.42.1</code>"
+        );
     }
 }

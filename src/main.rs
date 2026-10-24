@@ -375,7 +375,10 @@ fn manual(loaded: &Loaded, lang: &str) -> Result<Built> {
             values.insert("app.summary".into(), s.clone());
         }
     }
-    values.insert("manual.date".into(), today_utc());
+    let date = today_utc();
+    // The year of the copyright line: the first four digits of the date.
+    values.insert("manual.year".into(), date.chars().take(4).collect());
+    values.insert("manual.date".into(), date);
     values.insert("manual.language".into(), lang.clone());
     for (k, v) in &m.values {
         values.insert(k.clone(), v.clone());

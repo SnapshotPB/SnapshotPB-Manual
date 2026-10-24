@@ -9,8 +9,12 @@
 # document and the app document, which gh downloads from their releases with the same
 # secret. See the header of build-release.yml for the token. The manual of the
 # Featherweight ICS also needs the hammer repository, SnapshotPB/Feather-Weight-ICS, which
-# holds its chapters, its images, and its metrics. The token needs read access to the
-# contents of that repository too.
+# holds its chapters, its images, and its metrics. The job clones it with the
+# HAMMER_DEPLOY_KEY secret: the private half of a read-only deploy key of that repository.
+#
+# MAINTAINER ACTION: make an ed25519 key pair, add the public key to
+# SnapshotPB/Feather-Weight-ICS as a read-only deploy key, and store the private key as the
+# secret HAMMER_DEPLOY_KEY of this repository.
 #
 # A push to the hammer repository does not start this workflow. To publish a change to
 # the chapters of the hammer manual, run this workflow from the Actions tab.
@@ -71,6 +75,15 @@ jobs:
             exit 1
           fi
 
+      - name: Check that the HAMMER_DEPLOY_KEY secret exists
+        env:
+          HAS_KEY: ${{ secrets.HAMMER_DEPLOY_KEY != '' }}
+        run: |
+          if [ "$HAS_KEY" != "true" ]; then
+            echo "::error::The HAMMER_DEPLOY_KEY secret is not set. See the header of this workflow."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
@@ -98,7 +111,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: SnapshotPB/Feather-Weight-ICS
-          token: ${{ secrets.SOURCES_TOKEN }}
+          ssh-key: ${{ secrets.HAMMER_DEPLOY_KEY }}
           path: sources/hammer
           persist-credentials: false
 

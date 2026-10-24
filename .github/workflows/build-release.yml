@@ -13,8 +13,7 @@
 # names a firmware release and an app release, and the build downloads the two documents
 # from those releases through gh, with the same secret as GH_TOKEN.
 # MAINTAINER ACTION: make a fine-grained personal access token with read access to the
-# contents of SnapshotPB/Configuration-App, SnapshotPB/PCB-Autococker, SnapshotPB/Firmware, and
-# SnapshotPB/Feather-Weight-ICS (for the Pages site),
+# contents of SnapshotPB/Configuration-App, SnapshotPB/PCB-Autococker, and SnapshotPB/Firmware,
 # and store it as the repository secret SOURCES_TOKEN (Settings > Secrets and variables >
 # Actions).
 name: Build Release

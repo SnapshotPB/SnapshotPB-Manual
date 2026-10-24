@@ -25,6 +25,9 @@ The following brand assets are trademarks and are excluded from the GPL grant:
   the dark theme: `assets/autococker-division-dark.svg`.
 - Each copy of the logo, the emblem, or the icon that the generator embeds in a manual that
   it produces.
+- The link preview picture of the SnapshotPB website, the Snapshot PB logo on a grey
+  background: `https://snapshotpb.com/res/image/social.png`. The repository holds no copy
+  of it. The generator names its address as the default picture of a link preview.
 
 The style sheet, the scripts, and the other files under `assets/` are not brand marks. They
 remain under the GPL like the rest of this repository.

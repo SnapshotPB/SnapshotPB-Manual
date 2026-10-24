@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use base64::Engine;
 
 use crate::gen::Ctx;
-use crate::manifest::Loaded;
+use crate::manifest::{Loaded, Manifest};
 use crate::markdown::{toc_html, Body};
 use crate::media::inline_svg;
 use crate::names::Names;
@@ -41,13 +41,22 @@ struct Titles {
     foot: String,
 }
 
+/// The name of the manual in the browser tab and in a link preview, not escaped.
+fn tab_title(title: &str, subtitle: &str) -> String {
+    match subtitle.trim() {
+        "" => title.to_string(),
+        sub => format!("{title} — {sub}"),
+    }
+}
+
 /// A manifest with no subtitle gets the title alone in each place that names the manual.
 fn titles(title: &str, subtitle: &str) -> Titles {
+    let tab = esc(&tab_title(title, subtitle));
     let title = esc(title);
     let subtitle = esc(subtitle.trim());
     if subtitle.is_empty() {
         return Titles {
-            tab: title.clone(),
+            tab,
             description: title.clone(),
             brand_sub: String::new(),
             hero_sub: String::new(),
@@ -56,7 +65,7 @@ fn titles(title: &str, subtitle: &str) -> Titles {
         };
     }
     Titles {
-        tab: format!("{title} — {subtitle}"),
+        tab,
         description: format!("{title} {subtitle}"),
         brand_sub: format!("<span class=\"brand-sub\">{subtitle}</span>"),
         hero_sub: format!("\n  <p class=\"hero-sub\">{subtitle}</p>"),
@@ -98,6 +107,73 @@ pub fn hero_logos(loaded: &Loaded) -> Result<String> {
     Ok(logos)
 }
 
+/// The text of a link preview, not escaped.
+pub struct Preview {
+    pub title: String,
+    pub description: String,
+    /// The address of the page.
+    pub url: String,
+    /// The address of the picture.
+    pub image: String,
+}
+
+/// The tags of a link preview: Open Graph for most sites and chat apps, Twitter for X, and
+/// the canonical address. The website of SnapshotPB uses the same set.
+pub fn preview_meta(p: &Preview) -> String {
+    let title = esc(&p.title);
+    let description = esc(&p.description);
+    let url = esc(&p.url);
+    let image = esc(&p.image);
+    format!(
+        r#"<meta property="og:type" content="website">
+<meta property="og:site_name" content="SnapshotPB">
+<meta property="og:title" content="{title}">
+<meta property="og:description" content="{description}">
+<meta property="og:image" content="{image}">
+<meta property="og:url" content="{url}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{title}">
+<meta name="twitter:description" content="{description}">
+<meta name="twitter:image" content="{image}">
+<link rel="canonical" href="{url}">
+"#
+    )
+}
+
+/// The link preview of the manual of `m` in the language `lang`, or `None` when the
+/// manifest has no `[social]` table.
+pub fn manual_preview(m: &Manifest, lang: &str) -> Option<Preview> {
+    m.social.as_ref().map(|s| Preview {
+        title: tab_title(&m.title, &m.subtitle),
+        description: s.description.clone(),
+        url: s.page_url(&m.id, lang),
+        image: s.image.clone(),
+    })
+}
+
+/// The colour of the browser bar and of the edge of a link preview: the background of
+/// the app, light and dark.
+pub fn theme_color_meta(theme: &Theme) -> String {
+    let background = |pairs: &[(String, String)]| {
+        pairs
+            .iter()
+            .find(|(n, _)| n == "background")
+            .map(|(_, v)| esc(v))
+    };
+    let mut meta = String::new();
+    if let Some(light) = background(&theme.light) {
+        meta.push_str(&format!(
+            "<meta name=\"theme-color\" media=\"(prefers-color-scheme: light)\" content=\"{light}\">\n"
+        ));
+    }
+    if let Some(dark) = background(&theme.dark) {
+        meta.push_str(&format!(
+            "<meta name=\"theme-color\" media=\"(prefers-color-scheme: dark)\" content=\"{dark}\">\n"
+        ));
+    }
+    meta
+}
+
 pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let m = &ctx.loaded.manifest;
     // The full logo heads the manual, with the emblem of the board family beside it when the
@@ -130,6 +206,10 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
         hero_sub,
         foot,
     } = titles(&m.title, &m.subtitle);
+    let preview = manual_preview(m, &ctx.lang)
+        .map(|p| preview_meta(&p))
+        .unwrap_or_default();
+    let theme_color = theme_color_meta(theme);
     let toc = toc_html(&body.toc);
     let theme_css = theme.css();
     let tabs_css = tabs_css(&ctx.targets());
@@ -148,7 +228,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
 <title>{tab}</title>
 <meta name="description" content="{description}: the {board} board at {md5} and the firmware {version_attr}.">
 <meta name="generator" content="{generator} {gen_version}">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,{icon}">
+{preview}{theme_color}<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,{icon}">
 <style>
 {theme_css}
 {CSS}
@@ -266,5 +346,65 @@ mod tests {
         assert_eq!(t.brand_sub, "<span class=\"brand-sub\">Manual</span>");
         assert!(t.hero_sub.contains("<p class=\"hero-sub\">Manual</p>"));
         assert_eq!(t.foot, "SnapshotPB &lt;Autococker&gt; &middot; Manual");
+    }
+
+    #[test]
+    fn a_preview_escapes_its_text() {
+        let meta = preview_meta(&Preview {
+            title: "Board \"A\" & B".into(),
+            description: "<b>Text</b>".into(),
+            url: "https://example.com/a/en/".into(),
+            image: "https://example.com/s.png".into(),
+        });
+        assert!(
+            meta.contains(r#"<meta property="og:title" content="Board &quot;A&quot; &amp; B">"#)
+        );
+        assert!(
+            meta.contains(r#"<meta name="twitter:description" content="&lt;b&gt;Text&lt;/b&gt;">"#)
+        );
+        assert!(meta.contains(r#"<link rel="canonical" href="https://example.com/a/en/">"#));
+        assert!(meta.contains(r#"<meta name="twitter:card" content="summary_large_image">"#));
+    }
+
+    #[test]
+    fn the_theme_colour_is_the_background_of_each_scheme() {
+        let theme = Theme {
+            light: vec![("background".into(), "#fafafa".into())],
+            dark: vec![("primary".into(), "#ffffff".into())],
+        };
+        let meta = theme_color_meta(&theme);
+        assert_eq!(
+            meta,
+            "<meta name=\"theme-color\" media=\"(prefers-color-scheme: light)\" content=\"#fafafa\">\n"
+        );
+    }
+
+    #[test]
+    fn the_manual_preview_names_the_page_of_the_language() {
+        let mut loaded = Loaded::empty(std::path::Path::new("m.toml"));
+        loaded.manifest.id = "rev-b".into();
+        loaded.manifest.title = "Title".into();
+        loaded.manifest.subtitle = "Sub".into();
+        assert!(manual_preview(&loaded.manifest, "de").is_none());
+        loaded.manifest.social = Some(crate::manifest::Social {
+            site_url: "https://example.com/manuals/".into(),
+            description: "A manual.".into(),
+            image: "https://example.com/s.png".into(),
+        });
+        let p = manual_preview(&loaded.manifest, "de").expect("a preview");
+        assert_eq!(p.url, "https://example.com/manuals/rev-b/de/");
+        assert_eq!(p.title, "Title — Sub");
+        assert_eq!(p.description, "A manual.");
+        assert_eq!(p.image, "https://example.com/s.png");
+        let meta = preview_meta(&p);
+        assert!(meta.contains(
+            r#"<meta property="og:url" content="https://example.com/manuals/rev-b/de/">"#
+        ));
+    }
+
+    #[test]
+    fn the_tab_title_has_the_subtitle_after_a_dash() {
+        assert_eq!(tab_title("A", " B "), "A — B");
+        assert_eq!(tab_title("A", ""), "A");
     }
 }

@@ -5,7 +5,7 @@ use base64::Engine;
 
 use crate::gen::Ctx;
 use crate::manifest::{Loaded, Manifest};
-use crate::markdown::{toc_html, Body};
+use crate::markdown::{legal_entry, toc_html, Body};
 use crate::media::inline_svg;
 use crate::names::Names;
 use crate::theme::Theme;
@@ -174,6 +174,16 @@ pub fn theme_color_meta(theme: &Theme) -> String {
     meta
 }
 
+/// The link in the foot to the legal chapter, which is the last chapter of each body.
+fn legal_link(body: &Body) -> Result<String> {
+    let e = legal_entry(&body.toc)?;
+    Ok(format!(
+        " <a href=\"#{}\">{}</a>.",
+        esc(&e.id),
+        esc(&e.text)
+    ))
+}
+
 pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
     let m = &ctx.loaded.manifest;
     // The full logo heads the manual, with the emblem of the board family beside it when the
@@ -198,6 +208,8 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
         .map(|v| format!(", app <code>{}</code>", esc(v)))
         .unwrap_or_default();
     let date = ctx.values.get("manual.date").cloned().unwrap_or_default();
+    let year = ctx.values.get("manual.year").cloned().unwrap_or_default();
+    let legal = legal_link(body)?;
     let Titles {
         title,
         tab,
@@ -263,6 +275,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
 {content}
     </article>
     <footer class="foot">
+      <p>Copyright &copy; {year} SnapshotPB LLC.{legal}</p>
       <p>{foot}. The {board} board at <code>{md5}</code>, firmware <code>{version}</code>{app_version}. Generated on {date} by <code>{generator} {gen_version}</code>.</p>
     </footer>
   </main>
@@ -276,6 +289,7 @@ pub fn page(ctx: &Ctx, theme: &Theme, body: &Body) -> Result<String> {
         version_attr = esc(&version),
         version = esc(&version),
         date = esc(&date),
+        year = esc(&year),
     ))
 }
 
@@ -406,5 +420,35 @@ mod tests {
     fn the_tab_title_has_the_subtitle_after_a_dash() {
         assert_eq!(tab_title("A", " B "), "A — B");
         assert_eq!(tab_title("A", ""), "A");
+    }
+
+    #[test]
+    fn the_legal_link_names_the_last_chapter() {
+        let entry = |level: u8, id: &str, text: &str| crate::markdown::TocEntry {
+            level,
+            id: id.into(),
+            text: text.into(),
+        };
+        let body = Body {
+            html: String::new(),
+            toc: vec![
+                entry(2, "about", "About"),
+                entry(
+                    2,
+                    "trademarks-and-legal-notice",
+                    crate::markdown::LEGAL_TITLE,
+                ),
+                entry(3, "legal-notice", "Legal notice"),
+            ],
+        };
+        assert_eq!(
+            legal_link(&body).expect("a link"),
+            " <a href=\"#trademarks-and-legal-notice\">Trademarks and legal notice</a>."
+        );
+        let empty = Body {
+            html: String::new(),
+            toc: Vec::new(),
+        };
+        assert!(legal_link(&empty).is_err());
     }
 }

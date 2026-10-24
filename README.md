@@ -169,13 +169,18 @@ python3 -m unittest discover -s scripts/tests      # test the compute core
 | `schemas/` | The schema set, with an example firmware document under `firmware/v2/examples/` |
 | `manifests/<id>.toml` | One manifest for each manual: the releases of the documents, the sources, and the brand |
 | `content/<id>/*.md` | The chapters of a manual, in file order. A chapter is Markdown with directives. |
-| `assets/` | The logo, the icon, the stylesheet and the script. The generator embeds them. |
+| `assets/` | The logo, the icon, the stylesheet, the script, and the legal chapter. The generator embeds them. |
 | `src/` | The generator, in Rust |
 | `docs/` | The design of the schema set |
 | `scripts/` | The version script of the release workflow, with its tests |
 | `.github/workflows/` | The two release workflows |
 
 ## Write a chapter
+
+Each manual ends with the chapter "Trademarks and legal notice" from `assets/legal.md`. The
+generator adds it after the chapters of the content directory, so a manifest cannot remove
+it. The foot of each page shows the copyright line and a link to this chapter. To change the
+notice for each manual, change `assets/legal.md`.
 
 A chapter is a Markdown file. A `#` heading is a chapter of the page, and a `##` heading is
 a section. A paragraph that starts with `WARNING:`, `CAUTION:` or `NOTE:` becomes a marked
@@ -197,7 +202,7 @@ block. A line that holds one directive puts a generated block there:
 | `{{image <path> [<dark path>] \| <caption>}}` | A picture from a source root. An SVG goes inline, and a PNG or a JPEG goes in as data. A second path names the picture for the dark theme. A path holds no space. |
 
 `{{value <name>}}` in a line prints a value: `firmware.version`, `firmware.summary`,
-`app.version`, `app.summary`, `board.md5`, `board.name`, `manual.date`, `manual.language`,
+`app.version`, `app.summary`, `board.md5`, `board.name`, `manual.date`, `manual.year`, `manual.language`,
 `control.<key>.name`, `control.<key>.hold_ms`, or a key of the `[values]` table of the
 manifest.
 

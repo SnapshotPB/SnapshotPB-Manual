@@ -10,6 +10,16 @@ use regex::Regex;
 use crate::gen::Ctx;
 use crate::util::{esc, read_text, slug};
 
+/// The trademarks and the legal notice. Each manual ends with this chapter, after the
+/// chapters of its content directory.
+const LEGAL: &str = include_str!("../assets/legal.md");
+
+/// The `#` heading of the legal chapter, as the table of contents holds it.
+pub const LEGAL_TITLE: &str = "Trademarks and legal notice";
+
+/// The level of a chapter in the table of contents. A `#` heading is an `h2` of the page.
+pub const CHAPTER_LEVEL: u8 = 2;
+
 pub struct TocEntry {
     pub level: u8,
     pub id: String,
@@ -21,8 +31,9 @@ pub struct Body {
     pub toc: Vec<TocEntry>,
 }
 
-/// Reads every `.md` file of the content directory, in name order, and renders them as one
-/// body. A `#` heading of a chapter is an `h2` of the page.
+/// Reads every `.md` file of the content directory, in name order, adds the legal chapter
+/// at the end, and renders them as one body. A `#` heading of a chapter is an `h2` of the
+/// page.
 pub fn render_dir(dir: &Path, ctx: &Ctx) -> Result<Body> {
     let mut files: Vec<_> = std::fs::read_dir(dir)
         .with_context(|| format!("cannot list {}", dir.display()))?
@@ -38,7 +49,25 @@ pub fn render_dir(dir: &Path, ctx: &Ctx) -> Result<Body> {
         source.push_str(&read_text(f)?);
         source.push_str("\n\n");
     }
-    render(&source, ctx)
+    source.push_str(LEGAL);
+    let body = render(&source, ctx)?;
+    // A block that the last content file does not close takes in the legal chapter, and the
+    // page then has no legal chapter. The build stops in that case.
+    if let Some(last) = files.last() {
+        legal_entry(&body.toc).with_context(|| format!("after {}", last.display()))?;
+    }
+    Ok(body)
+}
+
+/// The entry of the legal chapter in the table of contents. It is the last chapter of the
+/// page, and it has the title of the legal chapter. A different last chapter is an error.
+pub fn legal_entry(toc: &[TocEntry]) -> Result<&TocEntry> {
+    match toc.iter().rev().find(|e| e.level == CHAPTER_LEVEL) {
+        Some(e) if e.text == LEGAL_TITLE => Ok(e),
+        _ => bail!(
+            "the page does not end with the chapter `{LEGAL_TITLE}`: close each HTML comment and each code fence of the last chapter"
+        ),
+    }
 }
 
 pub fn render(source: &str, ctx: &Ctx) -> Result<Body> {
@@ -202,7 +231,7 @@ pub fn render(source: &str, ctx: &Ctx) -> Result<Body> {
 
 fn shift(level: HeadingLevel) -> u8 {
     match level {
-        HeadingLevel::H1 => 2,
+        HeadingLevel::H1 => CHAPTER_LEVEL,
         HeadingLevel::H2 => 3,
         HeadingLevel::H3 => 4,
         HeadingLevel::H4 => 5,
@@ -266,4 +295,53 @@ pub fn toc_html(toc: &[TocEntry]) -> String {
     }
     out.push_str("</ol>\n");
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_legal_chapter_is_one_chapter() {
+        let heading = format!("# {LEGAL_TITLE}");
+        assert_eq!(LEGAL.lines().next(), Some(heading.as_str()));
+        let chapters: Vec<_> = LEGAL.lines().filter(|l| l.starts_with("# ")).collect();
+        assert_eq!(chapters, [heading.as_str()]);
+    }
+
+    fn entry(level: u8, id: &str, text: &str) -> TocEntry {
+        TocEntry {
+            level,
+            id: id.into(),
+            text: text.into(),
+        }
+    }
+
+    #[test]
+    fn the_legal_entry_is_the_last_chapter() {
+        let toc = [
+            entry(2, "about", "About"),
+            entry(2, "trademarks-and-legal-notice", LEGAL_TITLE),
+            entry(3, "safety", "Safety"),
+        ];
+        let e = legal_entry(&toc).expect("the legal chapter");
+        assert_eq!(e.id, "trademarks-and-legal-notice");
+        // A content chapter with the same title moves the id of the legal chapter.
+        let toc = [
+            entry(2, "trademarks-and-legal-notice", LEGAL_TITLE),
+            entry(2, "trademarks-and-legal-notice-2", LEGAL_TITLE),
+        ];
+        assert_eq!(
+            legal_entry(&toc).expect("the legal chapter").id,
+            "trademarks-and-legal-notice-2"
+        );
+        // An open block in the last content file takes in the legal chapter.
+        let toc = [entry(2, "about", "About"), entry(2, "last", "Last")];
+        let err = match legal_entry(&toc) {
+            Ok(e) => panic!("no legal chapter, but got `{}`", e.id),
+            Err(e) => e.to_string(),
+        };
+        assert!(err.contains("code fence"), "{err}");
+        assert!(legal_entry(&[]).is_err());
+    }
 }

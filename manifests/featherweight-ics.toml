@@ -1,0 +1,45 @@
+# The manual of the SnapshotPB Featherweight ICS hammer assembly.
+#
+# This is an assembly manual: it has an [assembly] table, and no firmware document and no app
+# document. The hammer repository owns the chapters, the images, and the metrics of the
+# assembly, so each path here goes through the source root `hammer`.
+#
+# A path `name:rest` resolves against the source root `name` below. A path with no prefix is
+# relative to this file. `~` is the home directory. `--source name=path` on the command line
+# replaces a root.
+
+id = "featherweight-ics"
+title = "SnapshotPB Featherweight ICS Manual"
+language = "en"
+output = "../dist/snapshotpb-featherweight-ics.html"
+content = "hammer:manual/content"
+
+[sources]
+hammer = "~/workspace/SnapshotPB-Hammer"
+app = "~/workspace/SnapshotPB"
+
+[brand]
+logo = "../assets/snapshotpb.svg"
+emblem = "../assets/autococker-division.svg"
+emblem_dark = "../assets/autococker-division-dark.svg"
+icon = "../assets/favicon-plain.svg"
+theme = "app:core/common/src/commonMain/kotlin/com/snapshotpb/configuration/common/theme/Color.kt"
+
+# The name of the assembly as the manual prints it. The metrics file is a source path.
+[assembly]
+name = "Featherweight ICS"
+metrics = "hammer:manual/METRICS.json"
+
+# Literal values for `{{value name}}` in the chapters.
+[values]
+"product" = "SnapshotPB Featherweight ICS"
+"valve" = "DYE DFF-20 Autococker Lazarus Valve"
+"moving_mass_g" = "~10"
+"sweet_spring_lbf" = "3.5 to 5.25"
+"best_spring_lbf" = "4.0 to 4.5"
+
+# The link preview. See the Autococker manifest. Without an `image` key, the preview shows the
+# SnapshotPB logo picture of the website.
+[social]
+site_url = "https://snapshotpb.github.io/SnapshotPB-Manual/"
+description = "Install and tune the Featherweight ICS, a lightweight Delrin hammer assembly for the DYE DFF-20 Autococker Lazarus Valve."

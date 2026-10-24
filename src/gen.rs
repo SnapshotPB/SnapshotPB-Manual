@@ -11,6 +11,7 @@ use std::path::Path;
 use std::sync::LazyLock;
 
 use crate::app;
+use crate::assembly::AssemblyInfo;
 use crate::board::BoardInfo;
 use crate::firmware::{self, ItemType, Placed, Scope, SettingType};
 use crate::manifest::Loaded;
@@ -31,15 +32,27 @@ pub struct Ctx<'a> {
     pub loaded: &'a Loaded,
     /// The language of the manual. Each document was read in this language.
     pub lang: String,
-    pub fw: &'a firmware::Document,
+    /// The firmware document. A board manual has one, and an assembly manual has none.
+    pub fw: Option<&'a firmware::Document>,
     pub fw_dir: &'a Path,
     pub app: Option<&'a app::Document>,
     pub app_dir: &'a Path,
-    pub board: &'a BoardInfo,
+    pub product: Product<'a>,
     pub placed: Vec<Placed<'a>>,
     pub values: BTreeMap<String, String>,
     /// `(what, where, version)` rows.
     pub provenance: Vec<(String, String, String)>,
+}
+
+/// The thing that a manual describes.
+pub enum Product<'a> {
+    /// A circuit board with its firmware. The name comes from the `[board]` table.
+    Board { info: &'a BoardInfo, name: &'a str },
+    /// A mechanical assembly, with no firmware. The name comes from the `[assembly]` table.
+    Assembly {
+        info: &'a AssemblyInfo,
+        name: &'a str,
+    },
 }
 
 /// The id of the section of a setting.
@@ -68,19 +81,27 @@ impl<'a> Ctx<'a> {
         out
     }
 
+    /// The firmware document, or an error for a manual that has none.
+    fn fw(&self) -> Result<&'a firmware::Document> {
+        self.fw.context(
+            "this directive or value needs a firmware document, and the manifest names none",
+        )
+    }
+
     /// Runs one `{{name args}}` directive.
     pub fn directive(&self, name: &str, args: &str) -> Result<String> {
         match name {
             "menu" => self.menu_reference(),
-            "menu-map" => Ok(self.menu_map()),
+            "menu-map" => self.menu_map(),
             "controls" => self.controls(),
-            "interactions" => Ok(self.interactions()),
+            "interactions" => self.interactions(),
             "home" => self.home(),
             "topic" => self.topic(args.trim()),
             "topics" => self.topics(),
-            "targets" => Ok(self.app_targets()),
+            "targets" => self.app_targets(),
             "media" => self.media_item(args.trim()),
-            "board" => Ok(self.board_table()),
+            "board" => self.board_table(),
+            "assembly" => self.assembly_table(),
             "provenance" => Ok(self.provenance_table()),
             "image" => self.image(args),
             other => bail!("unknown directive `{{{{{other}}}}}`"),
@@ -93,7 +114,7 @@ impl<'a> Ctx<'a> {
         }
         if let Some(rest) = key.strip_prefix("control.") {
             if let Some((ck, field)) = rest.split_once('.') {
-                let c = match self.fw.controls.get(ck) {
+                let c = match self.fw()?.controls.get(ck) {
                     Some(c) => c,
                     None => bail!("{{{{value {key}}}}}: no control `{ck}`"),
                 };
@@ -117,6 +138,8 @@ impl<'a> Ctx<'a> {
     // ----- the settings reference -----
 
     fn menu_reference(&self) -> Result<String> {
+        // A manual with no firmware has no screens, so the block would be empty.
+        self.fw()?;
         let mut out = String::new();
         for p in &self.placed {
             out.push_str(&self.screen_section(p)?);
@@ -133,7 +156,7 @@ impl<'a> Ctx<'a> {
         ));
         out.push_str(&format!(
             "<p class=\"crumbs\">{}</p>\n",
-            self.crumbs(&p.keys, None)
+            self.crumbs(&p.keys, None)?
         ));
         if let Some(d) = &p.screen.description {
             out.push_str(&paras(d));
@@ -144,7 +167,7 @@ impl<'a> Ctx<'a> {
             let what = match item.kind {
                 ItemType::Setting => {
                     let key = item.key.as_deref().unwrap_or_default();
-                    let s = &self.fw.settings[key];
+                    let s = &self.fw()?.settings[key];
                     format!(
                         "<a href=\"#{}\">{}</a>: {}",
                         setting_id(key),
@@ -154,7 +177,7 @@ impl<'a> Ctx<'a> {
                 }
                 ItemType::Submenu => {
                     let t = item.target.as_deref().unwrap_or_default();
-                    let title = self.fw.screens.get(t).map_or("", |s| s.title.as_str());
+                    let title = self.fw()?.screens.get(t).map_or("", |s| s.title.as_str());
                     format!(
                         "Opens the <a href=\"#{}\">{}</a> screen",
                         tree::screen_id(t),
@@ -170,7 +193,7 @@ impl<'a> Ctx<'a> {
                             "Returns to the <a href=\"#{}\">{}</a> screen",
                             tree::screen_id(parent),
                             esc(self
-                                .fw
+                                .fw()?
                                 .screens
                                 .get(parent)
                                 .map_or(parent, |s| s.title.as_str()))
@@ -182,13 +205,13 @@ impl<'a> Ctx<'a> {
             if let Some(pr) = &item.hidden_when {
                 when.push_str(&format!(
                     " <span class=\"when\">Hidden while {}.</span>",
-                    esc(&self.predicate_words(pr))
+                    esc(&self.predicate_words(pr)?)
                 ));
             }
             if let Some(pr) = &item.disabled_when {
                 when.push_str(&format!(
                     " <span class=\"when\">Does not apply while {}.</span>",
-                    esc(&self.predicate_words(pr))
+                    esc(&self.predicate_words(pr)?)
                 ));
             }
             out.push_str(&format!(
@@ -211,11 +234,12 @@ impl<'a> Ctx<'a> {
     }
 
     /// The breadcrumb line: the home screen, each screen on the path by key, and the row.
-    fn crumbs(&self, keys: &[&str], last: Option<&str>) -> String {
+    fn crumbs(&self, keys: &[&str], last: Option<&str>) -> Result<String> {
+        let fw = self.fw()?;
         let mut parts: Vec<String> = Vec::new();
-        parts.push(format!("<span>{}</span>", esc(&self.fw.home.title)));
+        parts.push(format!("<span>{}</span>", esc(&fw.home.title)));
         for k in keys {
-            let title = self.fw.screens.get(*k).map_or(*k, |s| s.title.as_str());
+            let title = fw.screens.get(*k).map_or(*k, |s| s.title.as_str());
             parts.push(format!(
                 "<a href=\"#{}\">{}</a>",
                 tree::screen_id(k),
@@ -225,11 +249,11 @@ impl<'a> Ctx<'a> {
         if let Some(l) = last {
             parts.push(format!("<b>{}</b>", esc(l)));
         }
-        parts.join(" &rsaquo; ")
+        Ok(parts.join(" &rsaquo; "))
     }
 
     fn setting_section(&self, key: &str, item: &firmware::Item, p: &Placed) -> Result<String> {
-        let s = &self.fw.settings[key];
+        let s = &self.fw()?.settings[key];
         let id = setting_id(key);
         let mut out = String::new();
         out.push_str(&format!("<section class=\"setting\" id=\"{id}\">\n"));
@@ -240,7 +264,7 @@ impl<'a> Ctx<'a> {
         ));
         out.push_str(&format!(
             "<p class=\"crumbs\">{}</p>\n",
-            self.crumbs(&p.keys, Some(&item.render))
+            self.crumbs(&p.keys, Some(&item.render))?
         ));
         out.push_str("<dl class=\"facts\">\n");
         out.push_str(&format!(
@@ -261,13 +285,13 @@ impl<'a> Ctx<'a> {
         if let Some(pr) = &item.hidden_when {
             when.push(format!(
                 "The row is hidden while {}.",
-                esc(&self.predicate_words(pr))
+                esc(&self.predicate_words(pr)?)
             ));
         }
         if let Some(pr) = &item.disabled_when {
             when.push(format!(
                 "The row does not apply while {}.",
-                esc(&self.predicate_words(pr))
+                esc(&self.predicate_words(pr)?)
             ));
         }
         if !when.is_empty() {
@@ -289,7 +313,7 @@ impl<'a> Ctx<'a> {
             board.push_str("</tbody></table>\n");
         }
         board.push_str(&self.fw_media(&s.media)?);
-        board.push_str(&self.related(&s.related));
+        board.push_str(&self.related(&s.related)?);
         out.push_str(&self.tabs(&id, Some(board), key)?);
         out.push_str("</section>\n");
         Ok(out)
@@ -378,23 +402,27 @@ impl<'a> Ctx<'a> {
         Ok(html)
     }
 
-    fn related(&self, keys: &[String]) -> String {
+    fn related(&self, keys: &[String]) -> Result<String> {
         if keys.is_empty() {
-            return String::new();
+            return Ok(String::new());
         }
+        let fw = self.fw()?;
         let links: Vec<String> = keys
             .iter()
             .map(|k| {
-                if let Some(s) = self.fw.settings.get(k) {
+                if let Some(s) = fw.settings.get(k) {
                     format!("<a href=\"#{}\">{}</a>", setting_id(k), esc(&s.title))
-                } else if let Some(t) = self.fw.topics.get(k) {
+                } else if let Some(t) = fw.topics.get(k) {
                     format!("<a href=\"#{}\">{}</a>", topic_id(k), esc(&t.title))
                 } else {
                     esc(k)
                 }
             })
             .collect();
-        format!("<p class=\"related\">See also: {}.</p>\n", links.join(", "))
+        Ok(format!(
+            "<p class=\"related\">See also: {}.</p>\n",
+            links.join(", ")
+        ))
     }
 
     fn values_of(&self, s: &firmware::Setting) -> Result<String> {
@@ -469,18 +497,19 @@ impl<'a> Ctx<'a> {
         })
     }
 
-    fn predicate_words(&self, key: &str) -> String {
-        self.fw
+    fn predicate_words(&self, key: &str) -> Result<String> {
+        Ok(self
+            .fw()?
             .predicates
             .get(key)
             .map(|p| p.description.clone())
-            .unwrap_or_else(|| format!("`{key}`"))
+            .unwrap_or_else(|| format!("`{key}`")))
     }
 
     fn fw_media(&self, keys: &[String]) -> Result<String> {
         let mut out = String::new();
         for k in keys {
-            let m = &self.fw.media[k];
+            let m = &self.fw()?.media[k];
             out.push_str(
                 &m.html(self.loaded, self.fw_dir)
                     .with_context(|| format!("the media `{k}`"))?,
@@ -491,20 +520,21 @@ impl<'a> Ctx<'a> {
 
     // ----- the menu tree -----
 
-    fn menu_map(&self) -> String {
+    fn menu_map(&self) -> Result<String> {
+        let fw = self.fw()?;
         let mut out = String::from("<figure class=\"tree\">\n");
-        out.push_str(&tree::svg(self.fw, &self.placed));
+        out.push_str(&tree::svg(fw, &self.placed));
         out.push_str(
             "<figcaption>The menu tree. Select a box to open its section.</figcaption></figure>\n",
         );
         out.push_str("<ul class=\"menu-map\">\n");
-        self.map_screen(&self.fw.root, &mut out);
+        self.map_screen(fw, &fw.root, &mut out);
         out.push_str("</ul>\n");
-        out
+        Ok(out)
     }
 
-    fn map_screen(&self, key: &str, out: &mut String) {
-        let s = match self.fw.screens.get(key) {
+    fn map_screen(&self, fw: &firmware::Document, key: &str, out: &mut String) {
+        let s = match fw.screens.get(key) {
             Some(s) => s,
             None => return,
         };
@@ -517,7 +547,7 @@ impl<'a> Ctx<'a> {
             match it.kind {
                 ItemType::Submenu => {
                     if let Some(r) = &it.target {
-                        self.map_screen(r, out);
+                        self.map_screen(fw, r, out);
                     }
                 }
                 ItemType::Back => {}
@@ -538,7 +568,7 @@ impl<'a> Ctx<'a> {
 
     fn controls(&self) -> Result<String> {
         let mut out = String::from("<table class=\"controls\"><thead><tr><th>Control</th><th>Press</th><th>What it does</th></tr></thead><tbody>\n");
-        for c in self.fw.controls.values() {
+        for c in self.fw()?.controls.values() {
             let n = c.events.len();
             let mut first = true;
             for (ek, e) in &c.events {
@@ -568,16 +598,17 @@ impl<'a> Ctx<'a> {
             }
         }
         out.push_str("</tbody></table>\n");
-        for c in self.fw.controls.values() {
+        for c in self.fw()?.controls.values() {
             out.push_str(&self.fw_media(&c.media)?);
         }
         Ok(out)
     }
 
-    fn interactions(&self) -> String {
+    fn interactions(&self) -> Result<String> {
+        let fw = self.fw()?;
         let mut out = String::from("<table class=\"interactions\"><thead><tr><th>Do this</th><th>Where</th><th>Result</th></tr></thead><tbody>\n");
-        for i in self.fw.interactions.values() {
-            let c = &self.fw.controls[&i.control];
+        for i in fw.interactions.values() {
+            let c = &fw.controls[&i.control];
             let e = &c.events[&i.event];
             let action = match e.hold_ms {
                 Some(ms) => format!("Hold {} for {ms} ms", c.name),
@@ -600,11 +631,11 @@ impl<'a> Ctx<'a> {
             ));
         }
         out.push_str("</tbody></table>\n");
-        out
+        Ok(out)
     }
 
     fn home(&self) -> Result<String> {
-        let h = &self.fw.home;
+        let h = &self.fw()?.home;
         let mut out = paras(&h.description);
         out.push_str(&self.fw_media(&h.media)?);
         if !h.indicators.is_empty() {
@@ -625,13 +656,14 @@ impl<'a> Ctx<'a> {
 
     /// Every topic: those of the firmware first, then those that only the app has.
     fn topics(&self) -> Result<String> {
+        let fw = self.fw()?;
         let mut out = String::new();
-        for key in self.fw.topics.keys() {
+        for key in fw.topics.keys() {
             out.push_str(&self.topic(key)?);
         }
         if let Some(app) = self.app {
             for key in app.topics.keys() {
-                if !self.fw.topics.contains_key(key) {
+                if !fw.topics.contains_key(key) {
                     out.push_str(&self.topic(key)?);
                 }
             }
@@ -641,7 +673,7 @@ impl<'a> Ctx<'a> {
 
     /// One topic. A topic that only the app has gets the words of the app alone.
     fn topic(&self, key: &str) -> Result<String> {
-        let t = match self.fw.topics.get(key) {
+        let t = match self.fw()?.topics.get(key) {
             Some(t) => t,
             None => {
                 let entry = match self.app.and_then(|a| a.topics.get(key)) {
@@ -669,8 +701,8 @@ impl<'a> Ctx<'a> {
         if !t.interactions.is_empty() {
             board.push_str("<table class=\"interactions\"><thead><tr><th>Do this</th><th>Result</th></tr></thead><tbody>\n");
             for ik in &t.interactions {
-                let i = &self.fw.interactions[ik];
-                let c = &self.fw.controls[&i.control];
+                let i = &self.fw()?.interactions[ik];
+                let c = &self.fw()?.controls[&i.control];
                 let e = &c.events[&i.event];
                 let action = match e.hold_ms {
                     Some(ms) => format!("Hold {} for {ms} ms", c.name),
@@ -685,17 +717,17 @@ impl<'a> Ctx<'a> {
             board.push_str("</tbody></table>\n");
         }
         board.push_str(&self.fw_media(&t.media)?);
-        board.push_str(&self.related(&t.related));
+        board.push_str(&self.related(&t.related)?);
         out.push_str(&self.tabs(&id, Some(board), key)?);
         out.push_str("</section>\n");
         Ok(out)
     }
 
     /// The platforms of the app, with what each one does.
-    fn app_targets(&self) -> String {
+    fn app_targets(&self) -> Result<String> {
         let app = match self.app {
             Some(a) => a,
-            None => return "<p>This manual has no application document.</p>\n".to_string(),
+            None => return Ok("<p>This manual has no application document.</p>\n".to_string()),
         };
         let mut out = String::from("<table class=\"targets\"><thead><tr><th>Platform</th><th>What it does</th></tr></thead><tbody>\n");
         for t in app.targets.values() {
@@ -706,11 +738,11 @@ impl<'a> Ctx<'a> {
             ));
         }
         out.push_str("</tbody></table>\n");
-        out
+        Ok(out)
     }
 
     fn media_item(&self, key: &str) -> Result<String> {
-        match self.fw.media.get(key) {
+        match self.fw()?.media.get(key) {
             Some(m) => m.html(self.loaded, self.fw_dir),
             None => bail!("{{{{media {key}}}}}: the firmware document has no such media item"),
         }
@@ -718,22 +750,24 @@ impl<'a> Ctx<'a> {
 
     // ----- the board -----
 
-    fn board_table(&self) -> String {
-        let b = self.board;
+    fn board_table(&self) -> Result<String> {
+        let Product::Board { info: b, name } = self.product else {
+            bail!("{{{{board}}}} needs a manifest with a [board]");
+        };
+        let fw = self.fw()?;
         let mut out = String::from("<table class=\"board\"><tbody>\n");
         let mut row = |k: &str, v: String| {
             out.push_str(&format!("<tr><th>{}</th><td>{}</td></tr>\n", esc(k), v))
         };
-        row("Board", esc(&self.loaded.manifest.board.name));
+        row("Board", esc(name));
         row(
             "Outline",
             format!("{:.2} mm &times; {:.2} mm", b.width_mm, b.height_mm),
         );
-        row("Firmware", esc(&self.fw.firmware.version));
+        row("Firmware", esc(&fw.firmware.version));
         row(
             "Board models",
-            self.fw
-                .firmware
+            fw.firmware
                 .board_models
                 .iter()
                 .map(|m| format!("<code>{}</code>", esc(m)))
@@ -744,7 +778,36 @@ impl<'a> Ctx<'a> {
             row(&k.replace('_', " "), v.to_string());
         }
         out.push_str("</tbody></table>\n");
-        out
+        Ok(out)
+    }
+
+    // ----- the assembly -----
+
+    /// The figures of a mechanical assembly: its size, the bore that it fits, and the number
+    /// of its parts.
+    fn assembly_table(&self) -> Result<String> {
+        let Product::Assembly { info: a, name } = self.product else {
+            bail!("{{{{assembly}}}} needs a manifest with an [assembly]");
+        };
+        let mut out = String::from("<table class=\"board\"><tbody>\n");
+        let mut row = |k: &str, v: String| {
+            out.push_str(&format!("<tr><th>{}</th><td>{}</td></tr>\n", esc(k), v))
+        };
+        row("Assembly", esc(name));
+        row(
+            "Length",
+            format!("{:.2} mm ({:.3} in)", a.length_mm, a.length_in),
+        );
+        row(
+            "Diameter",
+            format!("{:.2} mm ({:.4} in)", a.diameter_mm, a.diameter_in),
+        );
+        if let Some(bore) = &a.bore_in {
+            row("Bore", format!("{} in", esc(bore)));
+        }
+        row("Parts", a.parts.to_string());
+        out.push_str("</tbody></table>\n");
+        Ok(out)
     }
 
     fn provenance_table(&self) -> String {
@@ -1068,5 +1131,69 @@ mod tests {
         assert!(html
             .contains("<p class=\"step\"><span class=\"step-n\">1</span> Pull the trigger.</p>"));
         assert!(html.starts_with("<p>Text.</p>"));
+    }
+
+    #[test]
+    fn an_assembly_manual_has_no_firmware_blocks() {
+        let mut loaded = Loaded::empty(Path::new("m.toml"));
+        loaded.manifest.board = None;
+        loaded.manifest.firmware = None;
+        loaded.manifest.assembly = Some(crate::manifest::Assembly {
+            name: "Featherweight ICS".into(),
+            metrics: String::new(),
+        });
+        let assembly = AssemblyInfo {
+            file: "a.stl".into(),
+            md5: "18c4d7663073e4a8".into(),
+            measured_on: "2026-10-23".into(),
+            measured_at: "a082d47".into(),
+            length_mm: 66.68,
+            length_in: 2.625,
+            diameter_mm: 17.36,
+            diameter_in: 0.6835,
+            bore_in: Some("11/16".into()),
+            parts: 4,
+        };
+        let ctx = Ctx {
+            loaded: &loaded,
+            lang: "en".into(),
+            fw: None,
+            fw_dir: Path::new("."),
+            app: None,
+            app_dir: Path::new("."),
+            product: Product::Assembly {
+                info: &assembly,
+                name: "Featherweight ICS",
+            },
+            placed: Vec::new(),
+            values: BTreeMap::new(),
+            provenance: Vec::new(),
+        };
+        let table = ctx.directive("assembly", "").expect("the assembly table");
+        assert!(table.contains("<tr><th>Assembly</th><td>Featherweight ICS</td></tr>"));
+        assert!(table.contains("<tr><th>Bore</th><td>11/16 in</td></tr>"));
+        assert!(table.contains("<tr><th>Parts</th><td>4</td></tr>"));
+        for name in [
+            "menu",
+            "menu-map",
+            "controls",
+            "interactions",
+            "home",
+            "topics",
+        ] {
+            let err = ctx.directive(name, "").expect_err(name).to_string();
+            assert!(err.contains("needs a firmware document"), "{name}: {err}");
+        }
+        let err = ctx.directive("board", "").expect_err("board").to_string();
+        assert!(err.contains("[board]"), "{err}");
+        for (name, args) in [("topic", "topic.x"), ("media", "m")] {
+            let err = ctx.directive(name, args).expect_err(name).to_string();
+            assert!(err.contains("needs a firmware document"), "{name}: {err}");
+        }
+        let err = ctx
+            .value("control.trigger.name")
+            .expect_err("control")
+            .to_string();
+        assert!(err.contains("needs a firmware document"), "{err}");
     }
 }

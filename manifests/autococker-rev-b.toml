@@ -45,9 +45,9 @@ sha256 = "579d44d6fe8b65e9594ee24a471450ef21265235842b9ab49ce540ce7bf587b5"
 # attaches it to each release in the same way. Remove this table to build a manual of the
 # board alone.
 [app]
-release = "SnapshotPB/Configuration-App@v26.41.2"
-asset = "snapshotpb-app-26.41.2-manual-document.json"
-sha256 = "3cef1d571052db1ef70914ea03e09758e858f68684f7f9822f2dda8debd1c68f"
+release = "SnapshotPB/Configuration-App@v26.42.1"
+asset = "snapshotpb-app-26.42.1-manual-document.json"
+sha256 = "30d4874286e07491c0e6c42cd0cae40cc00a17859baf5409a156ff00e96ec4a8"
 
 # Literal values for `{{value name}}` in the chapters.
 [values]

@@ -221,7 +221,7 @@ theme colours. The table has three keys:
 |---|---|
 | `site_url` | The address of the site, with `https://` at the start and `/` at the end. The address of a page is `<site_url><id>/<lang>/`. |
 | `description` | The text of the preview. |
-| `image` | The address of the picture, with `https://` at the start. A picture of 1200 × 630 pixels fits each site. |
+| `image` | The address of the picture, with `https://` at the start. A picture of 1200 × 630 pixels fits each site. This key is optional. Without it, the preview shows the SnapshotPB logo picture of the website, `https://snapshotpb.com/res/image/social.png`. |
 
 The title of the preview is the title of the manual, with the subtitle after it. The site
 command also gives the index page and the redirect page of each board a preview. The index

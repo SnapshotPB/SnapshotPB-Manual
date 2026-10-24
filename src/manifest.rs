@@ -86,8 +86,16 @@ pub struct Social {
     /// The text of the preview, in one or two sentences.
     pub description: String,
     /// The address of the picture of the preview. A picture of 1200 × 630 pixels fits
-    /// each site.
+    /// each site. Without it, the preview shows the SnapshotPB logo of the website.
+    #[serde(default = "default_image")]
     pub image: String,
+}
+
+/// The preview picture of the website: the SnapshotPB logo on a grey background.
+const DEFAULT_IMAGE: &str = "https://snapshotpb.com/res/image/social.png";
+
+fn default_image() -> String {
+    DEFAULT_IMAGE.to_string()
 }
 
 impl Social {
@@ -410,6 +418,13 @@ document = "f.json"
         assert_eq!(social.site_url, "https://example.com/");
         assert_eq!(social.description, "A manual.");
         assert_eq!(social.image, "https://example.com/s.png");
+        let text = format!(
+            "{MINIMAL}[social]\nsite_url = \"https://example.com/\"\ndescription = \"A manual.\"\n"
+        );
+        let m: Manifest = toml::from_str(&text).expect("the manifest parses");
+        let social = m.social.expect("the social table");
+        assert_eq!(social.image, DEFAULT_IMAGE);
+        assert!(social.check().is_ok());
         let none: Manifest = toml::from_str(MINIMAL).expect("the manifest parses");
         assert!(none.social.is_none());
         let unknown = format!(

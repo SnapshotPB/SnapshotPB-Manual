@@ -64,3 +64,13 @@ sha256 = "3cef1d571052db1ef70914ea03e09758e858f68684f7f9822f2dda8debd1c68f"
 "J8" = "OLED Display Board"
 "J11" = "Optical Trigger Board"
 "J13" = "Microswitch Trigger Board"
+
+# The link preview: the text and the picture that a chat app or a social site shows for a
+# link to the manual. The page gets the Open Graph and Twitter tags of the website from it.
+# The address of a page is `<site_url><id>/<lang>/`. Both addresses are absolute, because a
+# crawler reads the page apart from its site. The picture is the preview picture of the
+# website, 1200 × 630 pixels. Remove this table to build a manual with no preview.
+[social]
+site_url = "https://snapshotpb.github.io/SnapshotPB-Manual/"
+description = "The manual of the SnapshotPB Autococker Rev B board: its controls, its screens, its settings, and the configuration app."
+image = "https://snapshotpb.com/res/image/social.png"

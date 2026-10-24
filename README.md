@@ -212,6 +212,23 @@ Trigger (`TRIG`). A label in an SVG drawing shows the name alone. A code block a
 span with a class stay as they are. A designator starts and ends with a letter, a digit or
 an underscore, and it can hold a dash or a dot between them.
 
+The `[social]` table of the manifest gives the manual a link preview. A chat app or a social
+site shows the preview for a link to the manual. The page gets the Open Graph and Twitter
+tags that the website of SnapshotPB uses, and the background colours of the app as its
+theme colours. The table has three keys:
+
+| Key | Value |
+|---|---|
+| `site_url` | The address of the site, with `https://` at the start and `/` at the end. The address of a page is `<site_url><id>/<lang>/`. |
+| `description` | The text of the preview. |
+| `image` | The address of the picture, with `https://` at the start. A picture of 1200 × 630 pixels fits each site. |
+
+The title of the preview is the title of the manual, with the subtitle after it. The site
+command also gives the index page and the redirect page of each board a preview. The index
+preview takes its picture from the first manifest, and each manifest must give the same
+`site_url`. The `build` command writes the same tags, so the file of a single manual names
+its address on the site. A manifest with no `[social]` table makes pages with no preview.
+
 ## Add a firmware release or an app release
 
 1. Cut the release in the firmware repository or in the app repository. Its release

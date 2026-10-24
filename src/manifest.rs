@@ -42,6 +42,9 @@ pub struct Manifest {
     /// The readable name of each designator that the page shows by name, such as `J11`.
     #[serde(default)]
     pub names: BTreeMap<String, String>,
+    /// The link preview of the manual. Absent for a manual that has no public address.
+    #[serde(default)]
+    pub social: Option<Social>,
 }
 
 fn default_language() -> String {
@@ -70,6 +73,50 @@ pub struct Board {
     pub name: String,
     /// The `METRICS.json` of the board.
     pub metrics: String,
+}
+
+/// The link preview: the text and the picture that a chat app or a social site shows for a
+/// link to the manual. The page gets Open Graph and Twitter tags from it.
+#[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Social {
+    /// The address of the site, with a `/` at the end. The address of a page is
+    /// `<site_url><id>/<lang>/`.
+    pub site_url: String,
+    /// The text of the preview, in one or two sentences.
+    pub description: String,
+    /// The address of the picture of the preview. A picture of 1200 × 630 pixels fits
+    /// each site.
+    pub image: String,
+}
+
+impl Social {
+    /// The rules that serde cannot state: both addresses are absolute, because a crawler
+    /// reads the page apart from its site.
+    fn check(&self) -> Result<()> {
+        if !has_host(&self.site_url) || !self.site_url.ends_with('/') {
+            bail!("[social] site_url must start with https:// and a host, and end with /");
+        }
+        if !has_host(&self.image) {
+            bail!("[social] image must start with https:// and a host");
+        }
+        if self.description.trim().is_empty() {
+            bail!("[social] description is empty");
+        }
+        Ok(())
+    }
+
+    /// The address of the manual `id` in the language `lang`. It needs the `/` at the end
+    /// of `site_url`, which `Loaded::load` makes sure of.
+    pub fn page_url(&self, id: &str, lang: &str) -> String {
+        format!("{}{id}/{lang}/", self.site_url)
+    }
+}
+
+/// An `https://` address with a host after the scheme.
+fn has_host(url: &str) -> bool {
+    url.strip_prefix("https://")
+        .is_some_and(|rest| !rest.is_empty() && !rest.starts_with('/'))
 }
 
 /// Where a document comes from: a file, or an asset of a GitHub release. A source names
@@ -142,6 +189,11 @@ impl Loaded {
             app.check("app")
                 .with_context(|| format!("manifest {}", path.display()))?;
         }
+        if let Some(social) = &manifest.social {
+            social
+                .check()
+                .with_context(|| format!("manifest {}", path.display()))?;
+        }
         let dir = path
             .parent()
             .map(Path::to_path_buf)
@@ -194,6 +246,7 @@ impl Loaded {
                 app: None,
                 values: BTreeMap::new(),
                 names: BTreeMap::new(),
+                social: None,
                 language: default_language(),
             },
             dir: path.parent().map(Path::to_path_buf).unwrap_or_default(),
@@ -302,5 +355,66 @@ document = "f.json"
         let loaded = loaded.expect("the manifest loads");
         assert_eq!(loaded.sources()["app"], PathBuf::from("sources/app"));
         assert_eq!(loaded.sources()["pcb"], manifests.join("../pcb"));
+    }
+
+    fn social(site_url: &str, image: &str, description: &str) -> Social {
+        Social {
+            site_url: site_url.to_string(),
+            description: description.to_string(),
+            image: image.to_string(),
+        }
+    }
+
+    #[test]
+    fn a_preview_has_absolute_addresses_and_a_text() {
+        let site = "https://example.com/manuals/";
+        let image = "https://example.com/social.png";
+        let ok = social(site, image, "A manual.");
+        assert!(ok.check().is_ok());
+        assert_eq!(
+            ok.page_url("rev-b", "de"),
+            "https://example.com/manuals/rev-b/de/"
+        );
+        let err = |s: Social| s.check().unwrap_err().to_string();
+        assert!(err(social("https://example.com/manuals", image, "A")).contains("site_url"));
+        assert!(err(social("http://example.com/", image, "A")).contains("site_url"));
+        assert!(err(social(site, "/social.png", "A")).contains("image"));
+        assert!(err(social(site, image, "  ")).contains("description"));
+        assert!(err(social("https://", image, "A")).contains("site_url"));
+        assert!(err(social("https:///", image, "A")).contains("site_url"));
+        assert!(err(social(site, "https://", "A")).contains("image"));
+    }
+
+    const MINIMAL: &str = r#"id = "m"
+title = "M"
+output = "m.html"
+content = "c"
+[brand]
+logo = "l.svg"
+icon = "i.svg"
+theme = "t.kt"
+[board]
+name = "B"
+metrics = "m.json"
+[firmware]
+document = "f.json"
+"#;
+
+    #[test]
+    fn a_manifest_reads_the_social_table() {
+        let text = format!(
+            "{MINIMAL}[social]\nsite_url = \"https://example.com/\"\ndescription = \"A manual.\"\nimage = \"https://example.com/s.png\"\n"
+        );
+        let m: Manifest = toml::from_str(&text).expect("the manifest parses");
+        let social = m.social.expect("the social table");
+        assert_eq!(social.site_url, "https://example.com/");
+        assert_eq!(social.description, "A manual.");
+        assert_eq!(social.image, "https://example.com/s.png");
+        let none: Manifest = toml::from_str(MINIMAL).expect("the manifest parses");
+        assert!(none.social.is_none());
+        let unknown = format!(
+            "{MINIMAL}[social]\nsite_url = \"https://example.com/\"\ndescription = \"A\"\nimage = \"https://example.com/s.png\"\ntitle = \"T\"\n"
+        );
+        assert!(toml::from_str::<Manifest>(&unknown).is_err());
     }
 }

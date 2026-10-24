@@ -128,6 +128,9 @@ fn run() -> Result<()> {
 fn site(manifests: &[PathBuf], out: &Path, overrides: &[(String, String)]) -> Result<()> {
     let mut boards = Vec::new();
     let mut theme: Option<Theme> = None;
+    // The link preview of the first manifest that has one gives the index preview its
+    // picture. Each manifest with a preview gives the same address of the site.
+    let mut social: Option<manifest::Social> = None;
     for path in manifests {
         let loaded = Loaded::load(path, overrides)?;
         let m = &loaded.manifest;
@@ -162,8 +165,22 @@ fn site(manifests: &[PathBuf], out: &Path, overrides: &[(String, String)]) -> Re
         }
         write_file(
             &out.join(&m.id).join("index.html"),
-            &site::redirect(&format!("{}/", m.language)),
+            &site::redirect(
+                &format!("{}/", m.language),
+                render::manual_preview(m, &m.language).as_ref(),
+            ),
         )?;
+        // The index has one address, so each manifest of the site must give the same one.
+        match (&social, &m.social) {
+            (None, Some(s)) => social = Some(s.clone()),
+            (Some(first), Some(s)) if first.site_url != s.site_url => bail!(
+                "{}: [social] site_url `{}` is not the site_url `{}` of the manifest before it",
+                path.display(),
+                s.site_url,
+                first.site_url
+            ),
+            _ => {}
+        }
         boards.push(site::Board {
             id: m.id.clone(),
             title: m.title.clone(),
@@ -174,7 +191,7 @@ fn site(manifests: &[PathBuf], out: &Path, overrides: &[(String, String)]) -> Re
     }
     let theme = theme.context("the site needs one manifest")?;
     let index = out.join("index.html");
-    write_file(&index, &site::index(&boards, &theme))?;
+    write_file(&index, &site::index(&boards, &theme, social.as_ref()))?;
     let n = boards.len();
     println!(
         "{} ({n} {})",

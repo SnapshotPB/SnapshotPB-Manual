@@ -100,8 +100,14 @@ language.
 
 It writes `site/<id>/<lang>/index.html` for each language, where `<id>` is the id of the
 manifest. The page `site/<id>/index.html` opens the language of the manifest, and
-`site/index.html` is the index. The languages are each tag that a localized text of the
-firmware document or the app document names, and the language of the manifest. The chapters
+`site/index.html` is the index. The index shows the logo of the first manifest at its head.
+It puts the manuals in one section for each division, in the order of the manifests. The
+`division` key of the `[brand]` table names the division, for example
+`division = "Autococker Division"`, and the emblem of the manifest is the heading of the
+section. Each manual of one division must give the same emblem. The manuals with no
+`division` key go in the section "Other manuals". The languages are each tag that a
+localized text of the firmware document or the app document names, and the language of the
+manifest. The chapters
 under `content/` are English in each language until a chapter set exists for that language.
 
 The other commands:

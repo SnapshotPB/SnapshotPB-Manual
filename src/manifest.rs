@@ -68,6 +68,10 @@ pub struct Brand {
     /// the theme selects.
     #[serde(default)]
     pub emblem_dark: Option<String>,
+    /// The name of the board family, for example "Autococker Division". The index page of
+    /// the site puts the manuals of one division in one section, with the emblem at its head.
+    #[serde(default)]
+    pub division: Option<String>,
     pub icon: String,
     /// The Kotlin file that holds the colour scheme of the app.
     pub theme: String,
@@ -275,6 +279,7 @@ impl Loaded {
                     logo: String::new(),
                     emblem: None,
                     emblem_dark: None,
+                    division: None,
                     icon: String::new(),
                     theme: String::new(),
                 },

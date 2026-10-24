@@ -128,8 +128,10 @@ fn run() -> Result<()> {
 
 /// The site: each manifest in each of its languages, and the index page.
 fn site(manifests: &[PathBuf], out: &Path, overrides: &[(String, String)]) -> Result<()> {
-    let mut boards = Vec::new();
+    let mut sections: Vec<site::Section> = Vec::new();
     let mut theme: Option<Theme> = None;
+    // The logo of the first manifest is the logo at the head of the index.
+    let mut logo: Option<String> = None;
     // The link preview of the first manifest that has one gives the index preview its
     // picture. Each manifest with a preview gives the same address of the site.
     let mut social: Option<manifest::Social> = None;
@@ -154,6 +156,9 @@ fn site(manifests: &[PathBuf], out: &Path, overrides: &[(String, String)]) -> Re
                 Theme::parse(&loaded.resolve(&m.brand.theme)?)
                     .context("the colour scheme of the app")?,
             );
+        }
+        if logo.is_none() {
+            logo = Some(render::logo(&loaded, site::TITLE, site::LOGO_CLASS)?);
         }
         // Each language reads the documents again through the cache. The work is small,
         // and it keeps `manual` the same for the build command and for the site.
@@ -183,18 +188,32 @@ fn site(manifests: &[PathBuf], out: &Path, overrides: &[(String, String)]) -> Re
             ),
             _ => {}
         }
-        boards.push(site::Board {
-            id: m.id.clone(),
-            title: m.title.clone(),
-            logos: render::hero_logos(&loaded)?,
-            default_lang: m.language.clone(),
-            languages,
-        });
+        let division = m.brand.division.clone();
+        let emblem = match &division {
+            Some(name) => render::emblem(&loaded, name, site::EMBLEM_CLASS)?,
+            None => None,
+        };
+        site::place(
+            &mut sections,
+            division,
+            emblem,
+            site::Board {
+                id: m.id.clone(),
+                title: m.title.clone(),
+                default_lang: m.language.clone(),
+                languages,
+            },
+        )
+        .with_context(|| path.display().to_string())?;
     }
     let theme = theme.context("the site needs one manifest")?;
+    let logo = logo.context("the site needs one manifest")?;
     let index = out.join("index.html");
-    write_file(&index, &site::index(&boards, &theme, social.as_ref()))?;
-    let n = boards.len();
+    write_file(
+        &index,
+        &site::index(&logo, &sections, &theme, social.as_ref()),
+    )?;
+    let n: usize = sections.iter().map(|s| s.boards.len()).sum();
     println!(
         "{} ({n} {})",
         index.display(),

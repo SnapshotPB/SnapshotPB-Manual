@@ -77,36 +77,45 @@ fn titles(title: &str, subtitle: &str) -> Titles {
 }
 
 /// The logo of the manual and the emblem of the board family, as inline SVG with the
-/// class `hero-logo` on each. The index of the site shows the same pair. With an emblem for
-/// the dark theme, both emblems go in, and the stylesheet shows the one that the theme
-/// selects.
+/// class `hero-logo` on each.
 pub fn hero_logos(loaded: &Loaded) -> Result<String> {
-    let m = &loaded.manifest;
-    let hero = |spec: &str, alt: &str, class: &str| -> Result<String> {
-        Ok(
-            inline_svg(&loaded.resolve(spec)?, &format!("{} {alt}", m.title))?.replacen(
-                "<svg",
-                &format!("<svg class=\"{class}\""),
-                1,
-            ),
-        )
-    };
-    let mut logos = hero(&m.brand.logo, "logo", "hero-logo")?;
-    match (&m.brand.emblem, &m.brand.emblem_dark) {
-        (Some(emblem), None) => {
-            logos.push('\n');
-            logos.push_str(&hero(emblem, "emblem", "hero-logo")?);
-        }
-        (Some(emblem), Some(dark)) => {
-            logos.push('\n');
-            logos.push_str(&hero(emblem, "emblem", "hero-logo theme-light")?);
-            logos.push('\n');
-            logos.push_str(&hero(dark, "emblem", "hero-logo theme-dark")?);
-        }
-        (None, Some(_)) => bail!("the manifest names `emblem_dark` and no `emblem`"),
-        (None, None) => {}
+    let title = &loaded.manifest.title;
+    let mut logos = logo(loaded, &format!("{title} logo"), "hero-logo")?;
+    if let Some(emblem) = emblem(loaded, &format!("{title} emblem"), "hero-logo")? {
+        logos.push('\n');
+        logos.push_str(&emblem);
     }
     Ok(logos)
+}
+
+/// The logo of the manual, as inline SVG with the label `alt` and the class `class`.
+pub fn logo(loaded: &Loaded, alt: &str, class: &str) -> Result<String> {
+    brand_svg(loaded, &loaded.manifest.brand.logo, alt, class)
+}
+
+/// The emblem of the board family, as inline SVG with the label `alt` and the class `class`,
+/// or none when the manifest names no emblem. With an emblem for the dark theme, both
+/// emblems go in, and the stylesheet shows the one that the theme selects.
+pub fn emblem(loaded: &Loaded, alt: &str, class: &str) -> Result<Option<String>> {
+    let brand = &loaded.manifest.brand;
+    match (&brand.emblem, &brand.emblem_dark) {
+        (Some(emblem), None) => Ok(Some(brand_svg(loaded, emblem, alt, class)?)),
+        (Some(emblem), Some(dark)) => Ok(Some(format!(
+            "{}\n{}",
+            brand_svg(loaded, emblem, alt, &format!("{class} theme-light"))?,
+            brand_svg(loaded, dark, alt, &format!("{class} theme-dark"))?
+        ))),
+        (None, Some(_)) => bail!("the manifest names `emblem_dark` and no `emblem`"),
+        (None, None) => Ok(None),
+    }
+}
+
+fn brand_svg(loaded: &Loaded, spec: &str, alt: &str, class: &str) -> Result<String> {
+    Ok(inline_svg(&loaded.resolve(spec)?, alt)?.replacen(
+        "<svg",
+        &format!("<svg class=\"{class}\""),
+        1,
+    ))
 }
 
 /// The text of a link preview, not escaped.

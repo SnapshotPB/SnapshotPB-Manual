@@ -2,7 +2,7 @@
 
 The {{value product}} Autococker {{value board.name}} board controls the firing of a paintball marker. The board drives the two solenoids of the marker, reads the trigger, reads an eye sensor, and shows a menu on a small screen. A mobile app configures the board through Bluetooth.
 
-{{image pcb:snapshot_v2/renders/03-iso-top.png | The main board, with the screen board and the trigger board in place}}
+{{media main_board}}
 
 ## The parts that you use
 
@@ -19,7 +19,7 @@ The {{value product}} Autococker {{value board.name}} board controls the firing 
 | `TRIG` | A 4-pin header | The trigger board, which is an optical board or a switch board |
 | `J4` | The USB-C receptacle | Data and programming. USB-C does not give power to the board. |
 
-{{image pcb:docs/images/quick-start/buttons-back.svg | The three buttons at the back of the grip frame}}
+{{media buttons_back}}
 
 ## The status LED
 
